@@ -1,3 +1,8 @@
+public protocol ResponseError: Error, Sendable {
+    var status: Status { get }
+    var reason: String { get }
+}
+
 public struct Abort: Error, Sendable {
     public let status: Status
     public let reason: String
@@ -7,3 +12,5 @@ public struct Abort: Error, Sendable {
         self.reason = reason ?? status.reasonPhrase
     }
 }
+
+extension Abort: ResponseError {}

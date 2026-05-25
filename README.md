@@ -32,8 +32,10 @@ Implemented today:
 - Declarative route DSL: `Get`, `Post`, `Group`.
 - Path parameters with `:name` syntax.
 - `Request`, `Response`, `Status`, `Headers`, `Parameters`.
+- Daylily-owned `Body` request body model.
+- One-shot body consumption with `ByteChunk` and `ByteCount`.
 - `ResponseConvertible` for `String`, `Status`, and `Response`.
-- JSON body decoding with `request.json(...)`.
+- Async JSON body decoding with `request.body.json(...)` and `request.json(...)`.
 - JSON responses with `JSON(...)`.
 - NIO-backed HTTP/1.1 server.
 - Macro route/group MVP: `@DaylilyServer`, `@GET`, `@POST`, `@GROUP`.
@@ -43,8 +45,8 @@ Implemented today:
 
 Not implemented yet:
 
+- True NIO request body streaming and backpressure.
 - Middleware.
-- Streaming request body.
 - Typed parameter injection.
 - OpenAPI generation.
 - Dependency injection.
@@ -115,12 +117,12 @@ struct HelloDaylily {
             }
 
             Post("/json/echo") { request in
-                let input = try request.json(EchoPayload.self)
+                let input = try await request.json(EchoPayload.self)
                 return JSON(EchoResponse(echo: input.message))
             }
 
             Post("/echo") { request in
-                request.bodyString
+                try await request.body.string(upTo: .kilobytes(64))
             }
         }
 
@@ -243,7 +245,7 @@ The most important invariants:
 
 Near-term:
 
-1. Streaming request body.
+1. NIO true streaming body bridge.
 2. Middleware runtime.
 3. Typed parameter extraction.
 4. OpenAPI metadata.

@@ -13,8 +13,8 @@ struct MacroSmoke {
     }
 
     @POST("/macro/echo")
-    func echo(req: Request) -> String {
-        req.bodyString
+    func echo(req: Request) async throws -> String {
+        try await req.body.string(upTo: .kilobytes(64))
     }
 
     @GET("/macro/json")
@@ -35,8 +35,8 @@ struct MacroSmoke {
         }
 
         @POST("/echo")
-        func echo(req: Request) -> String {
-            req.bodyString
+        func echo(req: Request) async throws -> String {
+            try await req.body.string(upTo: .kilobytes(64))
         }
 
         @GET("/json")

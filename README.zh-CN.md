@@ -32,8 +32,10 @@ Daylily 不是 Vapor 或 Hummingbird 的复制品。它是在探索：如果 AI 
 - 声明式路由 DSL：`Get`、`Post`、`Group`。
 - `:name` 形式的路径参数。
 - `Request`、`Response`、`Status`、`Headers`、`Parameters`。
+- Daylily 自有的 `Body` request body 模型。
+- 基于 `ByteChunk` 和 `ByteCount` 的 one-shot body 消费。
 - `String`、`Status`、`Response` 的 `ResponseConvertible` 支持。
-- 通过 `request.json(...)` 解码 JSON body。
+- 通过 `request.body.json(...)` 和 `request.json(...)` 异步解码 JSON body。
 - 通过 `JSON(...)` 返回 JSON response。
 - 基于 NIO 的 HTTP/1.1 server。
 - Macro route/group MVP：`@DaylilyServer`、`@GET`、`@POST`、`@GROUP`。
@@ -43,8 +45,8 @@ Daylily 不是 Vapor 或 Hummingbird 的复制品。它是在探索：如果 AI 
 
 还没有实现：
 
+- 真正的 NIO request body streaming 和 backpressure。
 - Middleware。
-- 流式 request body。
 - 类型化参数注入。
 - OpenAPI 生成。
 - 依赖注入。
@@ -115,12 +117,12 @@ struct HelloDaylily {
             }
 
             Post("/json/echo") { request in
-                let input = try request.json(EchoPayload.self)
+                let input = try await request.json(EchoPayload.self)
                 return JSON(EchoResponse(echo: input.message))
             }
 
             Post("/echo") { request in
-                request.bodyString
+                try await request.body.string(upTo: .kilobytes(64))
             }
         }
 
@@ -243,7 +245,7 @@ Daylily/
 
 近期：
 
-1. 流式 request body。
+1. NIO 真 streaming body bridge。
 2. Middleware runtime。
 3. 类型化参数提取。
 4. OpenAPI metadata。

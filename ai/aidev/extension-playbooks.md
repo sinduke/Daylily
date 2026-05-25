@@ -22,7 +22,8 @@ Do not touch NIO transport unless the method cannot be parsed.
 Current shape:
 
 ```swift
-let input = try request.json(CreateUser.self)
+let input = try await request.body.json(CreateUser.self, upTo: .megabytes(1))
+let input = try await request.json(CreateUser.self)
 ```
 
 Implemented owner: `DaylilyJSON`.
@@ -31,10 +32,12 @@ Steps:
 
 1. Keep Foundation-based JSON helpers in `DaylilyJSON`.
 2. Do not move JSON into `DaylilyCore` without an ADR.
-3. Add explicit content-size behavior before claiming large body support.
-4. Preserve `Abort(.badRequest, reason: "Invalid JSON body")` for decode failures unless the error model is intentionally revised.
-5. Add checks.
-6. Update API registry and conventions.
+3. Keep `request.body.json(...)` as the standard API.
+4. Keep `request.json(...)` as convenience sugar with a default 1 MB limit.
+5. Enforce explicit body limits for standard body helpers.
+6. Preserve `Abort(.badRequest, reason: "Invalid JSON body")` for decode failures unless the error model is intentionally revised.
+7. Add checks.
+8. Update API registry and conventions.
 
 Non-goals:
 
@@ -115,17 +118,24 @@ Rules:
 
 1. Do not expose `ByteBuffer` publicly by default.
 2. Preserve backpressure.
-3. Do not keep buffering large bodies in memory.
-4. Define cancellation behavior.
-5. Define one-shot consumption behavior.
+3. Do not claim true streaming while the transport still buffers.
+4. Do not keep buffering large bodies in memory in the final streaming bridge.
+5. Define cancellation behavior.
+6. Preserve one-shot consumption behavior.
 
-Likely steps:
+Current split:
 
-1. Introduce a Daylily-owned `Body` type.
-2. Change `Request.body` from `[UInt8]` to `Body` only after migration plan.
-3. Update NIO transport to bridge request parts to async sequence.
-4. Add checks with chunked input.
-5. Update AIDEV thoroughly.
+- 0008A introduced the Daylily-owned `Body` model.
+- 0008B must implement true NIO chunk feeding, bounded buffering, and backpressure.
+
+0008B likely steps:
+
+1. Create request after NIO request head.
+2. Feed NIO body chunks into `BodyBytes`.
+3. Finish stream on request end.
+4. Fail stream on channel/protocol error.
+5. Add checks with chunked input.
+6. Update AIDEV thoroughly.
 
 ## Extend Macro Route MVP
 

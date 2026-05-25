@@ -12,8 +12,8 @@ public struct Application: Sendable {
     public func respond(to request: Request) async -> Response {
         do {
             return try await router.respond(to: request)
-        } catch let abort as Abort {
-            return Response.text(abort.reason, status: abort.status)
+        } catch let error as ResponseError {
+            return Response.text(error.reason, status: error.status)
         } catch {
             return Response.text("Internal Server Error", status: .internalServerError)
         }

@@ -32,7 +32,9 @@ Examples:
 
 ```swift
 Get("/hello") { "hello" }
-Post("/echo") { request in request.bodyString }
+Post("/echo") { request in
+    try await request.body.string(upTo: .kilobytes(64))
+}
 ```
 
 Routes are runtime data. Macros generate routes; they do not bypass the route system.
@@ -75,15 +77,55 @@ body
 parameters
 ```
 
-The current body is buffered bytes. This is intentionally temporary.
+`body` is a Daylily-owned `Body`.
+
+Body usage:
+
+```swift
+for try await chunk in request.body.bytes {
+    chunk.bytes
+    chunk.count
+}
+
+let bytes = try await request.body.collect(upTo: .megabytes(1))
+let text = try await request.body.string(upTo: .kilobytes(64))
+```
+
+`Body` is one-shot. Reading bytes, collecting, string decoding, or JSON decoding consumes it. A second read fails with `BodyError.alreadyConsumed`.
+
+0008A still lets `DaylilyNIO` buffer internally before creating `Request`; true transport-level streaming is planned for 0008B.
 
 JSON body decoding is provided by `DaylilyJSON`:
 
 ```swift
-let input = try request.json(CreateUser.self)
+let input = try await request.body.json(CreateUser.self, upTo: .megabytes(1))
+let input = try await request.json(CreateUser.self)
 ```
 
 Decode failures throw `Abort(.badRequest, reason: "Invalid JSON body")`.
+The convenience `request.json(...)` uses a default 1 MB body limit.
+
+## Body Helpers
+
+`ByteCount` expresses explicit body limits:
+
+```swift
+.bytes(512)
+.kilobytes(64)
+.megabytes(1)
+.gigabytes(1)
+```
+
+Unit helpers are 1024-based.
+
+`ByteChunk` is the body stream element. In the first version it exposes:
+
+```swift
+chunk.bytes
+chunk.count
+```
+
+It intentionally does not conform to `Collection` yet.
 
 ## Parameters
 
@@ -143,6 +185,17 @@ Future:
 
 - streaming response
 - file response
+
+## ResponseError
+
+`ResponseError` is the runtime error-to-response contract.
+
+Current conformers:
+
+- `Abort`
+- `BodyError`
+
+`Application.respond(to:)` maps `ResponseError.status` and `ResponseError.reason` into a text response.
 
 ## Router
 

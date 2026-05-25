@@ -122,9 +122,9 @@ NIO Channel
   ↓
 HTTPServerRequestPart.head/body/end
   ↓
-DaylilyNIO accumulates body bytes
+DaylilyNIO accumulates body bytes for 0008A
   ↓
-DaylilyCore.Request
+DaylilyCore.Request with Body.bytes(...)
   ↓
 Router
   ↓
@@ -140,6 +140,17 @@ NIO HTTP response parts
 ```
 
 Current body handling is buffered. Streaming body is a planned runtime capability and must be designed before large upload support.
+
+0008A body model:
+
+```text
+Request.body -> Body
+Body.bytes -> BodyBytes
+BodyBytes.Element -> ByteChunk
+collect/string/json helpers require limits
+```
+
+`Body` is one-shot and backed by shared storage, so copying `Body` does not allow a second read. True transport-level chunk streaming and backpressure remain planned for 0008B.
 
 ## Router Rules
 
@@ -166,9 +177,12 @@ Runtime errors should become responses through `Application.respond(to:)`.
 
 Current behavior:
 
-- `Abort` maps to its status and reason.
+- `ResponseError` maps to its status and reason.
+- `Abort` conforms to `ResponseError`.
+- `BodyError` conforms to `ResponseError`.
 - Unknown errors map to `500 Internal Server Error`.
 - Missing route maps to `404 Not Found`.
+- Body over limit maps to `413 Payload Too Large`.
 
 Future:
 

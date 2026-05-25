@@ -115,11 +115,47 @@ Delivered:
 
 ## Recommended Next Feature
 
-### 0008 Streaming Body Model
+### 0008A Body Model Migration
+
+Status: implemented
+
+Migrate public/runtime request body APIs to a Daylily-owned `Body` model.
+
+Key direction:
+
+- `Request.body: Body`
+- `Body` is uniformly one-shot.
+- `Body.bytes` yields `ByteChunk`.
+- `ByteChunk` exposes only `bytes` and `count` in the first version.
+- `ByteCount` supports bytes, kilobytes, megabytes, and gigabytes.
+- JSON body decoding becomes async.
+- `request.json(...)` remains convenience sugar with a default 1 MB limit.
+- Body limit failures map to `413 Payload Too Large`.
+- True NIO streaming is deferred to 0008B.
+- Checks cover one-shot behavior, copied body one-shot behavior, limits, UTF-8 errors, JSON migration, and 413 mapping.
+
+Task:
+
+- `ai/tasks/0008A-body-model-migration.md`
+
+### 0008B NIO True Streaming Bridge
 
 Status: proposed
 
-Design and implement request body streaming without exposing NIO.
+Bridge NIO HTTP request chunks into Daylily `Body` without exposing NIO types.
+
+Key direction:
+
+- Create `Request` after receiving request head.
+- Feed NIO body chunks into `BodyBytes`.
+- Finish stream on request end.
+- Fail stream on channel/protocol errors.
+- Implement bounded buffering and practical backpressure.
+- Preserve the public API created in 0008A.
+
+Task:
+
+- `ai/tasks/0008B-nio-true-streaming-bridge.md`
 
 ### 0009 Middleware Runtime
 

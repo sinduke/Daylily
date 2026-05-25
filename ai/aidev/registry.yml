@@ -5,7 +5,7 @@ project:
   license: MIT
   license_file: LICENSE
   swift_tools_version: "6.0"
-  current_phase: "json_body_and_response"
+  current_phase: "body_model_migration"
   authoritative_ai_entry:
     - AIDEV.md
     - ai/aidev/start-here.md
@@ -55,7 +55,7 @@ products:
     kind: library
     role: json_helpers
     responsibility:
-      - decode_buffered_json_request_bodies
+      - decode_json_request_bodies
       - encode_json_responses
       - keep_foundation_json_out_of_core
     depends_on:
@@ -83,6 +83,7 @@ products:
       - route_model
       - router_matching
       - request_response_models
+      - body_model
       - response_conversion
       - path_parameters
       - basic_errors
@@ -140,7 +141,7 @@ implemented_features:
     protocol: HTTP/1.1
   buffered_body:
     status: implemented
-    type: "[UInt8]"
+    type: "Body backed by buffered bytes in 0008A"
   aidev_contract:
     status: implemented
   aidev_self_contained_spec:
@@ -174,16 +175,56 @@ implemented_features:
     task: "0007-json-body-and-response"
     module: DaylilyJSON
     public_api:
-      - "Request.json(_:) for buffered JSON body decoding"
+      - "Body.json(_:upTo:) for standard async JSON body decoding"
+      - "Request.json(_:upTo:) as convenience sugar"
       - "JSON<Value> response wrapper"
     limitations:
-      - "request body is still buffered"
+      - "DaylilyNIO still buffers request body before creating Request until 0008B"
       - "request content type is not enforced yet"
       - "all Encodable types do not automatically conform to ResponseConvertible"
+  body_model_migration:
+    status: implemented
+    task: "0008A-body-model-migration"
+    public_api:
+      - Body
+      - BodyBytes
+      - ByteChunk
+      - ByteCount
+      - BodyError
+      - ResponseError
+      - "Status.payloadTooLarge"
+    decisions:
+      - "Request.body is Body"
+      - "Body is uniformly one-shot"
+      - "Body uses shared storage so copied Body values cannot bypass one-shot consumption"
+      - "BodyBytes yields ByteChunk"
+      - "ByteChunk exposes bytes and count only"
+      - "ByteCount supports bytes, kilobytes, megabytes, and gigabytes"
+      - "ByteCount unit helpers are 1024-based"
+      - "JSON body decode is async"
+      - "request.body.json(...) is the standard JSON API"
+      - "request.json(...) remains convenience sugar"
+      - "default JSON body limit is 1 MB"
+      - "body too large maps to 413 Payload Too Large"
+      - "BodyError maps through ResponseError"
+    limitations:
+      - "true NIO streaming is deferred to 0008B"
+      - "transport backpressure is deferred to 0008B"
 
 planned_features:
-  streaming_body:
+  nio_true_streaming_bridge:
     status: proposed
+    task: "0008B-nio-true-streaming-bridge"
+    file: "ai/tasks/0008B-nio-true-streaming-bridge.md"
+    depends_on:
+      - "0008A-body-model-migration"
+    decisions:
+      - "NIO request head creates Request with streaming Body"
+      - "NIO body chunks feed BodyBytes"
+      - "request end finishes BodyBytes"
+      - "channel or protocol errors fail BodyBytes"
+      - "bounded buffering and backpressure are required"
+      - "public APIs must not expose NIO types"
   middleware:
     status: proposed
   typed_parameter_extraction:
@@ -226,7 +267,7 @@ public_api:
         - "public init(@RouteBuilder routes: () -> [Route])"
         - "public init(routes: [Route])"
         - "public func respond(to request: Request) async -> Response"
-      contract: "Always returns a Response; converts Abort and unknown errors."
+      contract: "Always returns a Response; converts ResponseError and unknown errors."
     Route:
       kind: struct
       conforms:
@@ -244,9 +285,73 @@ public_api:
         - "method: HTTPMethod"
         - "path: String"
         - "headers: Headers"
-        - "body: [UInt8]"
+        - "body: Body"
         - "parameters: Parameters"
-      limitation: "Body is currently buffered."
+      methods:
+        - "public init(method:path:headers:body: Body = .bytes([]), parameters: Parameters = Parameters())"
+        - "public init(method:path:headers:body: [UInt8], parameters: Parameters = Parameters())"
+        - "public func with(parameters: Parameters) -> Request"
+      limitation: "DaylilyNIO still buffers before creating Request until 0008B."
+    Body:
+      kind: struct
+      conforms:
+        - Sendable
+      methods:
+        - "public static func bytes(_ bytes: [UInt8]) -> Body"
+        - "public func collect(upTo limit: ByteCount) async throws -> [UInt8]"
+        - "public func string(upTo limit: ByteCount) async throws -> String"
+      properties:
+        - "bytes: BodyBytes"
+      contract: "One-shot body abstraction backed by shared storage."
+    BodyBytes:
+      kind: struct
+      conforms:
+        - AsyncSequence
+        - Sendable
+      element: ByteChunk
+    ByteChunk:
+      kind: struct
+      conforms:
+        - Sendable
+      properties:
+        - "bytes: [UInt8]"
+        - "count: Int"
+      limitation: "Does not conform to Collection in first version."
+    ByteCount:
+      kind: struct
+      conforms:
+        - Comparable
+        - Sendable
+      properties:
+        - "bytes: Int"
+      factories:
+        - "bytes(_ value: Int)"
+        - "kilobytes(_ value: Int)"
+        - "megabytes(_ value: Int)"
+        - "gigabytes(_ value: Int)"
+      unit_base: 1024
+    ResponseError:
+      kind: protocol
+      methods:
+        - "var status: Status { get }"
+        - "var reason: String { get }"
+      conformers:
+        - Abort
+        - BodyError
+    BodyError:
+      kind: enum
+      conforms:
+        - ResponseError
+      cases:
+        - alreadyConsumed
+        - "tooLarge(limit: ByteCount)"
+        - streamFailed
+        - invalidEncoding
+      mappings:
+        alreadyConsumed: "500 Request body already consumed"
+        tooLarge: "413 Request body too large"
+        streamFailed: "400 Request body stream failed"
+        invalidEncoding: "400 Invalid UTF-8 body"
     Response:
       kind: struct
       conforms:
@@ -292,12 +397,19 @@ public_api:
       behavior:
         - "encodes with Foundation JSONEncoder"
         - "sets content-type to application/json unless already present"
+    Body_json:
+      kind: extension_method
+      signature: "public func json<Value: Decodable>(_ type: Value.Type, upTo limit: ByteCount) async throws -> Value"
+      behavior:
+        - "collects Body with explicit limit"
+        - "decodes collected bytes with Foundation JSONDecoder"
+        - "throws Abort(.badRequest, reason: \"Invalid JSON body\") on decode failure"
     Request_json:
       kind: extension_method
-      signature: "public func json<Value: Decodable>(_ type: Value.Type) throws -> Value"
+      signature: "public func json<Value: Decodable>(_ type: Value.Type, upTo limit: ByteCount = .megabytes(1)) async throws -> Value"
       behavior:
-        - "decodes buffered Request.body with Foundation JSONDecoder"
-        - "throws Abort(.badRequest, reason: \"Invalid JSON body\") on decode failure"
+        - "delegates to Body.json(_:upTo:)"
+        - "default JSON body limit is 1 MB"
       limitations:
         - "does not enforce request content type yet"
   DaylilyNIO:
@@ -328,16 +440,20 @@ runtime_rules:
     - wildcard
   path_parameter_prefix: ":"
   wildcard_prefix: "*"
-  current_body_model: buffered_bytes
-  future_body_model: async_sequence_stream
+  current_body_model: "Body one-shot API backed by buffered NIO body in 0008A"
+  future_body_model: "NIO true streaming Body bridge in 0008B"
   errors:
-    abort: "status + reason"
+    response_error: "status + reason"
+    abort: "ResponseError conformer"
+    body_error: "ResponseError conformer"
     unknown: "500 Internal Server Error"
     missing_route: "404 Not Found"
 
 invariants:
   - "DaylilyCore does not import NIO."
   - "User-facing APIs do not expose NIO types."
+  - "Request.body is DaylilyCore.Body."
+  - "Body consumption is one-shot."
   - "Runtime APIs are the ground truth."
   - "Macros lower into runtime APIs."
   - "swift build passes."
@@ -411,8 +527,9 @@ roadmap:
     - "0005-macro-route-mvp"
     - "0006-group-macro-mvp"
     - "0007-json-body-and-response"
+    - "0008A-body-model-migration"
   next_recommended:
-    - "0008-streaming-body-model"
+    - "0008B-nio-true-streaming-bridge"
   later:
     - "0009-middleware-runtime"
     - "0010-typed-parameter-extraction"

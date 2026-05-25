@@ -16,7 +16,8 @@ Output:
 Guarantees:
 
 - Matching route handler is called exactly once.
-- `Abort` is converted to its status and reason.
+- `ResponseError` is converted to its status and reason.
+- `Abort` and `BodyError` conform to `ResponseError`.
 - Unknown errors become `500 Internal Server Error`.
 - Missing route becomes `404 Not Found`.
 
@@ -110,17 +111,18 @@ Fields:
 - `method`: HTTP method.
 - `path`: request path without query string.
 - `headers`: normalized headers.
-- `body`: buffered bytes.
+- `body`: Daylily-owned `Body`.
 - `parameters`: path parameters populated by router.
 
 Guarantees:
 
 - `with(parameters:)` returns a new request preserving method, path, headers, and body.
-- `bodyString` decodes body bytes as UTF-8.
+- Preserved body uses shared one-shot state.
 
 Known limitation:
 
-- Body is currently buffered; this is not the final large-upload design.
+- `DaylilyNIO` still buffers body bytes before creating `Request` in 0008A.
+- True transport streaming and backpressure are deferred to 0008B.
 
 Extension points:
 
@@ -130,6 +132,46 @@ Extension points:
 - cookies
 - remote address
 - request context
+
+## Body Contract
+
+Owner:
+
+- `DaylilyCore`
+
+Types:
+
+- `Body`
+- `BodyBytes`
+- `ByteChunk`
+- `ByteCount`
+- `BodyError`
+
+Guarantees:
+
+- `Body` is the single request body abstraction.
+- `Body` is public value type backed by shared storage.
+- `Body` is uniformly one-shot.
+- Copying `Body` does not bypass one-shot consumption.
+- `Body.bytes` returns `BodyBytes`.
+- `BodyBytes.Element` is `ByteChunk`.
+- `ByteChunk` exposes `bytes` and `count`.
+- `ByteChunk` does not conform to `Collection` in the first version.
+- `Body.collect(upTo:)` requires an explicit `ByteCount` limit.
+- `Body.string(upTo:)` requires an explicit `ByteCount` limit.
+- `Body.string(upTo:)` is strict UTF-8 and throws `BodyError.invalidEncoding` on invalid bytes.
+- Buffered bodies yield at most one `ByteChunk` in 0008A.
+
+Error mapping:
+
+- `BodyError.tooLarge` maps to `413 Payload Too Large` with `Request body too large`.
+- `BodyError.alreadyConsumed` maps to `500 Internal Server Error` with `Request body already consumed`.
+- `BodyError.streamFailed` maps to `400 Bad Request` with `Request body stream failed`.
+- `BodyError.invalidEncoding` maps to `400 Bad Request` with `Invalid UTF-8 body`.
+
+Known limitation:
+
+- 0008A does not implement true NIO request streaming or backpressure.
 
 ## Response Contract
 
@@ -159,17 +201,20 @@ Owner:
 
 Inputs:
 
-- Buffered `Request.body` bytes for decode.
+- `Body` bytes collected under an explicit limit for decode.
 - `Encodable & Sendable` values for encode.
 
 Outputs:
 
-- Decoded `Decodable` values from `request.json(Type.self)`.
+- Decoded `Decodable` values from `request.body.json(Type.self, upTo:)`.
+- Decoded `Decodable` values from convenience `request.json(Type.self, upTo:)`.
 - `Response` values from `JSON(value)`.
 
 Guarantees:
 
-- `request.json(Type.self)` uses Foundation `JSONDecoder`.
+- `request.body.json(Type.self, upTo:)` uses Foundation `JSONDecoder`.
+- `request.json(Type.self)` delegates to `request.body.json(Type.self, upTo: .megabytes(1))`.
+- Default JSON body limit is 1 MB.
 - Decode failures throw `Abort(.badRequest, reason: "Invalid JSON body")`.
 - `JSON(value)` uses Foundation `JSONEncoder`.
 - `JSON(value)` sets `content-type: application/json` if the response does not already provide a content type.
@@ -177,7 +222,6 @@ Guarantees:
 
 Known limitations:
 
-- JSON decode reads from the current buffered request body.
 - Request content type is not enforced yet.
 - There is no custom encoder/decoder configuration API yet.
 - Daylily does not automatically make every `Encodable` a `ResponseConvertible`.
@@ -237,7 +281,7 @@ Guarantees:
 
 - Converts request head into Daylily method, path, headers.
 - Removes query string from `Request.path`.
-- Buffers body bytes for current runtime.
+- Buffers body bytes and creates `Request.body` as `Body.bytes(...)` in 0008A.
 - Calls responder asynchronously.
 - Writes response status, headers, body, and content length.
 
@@ -245,7 +289,7 @@ Known limitations:
 
 - No TLS.
 - No HTTP/2.
-- No streaming body.
+- No true request body streaming yet; 0008B owns the bridge.
 - No graceful signal handling.
 - No configurable backlog or worker count beyond current defaults.
 

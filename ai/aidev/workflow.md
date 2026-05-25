@@ -186,7 +186,7 @@ ai/tasks/
 Suggested file name:
 
 ```text
-0008-streaming-body-model.md
+0008B-nio-true-streaming-bridge.md
 ```
 
 Suggested structure:

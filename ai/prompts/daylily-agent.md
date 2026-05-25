@@ -73,8 +73,11 @@ The macro lowers into the runtime route DSL.
 JSON support is explicit:
 
 ```swift
-let input = try request.json(CreateUser.self)
+let input = try await request.body.json(CreateUser.self, upTo: .megabytes(1))
+let input = try await request.json(CreateUser.self)
 return JSON(User(...))
 ```
 
-Next major feature is the streaming body model. It must not expose NIO types through public user APIs.
+0008A body model migration is implemented. `Request.body` is `Body`, body consumption is one-shot, and true NIO streaming/backpressure is deferred to 0008B.
+
+Next major feature is the NIO true streaming body bridge. It must not expose NIO types through public user APIs.

@@ -73,11 +73,19 @@ Current:
 
 ```swift
 request.body
-request.bodyString
-try request.json(UserInput.self)
+try await request.body.collect(upTo: .megabytes(1))
+try await request.body.string(upTo: .kilobytes(64))
+try await request.body.json(UserInput.self, upTo: .megabytes(1))
+try await request.json(UserInput.self)
 ```
 
-Current body is fully buffered in memory. Do not claim large upload support yet.
+`request.body` is a one-shot `Body`. Reading bytes, collecting, decoding string, or decoding JSON consumes it.
+
+Collection helpers must use explicit limits. `request.json(Type.self)` is convenience sugar with a default 1 MB limit.
+
+`ByteCount.kilobytes`, `.megabytes`, and `.gigabytes` are 1024-based.
+
+0008A still allows `DaylilyNIO` to buffer internally before creating `Request`. Do not claim true transport streaming or backpressure until 0008B is implemented.
 
 Future:
 
@@ -112,6 +120,15 @@ Use:
 throw Abort(.notFound)
 throw Abort(.badRequest, reason: "Invalid input")
 ```
+
+Runtime-owned errors that can render HTTP responses should conform to `ResponseError`.
+
+Current `BodyError` mapping:
+
+- body too large: `413 Payload Too Large`
+- already consumed: `500 Internal Server Error`
+- stream failed: `400 Bad Request`
+- invalid UTF-8: `400 Bad Request`
 
 Do not leak raw internal error descriptions in default production responses.
 

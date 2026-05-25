@@ -2,14 +2,14 @@ public struct Request: Sendable {
     public let method: HTTPMethod
     public let path: String
     public let headers: Headers
-    public let body: [UInt8]
+    public let body: Body
     public let parameters: Parameters
 
     public init(
         method: HTTPMethod,
         path: String,
         headers: Headers = [:],
-        body: [UInt8] = [],
+        body: Body = .bytes([]),
         parameters: Parameters = Parameters()
     ) {
         self.method = method
@@ -19,8 +19,20 @@ public struct Request: Sendable {
         self.parameters = parameters
     }
 
-    public var bodyString: String {
-        String(decoding: body, as: UTF8.self)
+    public init(
+        method: HTTPMethod,
+        path: String,
+        headers: Headers = [:],
+        body: [UInt8],
+        parameters: Parameters = Parameters()
+    ) {
+        self.init(
+            method: method,
+            path: path,
+            headers: headers,
+            body: .bytes(body),
+            parameters: parameters
+        )
     }
 
     public func with(parameters: Parameters) -> Request {

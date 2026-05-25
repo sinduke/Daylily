@@ -145,26 +145,120 @@ public struct Request: Sendable {
     public let method: HTTPMethod
     public let path: String
     public let headers: Headers
-    public let body: [UInt8]
+    public let body: Body
     public let parameters: Parameters
 
     public init(
         method: HTTPMethod,
         path: String,
         headers: Headers = [:],
-        body: [UInt8] = [],
+        body: Body = .bytes([]),
         parameters: Parameters = Parameters()
     )
 
-    public var bodyString: String { get }
+    public init(
+        method: HTTPMethod,
+        path: String,
+        headers: Headers = [:],
+        body: [UInt8],
+        parameters: Parameters = Parameters()
+    )
+
     public func with(parameters: Parameters) -> Request
 }
 ```
 
 Body rules:
 
-- Current body model is buffered bytes.
-- Large body and upload support should use a future streaming abstraction.
+- `body` is a Daylily-owned `Body`.
+- The `[UInt8]` initializer converts bytes into `Body.bytes(...)`.
+- `with(parameters:)` preserves the same `Body` storage and one-shot state.
+- True NIO streaming is deferred to 0008B.
+
+### Body
+
+```swift
+public struct Body: Sendable {
+    public static func bytes(_ bytes: [UInt8]) -> Body
+    public var bytes: BodyBytes { get }
+    public func collect(upTo limit: ByteCount) async throws -> [UInt8]
+    public func string(upTo limit: ByteCount) async throws -> String
+}
+```
+
+Rules:
+
+- `Body` is one-shot.
+- Reading `bytes`, `collect(upTo:)`, `string(upTo:)`, or JSON consumes the body.
+- A second read throws `BodyError.alreadyConsumed`.
+- `Body` is a public value type backed by shared storage.
+- Copying `Body` does not reset one-shot state.
+
+### BodyBytes
+
+```swift
+public struct BodyBytes: AsyncSequence, Sendable {
+    public typealias Element = ByteChunk
+    public func makeAsyncIterator() -> AsyncIterator
+}
+```
+
+Rules:
+
+- 0008A buffered bodies yield at most one `ByteChunk`.
+- True transport chunk streaming is deferred to 0008B.
+
+### ByteChunk
+
+```swift
+public struct ByteChunk: Sendable {
+    public let bytes: [UInt8]
+    public init(_ bytes: [UInt8])
+    public var count: Int { get }
+}
+```
+
+Rules:
+
+- First version exposes only `bytes` and `count`.
+- It does not conform to `Collection`.
+
+### ByteCount
+
+```swift
+public struct ByteCount: Comparable, Sendable {
+    public let bytes: Int
+
+    public init(bytes: Int)
+    public static func bytes(_ value: Int) -> ByteCount
+    public static func kilobytes(_ value: Int) -> ByteCount
+    public static func megabytes(_ value: Int) -> ByteCount
+    public static func gigabytes(_ value: Int) -> ByteCount
+}
+```
+
+Rules:
+
+- Values must be non-negative.
+- Unit helpers are 1024-based.
+
+### BodyError
+
+```swift
+public enum BodyError: ResponseError {
+    case alreadyConsumed
+    case tooLarge(limit: ByteCount)
+    case streamFailed
+    case invalidEncoding
+}
+```
+
+Mappings:
+
+- `.alreadyConsumed`: `500 Internal Server Error`, `Request body already consumed`
+- `.tooLarge`: `413 Payload Too Large`, `Request body too large`
+- `.streamFailed`: `400 Bad Request`, `Request body stream failed`
+- `.invalidEncoding`: `400 Bad Request`, `Invalid UTF-8 body`
 
 ### Response
 
@@ -256,6 +350,7 @@ Current constants:
 - `.created`
 - `.noContent`
 - `.badRequest`
+- `.payloadTooLarge`
 - `.notFound`
 - `.internalServerError`
 
@@ -292,6 +387,22 @@ Usage:
 request.parameters["id"]
 request.parameters.id
 ```
+
+### ResponseError
+
+```swift
+public protocol ResponseError: Error, Sendable {
+    var status: Status { get }
+    var reason: String { get }
+}
+```
+
+Current conformers:
+
+- `Abort`
+- `BodyError`
+
+`Application.respond(to:)` converts `ResponseError` values into text responses using `status` and `reason`.
 
 ### Abort
 
@@ -330,17 +441,27 @@ Rules:
 - Sets `content-type: application/json` if no content type is already present.
 - Does not make all `Encodable` types automatically conform to `ResponseConvertible`.
 
-### Request JSON Decoding
+### Body JSON Decoding
 
 ```swift
+public extension Body {
+    func json<Value: Decodable>(_ type: Value.Type, upTo limit: ByteCount) async throws -> Value
+}
+
 public extension Request {
-    func json<Value: Decodable>(_ type: Value.Type) throws -> Value
+    func json<Value: Decodable>(
+        _ type: Value.Type,
+        upTo limit: ByteCount = .megabytes(1)
+    ) async throws -> Value
 }
 ```
 
 Rules:
 
-- Decodes the current buffered `Request.body` with Foundation `JSONDecoder`.
+- `request.body.json(Type.self, upTo:)` is the standard JSON body API.
+- `request.json(Type.self)` is convenience sugar with a default 1 MB limit.
+- Decodes collected body bytes with Foundation `JSONDecoder`.
+- Body collection limit failures keep their `BodyError` mapping.
 - Decode failures throw `Abort(.badRequest, reason: "Invalid JSON body")`.
 - Request content type is not enforced yet.
 

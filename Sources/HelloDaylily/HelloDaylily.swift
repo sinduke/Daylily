@@ -30,12 +30,12 @@ struct HelloDaylily {
             }
 
             Post("/json/echo") { request in
-                let input = try request.json(EchoPayload.self)
+                let input = try await request.json(EchoPayload.self)
                 return JSON(EchoResponse(echo: input.message))
             }
 
             Post("/echo") { request in
-                request.bodyString
+                try await request.body.string(upTo: .kilobytes(64))
             }
         }
 

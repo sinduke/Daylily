@@ -29,12 +29,23 @@ public struct JSON<Value: Encodable & Sendable>: ResponseConvertible {
     }
 }
 
-public extension Request {
-    func json<Value: Decodable>(_ type: Value.Type) throws -> Value {
+public extension Body {
+    func json<Value: Decodable>(_ type: Value.Type, upTo limit: ByteCount) async throws -> Value {
+        let bytes = try await collect(upTo: limit)
+
         do {
-            return try JSONDecoder().decode(type, from: Data(body))
+            return try JSONDecoder().decode(type, from: Data(bytes))
         } catch {
             throw Abort(.badRequest, reason: "Invalid JSON body")
         }
+    }
+}
+
+public extension Request {
+    func json<Value: Decodable>(
+        _ type: Value.Type,
+        upTo limit: ByteCount = .megabytes(1)
+    ) async throws -> Value {
+        try await body.json(type, upTo: limit)
     }
 }

@@ -24,8 +24,10 @@ These rules define Daylily's shape. Do not break them without an ADR.
 1. Public closures should be `@Sendable`.
 2. Public runtime types should be `Sendable` when practical.
 3. `Request` and `Response` are Daylily-owned types.
-4. `String`, `Status`, and `Response` remain simple return values.
-5. New return types should conform to `ResponseConvertible`.
+4. `Request.body` is a Daylily-owned `Body`, not a transport type.
+5. `Body` consumption is one-shot.
+6. `String`, `Status`, and `Response` remain simple return values.
+7. New return types should conform to `ResponseConvertible`.
 
 ## Routing
 
@@ -42,4 +44,3 @@ These rules define Daylily's shape. Do not break them without an ADR.
 3. If implementation and AIDEV disagree, the task must reconcile the mismatch.
 4. New modules, public APIs, commands, or workflows must be reflected in AIDEV.
 5. `registry.yml` should remain machine-readable and reasonably complete.
-

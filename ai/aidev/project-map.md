@@ -34,7 +34,7 @@ Daylily/
 `DaylilyCore`
 
 - Framework runtime.
-- Owns request, response, route, router, handler, status, headers, parameters, errors.
+- Owns request, response, body, route, router, handler, status, headers, parameters, errors.
 - Must stay independent from NIO and transport-specific APIs.
 
 `DaylilyJSON`
@@ -82,10 +82,17 @@ Daylily/
 
 - Holds `Router`.
 - Entrypoint for in-memory request handling via `respond(to:)`.
+- Converts `ResponseError` failures into responses.
+
+`Sources/DaylilyCore/Body.swift`
+
+- Defines `Body`, `BodyBytes`, `ByteChunk`, `ByteCount`, and `BodyError`.
+- Implements the 0008A one-shot body model.
+- Buffered bodies currently yield one `ByteChunk`.
 
 `Sources/DaylilyCore/Errors.swift`
 
-- Defines `Abort`.
+- Defines `ResponseError` and `Abort`.
 
 `Sources/DaylilyCore/Handler.swift`
 
@@ -105,7 +112,7 @@ Daylily/
 
 `Sources/DaylilyCore/Request.swift`
 
-- Method, path, headers, body, parameters.
+- Method, path, headers, `Body`, parameters.
 
 `Sources/DaylilyCore/Response.swift`
 
@@ -126,12 +133,12 @@ Daylily/
 
 `Sources/DaylilyCore/Status.swift`
 
-- HTTP status model.
+- HTTP status model, including `413 Payload Too Large`.
 
 `Sources/DaylilyJSON/JSON.swift`
 
 - Defines the `JSON<Value>` response wrapper.
-- Adds `Request.json(_:)` for buffered JSON body decoding.
+- Adds async `Body.json(_:upTo:)` and `Request.json(_:upTo:)` body decoding.
 - Converts JSON decode failures into `Abort(.badRequest, reason: "Invalid JSON body")`.
 
 `Sources/DaylilyMacros/DaylilyMacros.swift`

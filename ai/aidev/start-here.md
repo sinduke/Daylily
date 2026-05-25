@@ -19,7 +19,7 @@ struct App {
 }
 ```
 
-Current implemented surfaces are the runtime DSL, JSON body/response helpers, and the macro route/group MVP.
+Current implemented surfaces are the runtime DSL, the Daylily-owned `Body` model, JSON body/response helpers, and the macro route/group MVP.
 
 Runtime DSL:
 
@@ -44,8 +44,12 @@ let app = Application {
     }
 
     Post("/json/echo") { request in
-        let input = try request.json(EchoPayload.self)
+        let input = try await request.json(EchoPayload.self)
         return JSON(EchoResponse(echo: input.message))
+    }
+
+    Post("/echo") { request in
+        try await request.body.string(upTo: .kilobytes(64))
     }
 }
 
@@ -88,7 +92,9 @@ Implemented:
 - Core runtime.
 - Basic route DSL: `Get`, `Post`, `Group`.
 - Macro route/group MVP: `@DaylilyServer`, `@GET`, `@POST`, `@GROUP`.
-- JSON body decoding with `request.json(...)`.
+- Daylily-owned `Body` model with one-shot consumption.
+- `ByteChunk`, `BodyBytes`, `ByteCount`, `BodyError`, and `ResponseError`.
+- Async JSON body decoding with `request.body.json(...)` and `request.json(...)`.
 - JSON responses with `JSON(...)`.
 - Request and response types.
 - Path parameter extraction as strings.
@@ -100,7 +106,7 @@ Implemented:
 Not implemented:
 
 - Middleware.
-- Streaming body.
+- True NIO request body streaming and backpressure.
 - Typed parameter injection.
 - OpenAPI.
 - Dependency injection.
@@ -171,6 +177,6 @@ Do not start with:
 Current strategic order:
 
 1. Keep AIDEV self-contained.
-2. Add streaming body.
+2. Add NIO true streaming bridge.
 3. Add middleware.
 4. Add typed parameter extraction.
