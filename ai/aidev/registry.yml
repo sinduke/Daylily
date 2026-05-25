@@ -1,0 +1,404 @@
+project:
+  name: Daylily
+  package: Daylily
+  summary: "AI-native web framework for Swift"
+  license: MIT
+  license_file: LICENSE
+  swift_tools_version: "6.0"
+  current_phase: "json_body_and_response"
+  authoritative_ai_entry:
+    - AIDEV.md
+    - ai/aidev/start-here.md
+  default_run: "swift run"
+  check_command: "swift run HelloDaylily --check"
+  build_command: "swift build"
+
+dependencies:
+  swift-nio:
+    url: "https://github.com/apple/swift-nio.git"
+    requirement: "from 2.74.0"
+    resolved: "2.100.0"
+  swift-syntax:
+    url: "https://github.com/swiftlang/swift-syntax.git"
+    requirement: "from 603.0.0-latest"
+    resolved: "603.0.1"
+
+source_reading_policy:
+  aidev_is_authoritative: true
+  source_reading_allowed_for:
+    - exact_edits
+    - compiler_errors
+    - implementation_mismatch_checks
+  source_reading_not_required_for:
+    - project_understanding
+    - architecture_planning
+    - public_api_policy
+    - extension_strategy
+
+products:
+  Daylily:
+    kind: library
+    role: user_facing_reexport
+    responsibility:
+      - reexport_core
+      - reexport_json
+      - reexport_nio_transport
+      - provide_application_run
+      - expose_route_macros
+    depends_on:
+      - DaylilyCore
+      - DaylilyJSON
+      - DaylilyMacros
+      - DaylilyNIO
+  DaylilyJSON:
+    kind: library
+    role: json_helpers
+    responsibility:
+      - decode_buffered_json_request_bodies
+      - encode_json_responses
+      - keep_foundation_json_out_of_core
+    depends_on:
+      - DaylilyCore
+      - Foundation
+  DaylilyMacros:
+    kind: macro
+    role: macro_implementation
+    responsibility:
+      - implement_DaylilyServer
+      - implement_GET_marker
+      - implement_POST_marker
+      - implement_GROUP_marker
+      - lower_macro_routes_to_runtime_dsl
+    depends_on:
+      - SwiftCompilerPlugin
+      - SwiftSyntax
+      - SwiftSyntaxBuilder
+      - SwiftSyntaxMacros
+  DaylilyCore:
+    kind: library
+    role: runtime_core
+    responsibility:
+      - application_runtime
+      - route_model
+      - router_matching
+      - request_response_models
+      - response_conversion
+      - path_parameters
+      - basic_errors
+    depends_on: []
+    allowed_imports:
+      - Swift Standard Library
+    forbidden_imports:
+      - NIO
+      - NIOCore
+      - NIOHTTP1
+      - NIOPosix
+    public_api_must_not_expose:
+      - EventLoopFuture
+      - Channel
+      - ChannelHandler
+      - ChannelHandlerContext
+      - ByteBuffer
+  DaylilyNIO:
+    kind: library
+    role: nio_transport
+    responsibility:
+      - bind_http_server
+      - translate_nio_request_to_daylily_request
+      - translate_daylily_response_to_nio_response
+      - bridge_async_responder_to_event_loop
+    depends_on:
+      - DaylilyCore
+      - NIOCore
+      - NIOHTTP1
+      - NIOPosix
+  HelloDaylily:
+    kind: executable
+    role: example_and_checks
+    responsibility:
+      - default_server_for_swift_run
+      - smoke_routes
+      - lightweight_behavior_checks
+    depends_on:
+      - Daylily
+
+implemented_features:
+  runtime_dsl:
+    status: implemented
+    entry_points:
+      - Application
+      - Get
+      - Post
+      - Group
+  path_parameters:
+    status: implemented
+    syntax: ":name"
+    type: String
+  nio_http_server:
+    status: implemented
+    protocol: HTTP/1.1
+  buffered_body:
+    status: implemented
+    type: "[UInt8]"
+  aidev_contract:
+    status: implemented
+  aidev_self_contained_spec:
+    status: implemented
+  bilingual_readme:
+    status: implemented
+    files:
+      - README.md
+      - README.zh-CN.md
+  macro_route_mvp:
+    status: implemented
+    task: "0005-macro-route-mvp"
+    public_macros:
+      - "@DaylilyServer"
+      - "@GET"
+      - "@POST"
+    limitations:
+      - "server type must be default-initializable with Self()"
+      - "handlers must be instance methods"
+      - "handlers may have zero parameters or one Request parameter"
+  group_macro:
+    status: implemented
+    task: "0006-group-macro-mvp"
+    public_macros:
+      - "@GROUP"
+    limitations:
+      - "group types must be default-initializable"
+      - "group handlers follow route macro MVP handler limits"
+  json_body_and_response:
+    status: implemented
+    task: "0007-json-body-and-response"
+    module: DaylilyJSON
+    public_api:
+      - "Request.json(_:) for buffered JSON body decoding"
+      - "JSON<Value> response wrapper"
+    limitations:
+      - "request body is still buffered"
+      - "request content type is not enforced yet"
+      - "all Encodable types do not automatically conform to ResponseConvertible"
+
+planned_features:
+  streaming_body:
+    status: proposed
+  middleware:
+    status: proposed
+  typed_parameter_extraction:
+    status: proposed
+  openapi:
+    status: future
+  dependency_injection:
+    status: future
+
+public_api:
+  Daylily:
+    exports:
+      - DaylilyCore
+      - DaylilyJSON
+      - DaylilyNIO
+    Application.run:
+      signature: "public func run(host: String = \"127.0.0.1\", port: Int = 8080) async throws"
+      parameters:
+        host: "bind host"
+        port: "bind port"
+    macros:
+      DaylilyServer:
+        signature: "public macro DaylilyServer()"
+        role: "generate static main and Application route registration"
+      GET:
+        signature: "public macro GET(_ path: String)"
+        role: "mark instance method as GET route"
+      POST:
+        signature: "public macro POST(_ path: String)"
+        role: "mark instance method as POST route"
+      GROUP:
+        signature: "public macro GROUP(_ prefix: String)"
+        role: "mark nested struct as route group"
+  DaylilyCore:
+    Application:
+      kind: struct
+      conforms:
+        - Sendable
+      methods:
+        - "public init(@RouteBuilder routes: () -> [Route])"
+        - "public init(routes: [Route])"
+        - "public func respond(to request: Request) async -> Response"
+      contract: "Always returns a Response; converts Abort and unknown errors."
+    Route:
+      kind: struct
+      conforms:
+        - Sendable
+      properties:
+        - "method: HTTPMethod"
+        - "path: String"
+        - "handler: Handler"
+      contract: "Normalizes paths and stores route handler."
+    Request:
+      kind: struct
+      conforms:
+        - Sendable
+      properties:
+        - "method: HTTPMethod"
+        - "path: String"
+        - "headers: Headers"
+        - "body: [UInt8]"
+        - "parameters: Parameters"
+      limitation: "Body is currently buffered."
+    Response:
+      kind: struct
+      conforms:
+        - Sendable
+      properties:
+        - "status: Status"
+        - "headers: Headers"
+        - "body: [UInt8]"
+    ResponseConvertible:
+      kind: protocol
+      methods:
+        - "func toResponse() async throws -> Response"
+      conformers:
+        - Response
+        - Status
+        - String
+        - "JSON<Value>"
+    Handler:
+      kind: struct
+      role: "uniform async throwing request-to-response wrapper"
+    Router:
+      kind: struct
+      role: "method and path matcher"
+    route_dsl:
+      functions:
+        Get:
+          overloads:
+            - "(_ path: String, _ handler: @escaping @Sendable () async throws -> R) -> Route"
+            - "(_ path: String, _ handler: @escaping @Sendable (Request) async throws -> R) -> Route"
+        Post:
+          overloads:
+            - "(_ path: String, _ handler: @escaping @Sendable () async throws -> R) -> Route"
+            - "(_ path: String, _ handler: @escaping @Sendable (Request) async throws -> R) -> Route"
+        Group:
+          signature: "(_ prefix: String, @RouteBuilder routes: () -> [Route]) -> [Route]"
+  DaylilyJSON:
+    JSON:
+      kind: struct
+      generic: "Value: Encodable & Sendable"
+      conforms:
+        - ResponseConvertible
+      initializer: "public init(_ value: Value, status: Status = .ok, headers: Headers = [:])"
+      behavior:
+        - "encodes with Foundation JSONEncoder"
+        - "sets content-type to application/json unless already present"
+    Request_json:
+      kind: extension_method
+      signature: "public func json<Value: Decodable>(_ type: Value.Type) throws -> Value"
+      behavior:
+        - "decodes buffered Request.body with Foundation JSONDecoder"
+        - "throws Abort(.badRequest, reason: \"Invalid JSON body\") on decode failure"
+      limitations:
+        - "does not enforce request content type yet"
+  DaylilyNIO:
+    NIOHTTPServer:
+      kind: struct
+      role: transport
+    NIOServerConfiguration:
+      kind: struct
+      defaults:
+        host: "127.0.0.1"
+        port: 8080
+  DaylilyMacros:
+    DaylilyServerMacro:
+      kind: macro_implementation
+      generated_member: "static func main() async throws"
+    RouteMarkerMacro:
+      kind: macro_implementation
+      generated_peers: []
+      used_by:
+        - "@GET"
+        - "@POST"
+        - "@GROUP"
+
+runtime_rules:
+  route_priority:
+    - literal
+    - parameter
+    - wildcard
+  path_parameter_prefix: ":"
+  wildcard_prefix: "*"
+  current_body_model: buffered_bytes
+  future_body_model: async_sequence_stream
+  errors:
+    abort: "status + reason"
+    unknown: "500 Internal Server Error"
+    missing_route: "404 Not Found"
+
+invariants:
+  - "DaylilyCore does not import NIO."
+  - "User-facing APIs do not expose NIO types."
+  - "Runtime APIs are the ground truth."
+  - "Macros lower into runtime APIs."
+  - "swift build passes."
+  - "swift run starts the server."
+  - "swift run HelloDaylily --check passes."
+  - "Public API changes update AIDEV."
+
+aidev_files:
+  entry:
+    - AIDEV.md
+    - ai/aidev/start-here.md
+  docs:
+    - ai/aidev/project-map.md
+    - ai/aidev/architecture.md
+    - ai/aidev/concepts.md
+    - ai/aidev/runtime-contracts.md
+    - ai/aidev/api-registry.md
+    - ai/aidev/conventions.md
+    - ai/aidev/invariants.md
+    - ai/aidev/extension-playbooks.md
+    - ai/aidev/task-protocol.md
+    - ai/aidev/workflow.md
+    - ai/aidev/roadmap.md
+    - ai/aidev/registry.yml
+  prompts:
+    - ai/prompts/daylily-agent.md
+
+extension_playbooks:
+  - add_http_verb
+  - extend_json_body_decoding
+  - extend_json_responses
+  - add_middleware_runtime
+  - add_streaming_body
+  - extend_macro_route_mvp
+  - add_new_transport
+  - add_checks
+
+verification:
+  required:
+    - "swift build"
+    - "swift run HelloDaylily --check"
+  server_smoke:
+    start: "swift run"
+    requests:
+      - "curl http://127.0.0.1:8080/hello"
+      - "curl http://127.0.0.1:8080/users/42"
+      - "curl -X POST --data 'hi' http://127.0.0.1:8080/echo"
+      - "curl http://127.0.0.1:8080/json/health"
+      - "curl -X POST -H 'content-type: application/json' --data '{\"message\":\"hi\"}' http://127.0.0.1:8080/json/echo"
+    cleanup: "stop the HelloDaylily process"
+
+roadmap:
+  completed:
+    - "0001-minimal-http-server"
+    - "0002-aidev-project-contract"
+    - "0003-aidev-self-contained-spec"
+    - "0004-bilingual-readme-ai-native"
+    - "0005-macro-route-mvp"
+    - "0006-group-macro-mvp"
+    - "0007-json-body-and-response"
+  next_recommended:
+    - "0008-streaming-body-model"
+  later:
+    - "0009-middleware-runtime"
+    - "0010-typed-parameter-extraction"
