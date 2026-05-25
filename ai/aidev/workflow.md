@@ -73,6 +73,27 @@ curl http://127.0.0.1:8080/json/health
 curl -X POST -H 'content-type: application/json' --data '{"message":"hi"}' http://127.0.0.1:8080/json/echo
 ```
 
+## GitHub Actions CI
+
+Workflow:
+
+```text
+.github/workflows/ci.yml
+```
+
+Triggers:
+
+- push to `main`
+- pull request to `main`
+- manual `workflow_dispatch`
+
+CI mirrors the required local validation:
+
+```sh
+swift build
+swift run HelloDaylily --check
+```
+
 ## Task Files
 
 Tasks live in:

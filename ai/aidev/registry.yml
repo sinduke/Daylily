@@ -12,6 +12,7 @@ project:
   default_run: "swift run"
   check_command: "swift run HelloDaylily --check"
   build_command: "swift build"
+  ci_workflow: ".github/workflows/ci.yml"
 
 dependencies:
   swift-nio:
@@ -375,6 +376,19 @@ extension_playbooks:
   - add_checks
 
 verification:
+  ci:
+    provider: GitHub Actions
+    workflow: ".github/workflows/ci.yml"
+    triggers:
+      - push_to_main
+      - pull_request_to_main
+      - workflow_dispatch
+    runner: macos-latest
+    steps:
+      - "swift --version"
+      - "swift package resolve"
+      - "swift build"
+      - "swift run HelloDaylily --check"
   required:
     - "swift build"
     - "swift run HelloDaylily --check"

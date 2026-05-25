@@ -2,6 +2,8 @@
 
 [English](README.md) | 简体中文
 
+[![CI](https://github.com/sinduke/Daylily/actions/workflows/ci.yml/badge.svg)](https://github.com/sinduke/Daylily/actions/workflows/ci.yml)
+
 Daylily 是一个实验性的 AI-native Swift Web 框架。
 
 它一开始刻意保持很小：一个声明式 runtime、一个基于 NIO 的 HTTP server，以及一套 AIDEV 契约。AIDEV 的目标是让 AI 不需要先翻源码，也能快速理解、使用、升级和扩展这个项目。

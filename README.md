@@ -2,6 +2,8 @@
 
 English | [简体中文](README.zh-CN.md)
 
+[![CI](https://github.com/sinduke/Daylily/actions/workflows/ci.yml/badge.svg)](https://github.com/sinduke/Daylily/actions/workflows/ci.yml)
+
 Daylily is an experimental AI-native web framework for Swift.
 
 It starts small on purpose: a declarative runtime, a NIO-backed HTTP server, and an AIDEV contract that lets AI agents understand, use, upgrade, and extend the project without first spelunking through source code.
