@@ -1,5 +1,85 @@
 # Workflow
 
+## Work Modes
+
+Daylily work moves through explicit modes. Do not skip modes unless the user asks for a small mechanical change.
+
+### Divergence Mode
+
+Purpose:
+
+- Explore the problem space in conversation.
+- Surface tradeoffs, risks, constraints, alternatives, and open questions.
+- Keep the discussion lightweight and reversible.
+
+Rules:
+
+- Do not create or update task docs during divergence.
+- Do not change source code during divergence.
+- Do not mark registry or roadmap state as changed.
+- Use the conversation to think, compare options, and find the shape of the work.
+
+### Convergence Mode
+
+Purpose:
+
+- Turn the chosen direction into a written task.
+
+Rules:
+
+- Create or update the task file in `ai/tasks/`.
+- Define goal, scope, non-goals, architecture impact, public API impact, AIDEV updates, validation, and open questions.
+- Update roadmap or registry only when the project state actually changes.
+
+### Build Mode
+
+Purpose:
+
+- Execute the converged task.
+
+Rules:
+
+- Implement according to the task document.
+- Keep edits scoped.
+- Prefer runtime capability before macro syntax.
+- Add or update checks with the implementation.
+
+### Review Mode
+
+Purpose:
+
+- Audit the work before declaring it done.
+
+Rules:
+
+- Review code, API shape, AIDEV consistency, tests, and likely regressions.
+- Run required validation.
+- Treat findings as blockers if they affect correctness, public API, or documented invariants.
+
+### Fix Mode
+
+Purpose:
+
+- Address review findings.
+
+Rules:
+
+- Make focused fixes.
+- Re-run relevant validation.
+- Return to Review Mode after fixes.
+
+### Finish Mode
+
+Purpose:
+
+- Close the task cleanly.
+
+Rules:
+
+- Update docs and task status after implementation and review are complete.
+- Commit and push the finished work.
+- Branch strategy is intentionally simple for now; use `main` until the project introduces a more detailed branching policy.
+
 ## Standard AI Loop
 
 Before implementation:
@@ -10,6 +90,7 @@ Before implementation:
 4. Read the relevant file under `ai/aidev/`.
 5. Inspect source only as needed for exact edits.
 6. Identify module boundary and public API impact.
+7. If the user asks for divergence, stay in Divergence Mode and do not write docs yet.
 
 During implementation:
 

@@ -40,13 +40,12 @@ If you start the server for smoke testing, stop it before finishing.
 
 ## Preferred Work Style
 
-1. Identify the task file in `ai/tasks/`.
-2. Confirm scope and non-goals.
-3. Implement the smallest runtime-safe change.
-4. Add or update checks.
-5. Update AIDEV docs and registry.
-6. Run validation.
-7. Report concise results.
+1. Divergence: discuss the problem space in conversation; do not write task docs or code.
+2. Convergence: create or update the task file in `ai/tasks/` after the direction is chosen.
+3. Build: implement the smallest runtime-safe change according to the task.
+4. Review: audit code, API shape, AIDEV consistency, tests, and regressions.
+5. Fix: address review findings and re-run validation.
+6. Finish: update docs and task status, then commit and push.
 
 ## Current Strategic Direction
 

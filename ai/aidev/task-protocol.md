@@ -73,8 +73,9 @@ An AI should:
 1. Read `AIDEV.md`.
 2. Read `ai/aidev/start-here.md`.
 3. Read this task protocol.
-4. Create or update the task file.
-5. State the task's scope in the working notes or conversation.
+4. If the user is still in divergence, discuss options in conversation and do not create or update task files yet.
+5. Create or update the task file only after the work enters convergence.
+6. State the task's scope in the working notes or conversation.
 
 ## During Work
 
@@ -99,4 +100,3 @@ Before marking `implemented`:
 Tiny typo fixes do not need a new task file.
 
 Any change that affects architecture, public API, runtime behavior, commands, or AI workflow needs a task.
-
