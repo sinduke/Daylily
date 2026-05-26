@@ -2,7 +2,7 @@ public struct Request: Sendable {
     public let method: HTTPMethod
     public let path: String
     public let headers: Headers
-    public let body: Body
+    public let body: RequestBody
     public let parameters: Parameters
     public let query: QueryParameters
 
@@ -10,7 +10,7 @@ public struct Request: Sendable {
         method: HTTPMethod,
         path: String,
         headers: Headers = [:],
-        body: Body = .bytes([]),
+        body: RequestBody = .bytes([]),
         parameters: Parameters = Parameters(),
         query: QueryParameters? = nil
     ) {
@@ -52,7 +52,7 @@ public struct Request: Sendable {
         )
     }
 
-    public func with(body: Body) -> Request {
+    public func with(body: RequestBody) -> Request {
         Request(
             method: method,
             path: path,

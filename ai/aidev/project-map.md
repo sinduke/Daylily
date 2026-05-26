@@ -62,7 +62,7 @@ Daylily/
 `DaylilyNIO`
 
 - NIO-backed HTTP transport.
-- Creates Daylily `Request` after NIO request head with a streaming `Body`.
+- Creates Daylily `Request` after NIO request head with a streaming `RequestBody`.
 - Feeds NIO body chunks into `BodyBytes` without exposing NIO types.
 - Uses bounded buffering and practical backpressure for request bodies.
 - Converts Daylily `Response` into NIO HTTP response parts.
@@ -135,7 +135,7 @@ Daylily/
 
 `Sources/DaylilyCore/Body.swift`
 
-- Defines `Body`, `BodyBytes`, `ByteChunk`, `ByteCount`, and `BodyError`.
+- Defines `RequestBody`, `BodyBytes`, `ByteChunk`, `ByteCount`, and `BodyError`.
 - Implements the 0008-001 one-shot body model.
 - Buffered bodies yield one `ByteChunk`; streaming bodies yield transport-fed chunks.
 
@@ -192,7 +192,7 @@ Daylily/
 
 `Sources/DaylilyCore/Request.swift`
 
-- Method, path, headers, `Body`, path parameters, and query parameters.
+- Method, path, headers, `RequestBody`, path parameters, and query parameters.
 - Request copy helpers for parameters, body replacement, and explicit buffered body replacement.
 
 `Sources/DaylilyCore/ServerConfiguration.swift`
@@ -231,12 +231,12 @@ Daylily/
 `Sources/DaylilyJSON/JSON.swift`
 
 - Defines the `JSON<Value>` response wrapper.
-- Adds async `Body.json(_:upTo:)` and `Request.json(_:upTo:)` body decoding.
+- Adds async `RequestBody.json(_:upTo:)` and `Request.json(_:upTo:)` body decoding.
 - Converts JSON decode failures into `Abort(.badRequest, reason: "Invalid JSON body")`.
 
 `Sources/DaylilyJSON/JSONBody.swift`
 
-- Public `@JSONBody` marker used by `@DaylilyServer`.
+- Public `@Body` marker used by `@DaylilyServer`; `@JSONBody` remains as a compatibility alias spelling.
 - Keeps JSON body marker ownership with the JSON module.
 
 `Sources/DaylilyMacros/DaylilyMacros.swift`
@@ -244,7 +244,7 @@ Daylily/
 - Macro implementation and compiler plugin registration.
 - `@DaylilyServer` scans route methods and group structs, then generates `static main() async throws`.
 - HTTP route markers and `@GROUP` are marker macros used by `@DaylilyServer`.
-- `@Path`, `@Query`, `@Header`, and `@JSONBody` handler inputs lower into runtime extraction and route metadata.
+- `@Path`, `@Query`, `@Header`, and preferred `@Body` handler inputs lower into runtime extraction and route metadata; `@JSONBody` is the compatibility alias spelling for `@Body`.
 
 `Sources/DaylilyNIO/NIOHTTPServer.swift`
 
@@ -274,7 +274,7 @@ Daylily/
 
 - In-memory test client.
 - Provides `respond(to:)`, `send(_:)`, verb helpers, and `postJSON(_:headers:body:)`.
-- Reuses `Application`, `Request`, `Response`, `Headers`, and `Body`.
+- Reuses `Application`, `Request`, `Response`, `Headers`, and `RequestBody`.
 
 `Sources/DaylilyTesting/TestRequest.swift`
 
@@ -298,7 +298,7 @@ Daylily/
 
 `Sources/HelloDaylily/MacroSmoke.swift`
 
-- Compile-time smoke coverage for macro route/group MVP, including `@Path` and `@JSONBody` handler inputs.
+- Compile-time smoke coverage for macro route/group MVP, including `@Path`, preferred `@Body`, and `@JSONBody` compatibility handler inputs.
 
 `Tests/DaylilyTests/DaylilyBehaviorTests.swift`
 

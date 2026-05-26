@@ -101,7 +101,7 @@ Tasks:
 
 Delivered:
 
-- `Request.body: Body`.
+- `Request.body: RequestBody`.
 - One-shot body consumption.
 - `BodyBytes` with `ByteChunk`.
 - `ByteCount` units for bytes, kilobytes, megabytes, and gigabytes.
@@ -128,7 +128,7 @@ Delivered:
 - `Routes` group collection wrapper.
 - Define ordering, short-circuiting, and error behavior.
 - Let application middleware wrap missing-route responses.
-- Make body interaction explicit: middleware may read `Body`, but it consumes the one-shot stream.
+- Make body interaction explicit: middleware may read `RequestBody`, but it consumes the one-shot stream.
 - Checks for ordering, same-scope order, group scope, 404 wrapping, short-circuiting, thrown errors, path parameters, and body one-shot behavior.
 - Explicit `Request.withBufferedBody(upTo:_:)`.
 - Keep helper in `DaylilyCore` first.
@@ -177,6 +177,7 @@ Practical interleave:
 0014-001 Route metadata runtime (delivered)
 0014-002 OpenAPI schema MVP (delivered)
 0014-003 Macro metadata bridge (delivered)
+0017-001 True @Body input spelling (delivered)
 ```
 
 ## Recently Completed Epic
@@ -199,7 +200,7 @@ Delivered shape:
 func user(@Path id: Int) -> String
 
 @POST("/users")
-func create(@JSONBody input: CreateUserInput) async throws -> Status
+func create(@Body input: CreateUserInput) async throws -> Status
 
 @GET("/search")
 func search(
@@ -304,12 +305,13 @@ Macro typed inputs now lower into route metadata:
 @Path -> RouteInputMetadata.path(...)
 @Query -> RouteInputMetadata.query(...)
 @Header -> RouteInputMetadata.header(...)
-@JSONBody -> RouteBodyMetadata.json(...)
+@Body -> RouteBodyMetadata.json(...)
+@JSONBody -> RouteBodyMetadata.json(...) compatibility alias spelling
 ```
 
 Suggested next task:
 
-- `0017-001-true-body-input`
+- `0018-001-beta-docs`
 
 ## Beta Closure Sequence
 
@@ -323,7 +325,7 @@ Recommended sequence:
 0015-001 Runtime and testing HTTP verbs: PUT / PATCH / DELETE / HEAD / OPTIONS (delivered)
 0015-002 Macro and OpenAPI HTTP verbs: @PUT / @PATCH / @DELETE / @HEAD / @OPTIONS (delivered)
 0016-001 Formal test target (delivered)
-0017-001 True @Body input spelling
+0017-001 True @Body input spelling (delivered)
 0018-001 Beta docs: quickstart, examples, capability matrix
 0019-001 Release hygiene: Linux CI, CHANGELOG, semver tag, public API registry sync
 ```
@@ -349,7 +351,7 @@ Options("/health") { Status.noContent }
 
 Remaining:
 
-- True `@Body` input spelling starts at `0017-001-true-body-input`.
+- Beta docs and release hygiene start with `0018-001-beta-docs`.
 
 ### Future Epics
 

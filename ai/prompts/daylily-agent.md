@@ -80,6 +80,8 @@ let input = try await request.json(CreateUser.self)
 return JSON(User(...))
 ```
 
-0008-001 body model migration is implemented. `Request.body` is `Body`, body consumption is one-shot, and JSON body decoding is async.
+Macro JSON body input uses preferred `@Body`; `@JSONBody` remains only as a compatibility alias spelling.
 
-0008-002 NIO true streaming bridge is implemented. `DaylilyNIO` creates a streaming `Body` after request head, feeds body chunks into `BodyBytes`, finishes on request end, fails on channel/protocol errors, and uses bounded buffering plus NIO `autoRead` for practical backpressure. It must not expose NIO types through public user APIs.
+0008-001 body model migration is implemented. `Request.body` is `RequestBody`, body consumption is one-shot, and JSON body decoding is async.
+
+0008-002 NIO true streaming bridge is implemented. `DaylilyNIO` creates a streaming `RequestBody` after request head, feeds body chunks into `BodyBytes`, finishes on request end, fails on channel/protocol errors, and uses bounded buffering plus NIO `autoRead` for practical backpressure. It must not expose NIO types through public user APIs.

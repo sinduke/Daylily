@@ -29,7 +29,7 @@ public struct JSON<Value: Encodable & Sendable>: ResponseConvertible {
     }
 }
 
-public extension Body {
+public extension RequestBody {
     func json<Value: Decodable>(_ type: Value.Type, upTo limit: ByteCount) async throws -> Value {
         let bytes = try await collect(upTo: limit)
 

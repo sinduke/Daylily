@@ -5,13 +5,13 @@ public struct TestRequest: Sendable {
     public var method: HTTPMethod
     public var path: String
     public var headers: Headers
-    public var body: Body
+    public var body: RequestBody
 
     public init(
         method: HTTPMethod,
         path: String,
         headers: Headers = [:],
-        body: Body = .bytes([])
+        body: RequestBody = .bytes([])
     ) {
         self.method = method
         self.path = path
@@ -29,7 +29,7 @@ public struct TestRequest: Sendable {
     public static func post(
         _ path: String,
         headers: Headers = [:],
-        body: Body = .bytes([])
+        body: RequestBody = .bytes([])
     ) -> TestRequest {
         TestRequest(method: .post, path: path, headers: headers, body: body)
     }
@@ -37,7 +37,7 @@ public struct TestRequest: Sendable {
     public static func put(
         _ path: String,
         headers: Headers = [:],
-        body: Body = .bytes([])
+        body: RequestBody = .bytes([])
     ) -> TestRequest {
         TestRequest(method: .put, path: path, headers: headers, body: body)
     }
@@ -45,7 +45,7 @@ public struct TestRequest: Sendable {
     public static func patch(
         _ path: String,
         headers: Headers = [:],
-        body: Body = .bytes([])
+        body: RequestBody = .bytes([])
     ) -> TestRequest {
         TestRequest(method: .patch, path: path, headers: headers, body: body)
     }
@@ -77,7 +77,7 @@ public struct TestRequest: Sendable {
         return copy
     }
 
-    public func withBody(_ body: Body) -> TestRequest {
+    public func withBody(_ body: RequestBody) -> TestRequest {
         var copy = self
         copy.body = body
         return copy

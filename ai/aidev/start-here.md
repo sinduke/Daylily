@@ -19,7 +19,7 @@ struct App {
 }
 ```
 
-Current implemented surfaces are the runtime DSL for `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, and `OPTIONS`, runtime route metadata, minimal `DaylilyOpenAPI` document generation, runtime middleware, `DaylilyObservability` request ID and request logging middleware, application lifecycle hooks, the Daylily-owned `Body` model, explicit buffered body replacement, JSON body/response helpers, the macro route/group MVP, macro `@Path`, `@Query`, `@Header`, and `@JSONBody` typed input injection with route metadata lowering, and `DaylilyTesting` in-memory request/response helpers.
+Current implemented surfaces are the runtime DSL for `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, and `OPTIONS`, runtime route metadata, minimal `DaylilyOpenAPI` document generation, runtime middleware, `DaylilyObservability` request ID and request logging middleware, application lifecycle hooks, the Daylily-owned `RequestBody` model, explicit buffered body replacement, JSON body/response helpers, the macro route/group MVP, macro `@Path`, `@Query`, `@Header`, and preferred `@Body` typed JSON input injection with route metadata lowering, `@JSONBody` compatibility alias spelling, and `DaylilyTesting` in-memory request/response helpers.
 
 Runtime DSL:
 
@@ -130,7 +130,7 @@ Middleware order is:
 application -> router dispatch -> group -> route -> handler
 ```
 
-Middleware may read `request.body`, but `Body` is one-shot. There is no hidden body replay. If middleware needs to inspect bytes and pass an equivalent body downstream, use `request.withBufferedBody(upTo:_:)` with an explicit limit.
+Middleware may read `request.body`, but `RequestBody` is one-shot. There is no hidden body replay. If middleware needs to inspect bytes and pass an equivalent body downstream, use `request.withBufferedBody(upTo:_:)` with an explicit limit.
 
 Observability currently starts as a separate module:
 
@@ -175,7 +175,7 @@ struct App {
     }
 
     @POST("/users")
-    func create(@JSONBody input: CreateUserInput) -> Status {
+    func create(@Body input: CreateUserInput) -> Status {
         .created
     }
 
@@ -231,7 +231,8 @@ Macro typed inputs also lower into runtime route metadata:
 @Path      -> RouteInputMetadata.path(...)
 @Query     -> RouteInputMetadata.query(...)
 @Header    -> RouteInputMetadata.header(...)
-@JSONBody  -> RouteBodyMetadata.json(...)
+@Body      -> RouteBodyMetadata.json(...)
+@JSONBody  -> RouteBodyMetadata.json(...) compatibility alias spelling
 ```
 
 Testing surface:
@@ -280,11 +281,11 @@ Implemented:
 - Macro route/group MVP: `@DaylilyServer`, `@GET`, `@POST`, `@PUT`, `@PATCH`, `@DELETE`, `@HEAD`, `@OPTIONS`, `@GROUP`.
 - Macro `@Path` typed path parameter injection.
 - Macro `@Query` and `@Header` typed input injection.
-- Macro `@JSONBody` typed JSON body injection.
+- Macro `@Body` typed JSON body injection, with `@JSONBody` kept only as a compatibility alias spelling.
 - Macro typed input metadata lowering for OpenAPI.
 - Runtime typed path parameter extraction.
 - `DaylilyTesting` in-memory `TestClient`, `TestRequest`, and response assertion helpers.
-- Daylily-owned `Body` model with one-shot consumption.
+- Daylily-owned `RequestBody` model with one-shot consumption.
 - Explicit `request.withBufferedBody(upTo:_:)` helper for bounded body buffering and replacement.
 - `ByteChunk`, `BodyBytes`, `ByteCount`, `BodyError`, and `ResponseError`.
 - True NIO request body streaming bridge with bounded buffering and practical backpressure.
@@ -300,7 +301,7 @@ Implemented:
 
 Not implemented:
 
-- Macro typed input injection beyond `@Path`, `@Query`, `@Header`, and `@JSONBody` (true `@Body` spelling, optional values, etc.).
+- Macro typed input injection beyond `@Path`, `@Query`, `@Header`, and `@Body` (optional values, etc.).
 - Deep OpenAPI schema derivation.
 - Dependency injection.
 - Macro middleware attributes.
@@ -381,6 +382,5 @@ Do not start with:
 
 Current strategic order:
 
-1. Decide and implement true `@Body`.
-2. Add beta docs: quickstart, JSON API example, middleware example, testing example, and capability matrix.
-3. Add release hygiene: Linux CI, CHANGELOG, semver tag, and public API registry sync.
+1. Add beta docs: quickstart, JSON API example, middleware example, testing example, and capability matrix.
+2. Add release hygiene: Linux CI, CHANGELOG, semver tag, and public API registry sync.

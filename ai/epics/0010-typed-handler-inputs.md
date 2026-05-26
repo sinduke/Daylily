@@ -17,7 +17,7 @@ func user(@Path id: UUID) async throws -> JSON<User> {
 }
 
 @POST("/users")
-func create(@JSONBody input: CreateUserInput) async throws -> Status {
+func create(@Body input: CreateUserInput) async throws -> Status {
     ...
 }
 ```
@@ -41,9 +41,9 @@ Design notes:
 
 - `0010-001` delivered the runtime API: `ParameterDecodable`, `Parameters.require(_:as:)`, `Parameters.get(_:as:)`, and `ParameterError`.
 - `0010-002` delivered macro `@Path` input injection by lowering into `Parameters.require(_:as:)`.
-- `0010-003` delivered macro `@JSONBody` input injection by lowering into `Request.json(_:upTo:)`.
+- `0010-003` delivered macro `@JSONBody` input injection by lowering into `Request.json(_:upTo:)`; `0017-001` later made `@Body` the preferred spelling.
 - `0010-004` delivered typed query/header extraction and macro `@Query` / `@Header` input injection.
-- True `@Body` spelling is deferred because `Body` is already Daylily's raw request body type.
+- The raw one-shot request body type is now `RequestBody`, leaving `Body` for typed JSON input sugar.
 - `DaylilyCore` should stay small.
 - Foundation-backed types such as `UUID` need a deliberate decision before being added to core.
 - Missing or invalid path parameters should map to `400 Bad Request`, not `500`.
@@ -53,6 +53,6 @@ Non-goals for the first task:
 
 - Full parameter injection macros.
 - Query/header/cookie extraction.
-- True `@Body` spelling.
+- Optional body inputs.
 - OpenAPI metadata.
 - Validation framework.

@@ -101,7 +101,7 @@ application -> router dispatch -> group -> route -> handler
 
 Middleware may short-circuit by returning a response without calling `next`. It may also throw; thrown errors become responses through `Application.respond(to:)`.
 
-Middleware can read `request.body`, but `Body` is one-shot. If middleware consumes the body and calls `next`, downstream code sees the consumed body. Daylily does not do hidden body replay.
+Middleware can read `request.body`, but `RequestBody` is one-shot. If middleware consumes the body and calls `next`, downstream code sees the consumed body. Daylily does not do hidden body replay.
 
 ## Request
 
@@ -117,9 +117,9 @@ body
 parameters
 ```
 
-`body` is a Daylily-owned `Body`.
+`body` is a Daylily-owned `RequestBody`.
 
-Body usage:
+RequestBody usage:
 
 ```swift
 for try await chunk in request.body.bytes {
@@ -131,7 +131,7 @@ let bytes = try await request.body.collect(upTo: .megabytes(1))
 let text = try await request.body.string(upTo: .kilobytes(64))
 ```
 
-`Body` is one-shot. Reading bytes, collecting, string decoding, or JSON decoding consumes it. A second read fails with `BodyError.alreadyConsumed`.
+`RequestBody` is one-shot. Reading bytes, collecting, string decoding, or JSON decoding consumes it. A second read fails with `BodyError.alreadyConsumed`.
 
 When middleware or a handler intentionally needs to inspect body bytes and pass an equivalent body downstream, use explicit buffering:
 
@@ -142,9 +142,9 @@ try await request.withBufferedBody(upTo: .megabytes(1)) { replayedRequest, bytes
 }
 ```
 
-This consumes the original body, creates a replacement `Body.bytes(...)`, and keeps the replacement body one-shot. There is no hidden body replay.
+This consumes the original body, creates a replacement `RequestBody.bytes(...)`, and keeps the replacement body one-shot. There is no hidden body replay.
 
-`DaylilyNIO` now creates a streaming `Body` after receiving the request head. NIO body chunks are fed into `BodyBytes` in order, request end finishes iteration, and channel/protocol errors surface as `BodyError.streamFailed`.
+`DaylilyNIO` now creates a streaming `RequestBody` after receiving the request head. NIO body chunks are fed into `BodyBytes` in order, request end finishes iteration, and channel/protocol errors surface as `BodyError.streamFailed`.
 
 Transport stream creation is hidden behind `@_spi(Transport)`, so user code still reads only `request.body.bytes`, `collect(upTo:)`, `string(upTo:)`, or JSON helpers.
 
@@ -158,7 +158,7 @@ let input = try await request.json(CreateUser.self)
 Decode failures throw `Abort(.badRequest, reason: "Invalid JSON body")`.
 The convenience `request.json(...)` uses a default 1 MB body limit.
 
-## Body Helpers
+## RequestBody Helpers
 
 `ByteCount` expresses explicit body limits:
 
@@ -409,7 +409,8 @@ Current macro-facing attributes:
 @Path
 @Query
 @Header
-@JSONBody
+@Body
+@JSONBody // compatibility alias spelling for @Body
 ```
 
 Example:
@@ -433,7 +434,7 @@ struct App {
     }
 
     @POST("/users")
-    func create(@JSONBody input: CreateUserInput) -> Status {
+    func create(@Body input: CreateUserInput) -> Status {
         .created
     }
 
@@ -460,12 +461,11 @@ MVP assumptions:
 - server type can be initialized with `Self()`
 - grouped types can be initialized with `Self.GroupType()`
 - handlers are instance methods
-- handlers may have zero parameters, one `Request` parameter, `@Path`, `@Query`, `@Header`, and one `@JSONBody` parameter
+- handlers may have zero parameters, one `Request` parameter, `@Path`, `@Query`, `@Header`, and one `@Body` parameter, with `@JSONBody` accepted as a compatibility alias spelling
 - `@Path` lowers into `req.parameters.require(_:as:)`
 - `@Query` lowers into `req.query.require(_:as:)`
 - `@Header` lowers into `req.headers.require(_:as:)`
-- `@JSONBody` lowers into `try await req.json(Type.self)`
-- true `@Body` spelling is deferred because `Body` is already Daylily's raw request body type
+- `@Body` lowers into `try await req.json(Type.self)`; `@JSONBody` remains as a compatibility alias spelling with the same lowering
 
 Macros create or expose the same route graph the runtime DSL creates.
 

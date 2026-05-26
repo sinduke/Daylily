@@ -1,70 +1,174 @@
+<div align="center">
+
 # Daylily
 
-[English](README.md) | 简体中文
+### 现代 AI-first Swift Web 框架
+
+为 Swift Concurrency 时代构建。<br>
+同时为人类开发者和 AI agent 设计。
+
+[English](README.md) | [简体中文](README.zh-CN.md)
+
+[快速开始](#快速开始) •
+[详细使用教程](#详细使用教程) •
+[AI-Native](#ai-native-by-design) •
+[架构](#架构) •
+[路线图](#路线图)
 
 [![CI](https://github.com/sinduke/Daylily/actions/workflows/ci.yml/badge.svg)](https://github.com/sinduke/Daylily/actions/workflows/ci.yml)
+![Swift](https://img.shields.io/badge/Swift-6-orange)
+![Platform](https://img.shields.io/badge/platform-macOS%2014%2B-blue)
+![Concurrency](https://img.shields.io/badge/Concurrency-Native-green)
+![OpenAPI](https://img.shields.io/badge/OpenAPI-MVP-8A2BE2)
+![Status](https://img.shields.io/badge/status-Experimental-red)
 
-Daylily 是一个实验性的 AI-native Swift Web 框架。
+</div>
 
-它一开始刻意保持很小：一个声明式 runtime、一个基于 NIO 的 HTTP server，以及一套 AIDEV 契约。AIDEV 的目标是让 AI 不需要先翻源码，也能快速理解、使用、升级和扩展这个项目。
+---
 
-> 还在等？Daylily 已经发货了。
+## 为什么 Daylily 存在
 
-## 为什么是 Daylily
+服务端 Swift 的底层基础很强。
 
-服务端 Swift 的底层基础很强，但上层框架的演进经常显得缓慢、不透明。Daylily 选择另一条路：
+但很多框架仍然带着 pre-Concurrency 时代的痕迹：
 
-- 先把 runtime 做扎实。
-- 保持 core 足够小。
-- 不把 transport 细节暴露给用户 API。
-- 默认拥抱 Swift Concurrency。
-- 宏只是声明式语法糖，不是框架的真相来源。
-- 从第一天开始就让 AI 通过架构地图、契约、注册表、任务和扩展手册参与开发。
+- 应用层代码经常绕不开 EventLoop 心智。
+- transport 细节容易漏进用户 API。
+- runtime pattern 更像是服务框架内部优化，而不是面向产品开发。
+- AI agent 必须从源码里反推架构。
+- 宏优先的设计有时会让 runtime 真相变得不够清晰。
 
-Daylily 不是 Vapor 或 Hummingbird 的复制品。它是在探索：如果 AI 辅助开发从一开始就是架构的一部分，一个 Swift Web 框架应该长什么样。
+Daylily 选择另一条路：
 
-## 当前状态
+- Swift Concurrency first。
+- Runtime-first architecture。
+- AI-native development workflow。
+- 显式契约优先于隐藏魔法。
+- 面向真实产品开发的 DX。
 
-已经实现：
+Daylily 一开始刻意保持很小：一个声明式 runtime、一个基于 NIO 的 HTTP/1.1 server，以及一套 AIDEV 契约。AIDEV 的目标是让 AI 不需要先翻源码，也能快速理解、使用、升级和扩展这个项目。
 
-- Swift package 骨架。
-- `Application` runtime。
-- 声明式路由 DSL：`Get`、`Post`、`Put`、`Patch`、`Delete`、`Head`、`Options`、`Group`。
-- `:name` 形式的路径参数。
-- 运行时类型化路径参数提取。
-- 运行时类型化 query 和 header 提取。
-- `Request`、`Response`、`Status`、`Headers`、`Parameters`。
-- Daylily 自有的 `Body` request body 模型。
-- 基于 `ByteChunk` 和 `ByteCount` 的 one-shot body 消费。
-- 真正的 NIO request body streaming bridge，带有有界缓冲和实用 backpressure。
-- 支持 application、group、route 作用域的 runtime middleware。
-- `DaylilyObservability` request logging middleware，包含 request ID、correlation ID、latency、status 和公开 error reason 字段。
-- 面向 OpenAPI generation 的 route metadata runtime。
-- `DaylilyOpenAPI`，可以从 route metadata 生成最小 OpenAPI document。
-- Application lifecycle hooks：`configure`、`boot`、`started`、`shutdown`、`cleanup`。
-- 默认 SIGINT/SIGTERM graceful server shutdown。
-- 显式 `ServerConfiguration`，用于 host、port、backlog、address reuse、read batching 和 shutdown signals。
-- 显式的 `withBufferedBody(upTo:_:)` helper，用于有界 body 检查和 replacement。
-- `String`、`Status`、`Response` 的 `ResponseConvertible` 支持。
-- 通过 `request.body.json(...)` 和 `request.json(...)` 异步解码 JSON body。
-- 通过 `JSON(...)` 返回 JSON response。
-- 基于 NIO 的 HTTP/1.1 server。
-- Macro route/group MVP：`@DaylilyServer`、`@GET`、`@POST`、`@PUT`、`@PATCH`、`@DELETE`、`@HEAD`、`@OPTIONS`、`@GROUP`。
-- Macro `@Path` 类型化路径参数注入。
-- Macro `@Query` 和 `@Header` 类型化输入注入。
-- Macro `@JSONBody` 类型化 JSON body 注入。
-- Macro typed inputs 会降级成 route metadata，供 OpenAPI 使用。
-- `DaylilyTesting` in-memory `TestClient`、request builders 和 JSON assertions。
-- 默认 `swift run` 示例服务。
-- 轻量行为检查。
-- AIDEV 项目接管系统。
+## 十秒 Hello World
 
-还没有实现：
+```swift
+import Daylily
 
-- `@Path`、`@Query`、`@Header`、`@JSONBody` 之外的宏级类型化输入注入（真正的 `@Body` 写法、optional values 等）。
-- 从 Swift 类型深度推导完整 OpenAPI schema。
-- 依赖注入。
-- Macro middleware attributes。
+@main
+@DaylilyServer
+struct App {
+    @GET("/hello")
+    func hello() -> String {
+        "Daylily ships."
+    }
+}
+```
+
+就这样。
+
+## 核心理念
+
+### AI-Native by Design
+
+Daylily 的设计目标之一，是让 AI agent 可以安全理解并扩展项目。
+
+我们不希望 AI 只能从源码里反推架构，而是直接暴露：
+
+- architecture contracts；
+- API registries；
+- runtime guarantees；
+- extension playbooks；
+- project maps；
+- machine-readable metadata。
+
+AI 是一等开发参与者。
+
+### Runtime First
+
+宏是工具。Runtime 真相更重要。
+
+Daylily 优先考虑：
+
+- 可观察的 runtime state；
+- 显式契约；
+- 确定性的架构；
+- 便于 introspection 的系统。
+
+### Swift Concurrency First
+
+Daylily 围绕现代 Swift 设计：
+
+- `async` / `await`；
+- `Sendable`；
+- structured concurrency；
+- 不泄漏到用户侧 API 的 transport boundary。
+
+## 能力矩阵
+
+| 能力 | 状态 |
+| --- | --- |
+| Swift Concurrency-native runtime | 已实现 |
+| 声明式 route DSL | 已实现 |
+| Macro route/group declarations | MVP |
+| Typed path/query/header inputs | 已实现 |
+| `@Body` typed JSON body input | 已实现 |
+| Middleware | 已实现 |
+| Streaming request body | 已实现 |
+| JSON body/response helpers | 已实现 |
+| OpenAPI generation | MVP |
+| Observability middleware | MVP |
+| Transport-free testing helpers | 已实现 |
+| AIDEV AI handoff system | 已实现 |
+| Dependency injection | Planned |
+| Macro middleware attributes | Planned |
+| Full Swift schema derivation | Planned |
+
+## 架构
+
+```text
+Client / SwiftUI / Flutter / API Consumer
+        |
+        v
+Shared DTOs and HTTP contracts
+        |
+        v
+Daylily Runtime
+        |
+        +--> Route metadata --> OpenAPI
+        |
+        +--> AIDEV contracts --> AI agents
+        |
+        v
+Transport layer
+```
+
+Runtime 仍然是框架真相来源。宏会降级成 runtime routes 和 metadata；OpenAPI 和 AI tooling 读取的是同一套显式契约，而不是从源码里猜。
+
+## Benchmarks
+
+Benchmarks 正在准备中。
+
+当前优先级是：
+
+- 可预测架构；
+- concurrency correctness；
+- developer experience；
+- AI collaboration；
+- long-term maintainability。
+
+Raw performance benchmarks 会在 runtime 和 beta 文档稳定后发布。
+
+## 生态愿景
+
+Daylily 不是只想成为 routing library，而是在探索 Swift cloud development experience。
+
+潜在生态方向：
+
+- authentication；
+- realtime features；
+- queues and background jobs；
+- deployment tooling；
+- AI-assisted architecture workflow；
+- fullstack Swift patterns。
 
 ## 快速开始
 
@@ -106,6 +210,18 @@ printf 'abcdef' | curl --http1.1 -H 'Transfer-Encoding: chunked' -H 'Content-Len
 curl http://127.0.0.1:8080/json/health
 curl -X POST -H 'content-type: application/json' --data '{"message":"hi"}' http://127.0.0.1:8080/json/echo
 ```
+
+## 详细使用教程
+
+README 后半部分就是详细使用教程入口，保留了可以直接复制的示例：
+
+- [当前 API](#当前-api)：runtime routes、typed parameters、JSON、lifecycle 和 server configuration。
+- [Runtime Middleware](#runtime-middleware)：application、group、route 三层 middleware，以及 one-shot body 规则。
+- [Observability](#observability)：request ID 和 request logging middleware。
+- [Route Metadata](#route-metadata)：显式 metadata 和最小 OpenAPI generation。
+- [DaylilyTesting](#daylilytesting)：in-memory tests、request builders 和 JSON assertions。
+- [Macro API MVP](#macro-api-mvp)：`@DaylilyServer`、route macros、typed inputs 和 macro 限制。
+- [AI-Native 开发](#ai-native-开发)：AIDEV contracts、registries、playbooks 和 agent workflow。
 
 ## 当前 API
 
@@ -268,7 +384,7 @@ let app = Application {
 application -> router dispatch -> group -> route -> handler
 ```
 
-Middleware 可以读 `request.body`，但 `Body` 是 one-shot。middleware 消费 body 后再调用 `next`，下游看到的就是已经被消费过的 body。Daylily 不做隐藏的 body replay。
+Middleware 可以读 `request.body`，但 `RequestBody` 是 one-shot。middleware 消费 body 后再调用 `next`，下游看到的就是已经被消费过的 body。Daylily 不做隐藏的 body replay。
 
 如果 middleware 明确需要检查 body bytes，并且还要把等价 body 继续传给下游，就使用显式 buffering：
 
@@ -420,7 +536,7 @@ struct App {
     }
 
     @POST("/users")
-    func create(@JSONBody input: CreateUserInput) -> Status {
+    func create(@Body input: CreateUserInput) -> Status {
         .created
     }
 
@@ -470,19 +586,19 @@ struct App {
 
 规则很简单：宏必须展开到 runtime route system。runtime 仍然是框架的真相来源。
 
-宏里的 typed inputs 也会降级成 runtime route metadata。`@Path`、`@Query`、`@Header` 和 `@JSONBody` 会通过手写 route 同款的 `Route.describe(...)` 模型贡献 OpenAPI-ready metadata。
+宏里的 typed inputs 也会降级成 runtime route metadata。`@Path`、`@Query`、`@Header` 和主写法 `@Body` 会通过手写 route 同款的 `Route.describe(...)` 模型贡献 OpenAPI-ready metadata。`@JSONBody` 只作为 `@Body` 的兼容别名写法保留。
 
 MVP 限制：
 
 - handler 必须是 instance method；
 - server type 必须可以通过 `Self()` 默认初始化；
-- handler 可以没有参数，可以有一个 `Request` 参数，可以有 `@Path`、`@Query`、`@Header` 参数，也可以有一个 `@JSONBody` 参数；
+- handler 可以没有参数，可以有一个 `Request` 参数，可以有 `@Path`、`@Query`、`@Header` 参数，也可以有一个 `@Body` 参数；`@JSONBody` 作为兼容别名写法也会被接受；
 - `@Path` 会降级到 `req.parameters.require(_:as:)`；
 - `@Path` 名称必须匹配 `:name` route segment；
 - `@Query` 会降级到 `req.query.require(_:as:)`；
 - `@Header` 会降级到 `req.headers.require(_:as:)`；
-- `@JSONBody` 会降级到 `try await req.json(Type.self)`；
-- 真正的 `@Body` 写法暂缓，因为 `Body` 已经是 Daylily 的 raw request body 类型；
+- `@Body` 会降级到 `try await req.json(Type.self)`；`@JSONBody` 是同样 lowering 的兼容别名写法；
+- raw one-shot request body 类型是 `RequestBody`；
 - group type 必须可以默认初始化；
 - optional typed inputs、macro middleware attributes、DI 和深度 OpenAPI schema 推导都是后续工作。
 
@@ -561,9 +677,8 @@ Daylily/
 
 近期：
 
-1. 决定并实现真正的 `@Body`。
-2. 补齐 beta docs：quickstart、examples、capability matrix。
-3. 补齐 release hygiene：Linux CI、CHANGELOG、semver tag 和 public API registry 同步。
+1. 补齐 beta docs：quickstart、examples、capability matrix。
+2. 补齐 release hygiene：Linux CI、CHANGELOG、semver tag 和 public API registry 同步。
 
 ## License
 

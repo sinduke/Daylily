@@ -183,7 +183,7 @@ Steps:
 7. Update route/group/application contracts.
 8. Only then design `@Use` or macro sugar.
 
-Body rules:
+RequestBody rules:
 
 1. Middleware may read `request.body`.
 2. `request.body` remains one-shot.
@@ -249,14 +249,14 @@ Rules:
 5. Run `started` only after server bind succeeds.
 6. Add checks for ordering and thrown lifecycle errors.
 
-## Add Explicit Buffered Body Helper
+## Add Explicit Buffered RequestBody Helper
 
 Current state:
 
 - 0009-002 implemented `Request.with(body:)`.
 - 0009-002 implemented `Request.withBufferedBody(upTo:_:)`.
 - The helper lives in `DaylilyCore`.
-- The replacement body is `Body.bytes(collectedBytes)`.
+- The replacement body is `RequestBody.bytes(collectedBytes)`.
 - The replacement body remains one-shot.
 - No hidden or automatic body replay exists.
 
@@ -268,7 +268,7 @@ Rules:
 4. Do not add file-backed buffering or multipart behavior in this helper.
 5. Keep the API name explicit about buffering.
 
-## Add Streaming Body
+## Add Streaming RequestBody
 
 Goal shape:
 
@@ -289,13 +289,13 @@ Rules:
 
 Current state:
 
-- 0008-001 introduced the Daylily-owned `Body` model.
+- 0008-001 introduced the Daylily-owned `RequestBody` model.
 - 0008-002 implemented true NIO chunk feeding, bounded buffering, cancellation, and practical backpressure.
 
 Extension steps:
 
 1. Reuse `request.body.bytes` as the public surface.
-2. Add helpers on top of `Body` rather than exposing transport details.
+2. Add helpers on top of `RequestBody` rather than exposing transport details.
 3. Preserve `BodyError.tooLarge` and `BodyError.streamFailed` mappings.
 4. Add checks with chunked input when changing transport behavior.
 5. Update AIDEV thoroughly.
@@ -339,7 +339,6 @@ When extending:
 
 Still non-goals until separate tasks:
 
-- true `@Body` spelling
 - optional typed inputs
 - macro middleware attributes
 - DI
@@ -351,16 +350,16 @@ Current shape:
 
 ```swift
 @POST("/users")
-func create(@JSONBody input: CreateUserInput) async throws -> Status
+func create(@Body input: CreateUserInput) async throws -> Status
 ```
 
 Rules:
 
-1. Keep `@JSONBody` as a marker in `DaylilyJSON`.
-2. Lower into `try await req.json(Type.self)`.
+1. Keep `@Body` as the preferred marker in `DaylilyJSON`; keep `@JSONBody` only as a compatibility alias spelling.
+2. Lower both into `try await req.json(Type.self)`.
 3. Preserve runtime JSON behavior and error mapping.
-4. Allow at most one `@JSONBody` parameter per handler.
-5. Do not rename this to `@Body` until the raw `Body` type naming decision is revisited.
+4. Allow at most one `@Body` or `@JSONBody` parameter per handler.
+5. Prefer `@Body` in new examples while keeping `@JSONBody` compatibility alias behavior.
 6. Add macro smoke coverage for top-level and grouped handlers.
 
 ## Extend OpenAPI Metadata
@@ -397,7 +396,8 @@ Current macro bridge:
 - `@Path` -> `RouteInputMetadata.path(...)`
 - `@Query` -> `RouteInputMetadata.query(...)`
 - `@Header` -> `RouteInputMetadata.header(...)`
-- `@JSONBody` -> `RouteBodyMetadata.json(...)`
+- `@Body` -> `RouteBodyMetadata.json(...)`
+- `@JSONBody` -> `RouteBodyMetadata.json(...)` compatibility alias spelling
 
 Next steps:
 
@@ -438,7 +438,7 @@ Rules:
 2. Keep `DaylilyTesting` transport-free.
 3. Do not add NIO dependencies to `DaylilyTesting`.
 4. Reuse `Application.respond(to:)` for in-memory behavior.
-5. Keep request construction as Daylily `Request`/`Body` sugar rather than a separate transport model.
+5. Keep request construction as Daylily `Request`/`RequestBody` sugar rather than a separate transport model.
 6. Add shared `DaylilyCheckSuite` coverage.
 7. Add or update `Tests/DaylilyTests` coverage when the behavior should be visible through `swift test`.
 

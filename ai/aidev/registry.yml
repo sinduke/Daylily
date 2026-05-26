@@ -294,7 +294,7 @@ implemented_features:
       - "@Path is a public property-wrapper marker in DaylilyCore"
       - "@Path names must match :name route segments in the full route path"
       - "missing and invalid values keep ParameterError 400 mappings"
-      - "JSON body macro input is delivered separately as @JSONBody in 0010-003"
+      - "JSON body macro input is delivered separately as @JSONBody in 0010-003 and preferred as @Body in 0017-001"
       - "@Query, @Header, optional path values, and UUID remain out of scope"
   json_body_macro_bridge:
     status: implemented
@@ -304,18 +304,21 @@ implemented_features:
       - DaylilyJSON
       - DaylilyMacros
     public_api:
+      - "@Body"
       - "@JSONBody"
     lowering:
-      - "@DaylilyServer lowers @JSONBody parameters into try await req.json(Type.self)"
-      - "@DaylilyServer lowers @JSONBody parameters into RouteBodyMetadata.json(...)"
-      - "one @JSONBody parameter is allowed per handler"
-      - "Request plus @JSONBody is allowed"
+      - "@DaylilyServer lowers @Body parameters into try await req.json(Type.self)"
+      - "@DaylilyServer lowers @Body parameters into RouteBodyMetadata.json(...)"
+      - "@JSONBody is a compatibility alias spelling with the same lowering"
+      - "one @Body or @JSONBody parameter is allowed per handler"
+      - "Request plus @Body or @JSONBody is allowed"
     decisions:
-      - "@JSONBody is a public property-wrapper marker in DaylilyJSON"
+      - "@Body is the preferred public property-wrapper marker in DaylilyJSON"
+      - "@JSONBody remains available as a compatibility alias spelling"
       - "runtime decoding remains Request.json(_:upTo:) in DaylilyJSON"
-      - "default @JSONBody limit is the existing request.json(...) default of 1 MB"
+      - "default @Body and @JSONBody limit is the existing request.json(...) default of 1 MB"
       - "invalid JSON keeps Abort(.badRequest, reason: \"Invalid JSON body\")"
-      - "true @Body spelling is deferred because Body is already Daylily's raw request body type"
+      - "the raw one-shot request body type is RequestBody"
       - "attached peer macros cannot be applied to function parameters"
   query_and_header_inputs:
     status: implemented
@@ -492,7 +495,7 @@ implemented_features:
     protocol: HTTP/1.1
   buffered_body:
     status: implemented
-    type: "Body.bytes(...) for in-process and manually constructed requests"
+    type: "RequestBody.bytes(...) for in-process and manually constructed requests"
   aidev_contract:
     status: implemented
   aidev_self_contained_spec:
@@ -517,7 +520,7 @@ implemented_features:
     limitations:
       - "server type must be default-initializable with Self()"
       - "handlers must be instance methods"
-      - "handlers may have zero parameters, one Request parameter, @Path, @Query, @Header, and one @JSONBody parameter"
+      - "handlers may have zero parameters, one Request parameter, @Path, @Query, @Header, and one @Body parameter; @JSONBody remains as a compatibility alias spelling"
   group_macro:
     status: implemented
     task: "0003-002-group-macro-mvp"
@@ -531,7 +534,7 @@ implemented_features:
     task: "0004-001-json-body-and-response"
     module: DaylilyJSON
     public_api:
-      - "Body.json(_:upTo:) for standard async JSON body decoding"
+      - "RequestBody.json(_:upTo:) for standard async JSON body decoding"
       - "Request.json(_:upTo:) as convenience sugar"
       - "JSON<Value> response wrapper"
     limitations:
@@ -541,7 +544,7 @@ implemented_features:
     status: implemented
     task: "0008-001-body-model-migration"
     public_api:
-      - Body
+      - RequestBody
       - BodyBytes
       - ByteChunk
       - ByteCount
@@ -549,9 +552,9 @@ implemented_features:
       - ResponseError
       - "Status.payloadTooLarge"
     decisions:
-      - "Request.body is Body"
-      - "Body is uniformly one-shot"
-      - "Body uses shared storage so copied Body values cannot bypass one-shot consumption"
+      - "Request.body is RequestBody"
+      - "RequestBody is uniformly one-shot"
+      - "RequestBody uses shared storage so copied RequestBody values cannot bypass one-shot consumption"
       - "BodyBytes yields ByteChunk"
       - "ByteChunk exposes bytes and count only"
       - "ByteCount supports bytes, kilobytes, megabytes, and gigabytes"
@@ -571,7 +574,7 @@ implemented_features:
     depends_on:
       - "0008-001-body-model-migration"
     decisions:
-      - "NIO request head creates Request with streaming Body"
+      - "NIO request head creates Request with streaming RequestBody"
       - "route handler starts before the full body is buffered"
       - "NIO body chunks feed BodyBytes in order"
       - "request end finishes BodyBytes"
@@ -602,7 +605,7 @@ implemented_features:
       same_scope_order: "declaration order"
       short_circuit: "middleware may return Response without calling next"
       error_behavior: "thrown errors flow through Application.respond(to:) mappings"
-      body_policy: "middleware may read Body, but Body remains one-shot and there is no automatic replay"
+      body_policy: "middleware may read RequestBody, but RequestBody remains one-shot and there is no automatic replay"
     limitations:
       - "macro middleware syntax"
       - "request context"
@@ -614,12 +617,12 @@ implemented_features:
     task: "0009-002-explicit-buffered-body-helper"
     module: DaylilyCore
     public_api:
-      - "public func Request.with(body: Body) -> Request"
+      - "public func Request.with(body: RequestBody) -> Request"
       - "public func Request.withBufferedBody<R: Sendable>(upTo limit: ByteCount, _ operation: @Sendable (Request, [UInt8]) async throws -> R) async throws -> R"
     decisions:
       name: "withBufferedBody"
       ownership: "DaylilyCore first; future JSON/Content layers may wrap higher-level body helpers"
-      replacement_body: "Body.bytes(collectedBytes)"
+      replacement_body: "RequestBody.bytes(collectedBytes)"
       replacement_body_policy: "still one-shot"
       limit: "required ByteCount"
       over_limit_mapping: "BodyError.tooLarge -> 413 Payload Too Large"
@@ -751,7 +754,8 @@ implemented_features:
       - "@Path lowers into RouteInputMetadata.path(...)"
       - "@Query lowers into RouteInputMetadata.query(...)"
       - "@Header lowers into RouteInputMetadata.header(...)"
-      - "@JSONBody lowers into RouteBodyMetadata.json(...)"
+      - "@Body lowers into RouteBodyMetadata.json(...)"
+      - "@JSONBody lowers into RouteBodyMetadata.json(...) as a compatibility alias spelling"
       - "Generated routes call Route.describe(inputs:requestBody:) when typed input metadata exists"
     decisions:
       - "No new public macros are introduced"
@@ -855,7 +859,8 @@ planned_features:
       - "0015-001-runtime-and-testing-http-verbs"
       - "0015-002-macro-and-openapi-http-verbs"
       - "0016-001-formal-test-target"
-    next_task: "0017-001-true-body-input"
+      - "0017-001-true-body-input"
+    next_task: "0018-001-beta-docs"
     sequence:
       - "0015-001-runtime-and-testing-http-verbs"
       - "0015-002-macro-and-openapi-http-verbs"
@@ -1075,14 +1080,14 @@ public_api:
         - "public func respond(to request: Request) async throws -> Response"
         - "public func send(_ request: TestRequest) async throws -> Response"
         - "public func get(_ path: String, headers: Headers = [:]) async throws -> Response"
-        - "public func post(_ path: String, headers: Headers = [:], body: Body = .bytes([])) async throws -> Response"
+        - "public func post(_ path: String, headers: Headers = [:], body: RequestBody = .bytes([])) async throws -> Response"
         - "public func post(_ path: String, headers: Headers = [:], body: [UInt8]) async throws -> Response"
         - "public func post(_ path: String, headers: Headers = [:], body: String) async throws -> Response"
         - "public func postJSON<Value: Encodable>(_ path: String, headers: Headers = [:], body value: Value) async throws -> Response"
-        - "public func put(_ path: String, headers: Headers = [:], body: Body = .bytes([])) async throws -> Response"
+        - "public func put(_ path: String, headers: Headers = [:], body: RequestBody = .bytes([])) async throws -> Response"
         - "public func put(_ path: String, headers: Headers = [:], body: [UInt8]) async throws -> Response"
         - "public func put(_ path: String, headers: Headers = [:], body: String) async throws -> Response"
-        - "public func patch(_ path: String, headers: Headers = [:], body: Body = .bytes([])) async throws -> Response"
+        - "public func patch(_ path: String, headers: Headers = [:], body: RequestBody = .bytes([])) async throws -> Response"
         - "public func patch(_ path: String, headers: Headers = [:], body: [UInt8]) async throws -> Response"
         - "public func patch(_ path: String, headers: Headers = [:], body: String) async throws -> Response"
         - "public func delete(_ path: String, headers: Headers = [:]) async throws -> Response"
@@ -1097,18 +1102,18 @@ public_api:
         - "method: HTTPMethod"
         - "path: String"
         - "headers: Headers"
-        - "body: Body"
+        - "body: RequestBody"
       factories:
         - "public static func get(_ path: String, headers: Headers = [:]) -> TestRequest"
-        - "public static func post(_ path: String, headers: Headers = [:], body: Body = .bytes([])) -> TestRequest"
-        - "public static func put(_ path: String, headers: Headers = [:], body: Body = .bytes([])) -> TestRequest"
-        - "public static func patch(_ path: String, headers: Headers = [:], body: Body = .bytes([])) -> TestRequest"
+        - "public static func post(_ path: String, headers: Headers = [:], body: RequestBody = .bytes([])) -> TestRequest"
+        - "public static func put(_ path: String, headers: Headers = [:], body: RequestBody = .bytes([])) -> TestRequest"
+        - "public static func patch(_ path: String, headers: Headers = [:], body: RequestBody = .bytes([])) -> TestRequest"
         - "public static func delete(_ path: String, headers: Headers = [:]) -> TestRequest"
         - "public static func head(_ path: String, headers: Headers = [:]) -> TestRequest"
         - "public static func options(_ path: String, headers: Headers = [:]) -> TestRequest"
       methods:
         - "public func withHeader(_ name: String, _ value: String) -> TestRequest"
-        - "public func withBody(_ body: Body) -> TestRequest"
+        - "public func withBody(_ body: RequestBody) -> TestRequest"
         - "public func withBody(_ bytes: [UInt8]) -> TestRequest"
         - "public func withBody(_ string: String) -> TestRequest"
         - "public func withJSON<Value: Encodable>(_ value: Value) throws -> TestRequest"
@@ -1311,17 +1316,17 @@ public_api:
         - "method: HTTPMethod"
         - "path: String"
         - "headers: Headers"
-        - "body: Body"
+        - "body: RequestBody"
         - "parameters: Parameters"
         - "query: QueryParameters"
       methods:
-        - "public init(method:path:headers:body: Body = .bytes([]), parameters: Parameters = Parameters(), query: QueryParameters? = nil)"
+        - "public init(method:path:headers:body: RequestBody = .bytes([]), parameters: Parameters = Parameters(), query: QueryParameters? = nil)"
         - "public init(method:path:headers:body: [UInt8], parameters: Parameters = Parameters(), query: QueryParameters? = nil)"
         - "public func with(parameters: Parameters) -> Request"
-        - "public func with(body: Body) -> Request"
+        - "public func with(body: RequestBody) -> Request"
         - "public func with(headers: Headers) -> Request"
         - "public func withBufferedBody<R: Sendable>(upTo limit: ByteCount, _ operation: @Sendable (Request, [UInt8]) async throws -> R) async throws -> R"
-      contract: "Request initializers strip query text from path and populate query; DaylilyNIO creates streaming Body values through transport SPI; in-process callers may use Body.bytes(...); request copying helpers preserve one-shot body storage; explicit body buffering uses withBufferedBody(upTo:_:)."
+      contract: "Request initializers strip query text from path and populate query; DaylilyNIO creates streaming RequestBody values through transport SPI; in-process callers may use RequestBody.bytes(...); request copying helpers preserve one-shot body storage; explicit body buffering uses withBufferedBody(upTo:_:)."
     Parameters:
       kind: struct
       conforms:
@@ -1434,12 +1439,12 @@ public_api:
         - "public init(wrappedValue: Value)"
         - "public init(wrappedValue: Value, _ name: String)"
       contract: "Marker for @DaylilyServer macro header input lowering; extraction is performed by Headers.require(_:as:)."
-    Body:
+    RequestBody:
       kind: struct
       conforms:
         - Sendable
       methods:
-        - "public static func bytes(_ bytes: [UInt8]) -> Body"
+        - "public static func bytes(_ bytes: [UInt8]) -> RequestBody"
         - "public func collect(upTo limit: ByteCount) async throws -> [UInt8]"
         - "public func string(upTo limit: ByteCount) async throws -> String"
       properties:
@@ -1568,17 +1573,27 @@ public_api:
       kind: extension_method
       signature: "public func json<Value: Decodable>(_ type: Value.Type, upTo limit: ByteCount) async throws -> Value"
       behavior:
-        - "collects Body with explicit limit"
+        - "collects RequestBody with explicit limit"
         - "decodes collected bytes with Foundation JSONDecoder"
         - "throws Abort(.badRequest, reason: \"Invalid JSON body\") on decode failure"
     Request_json:
       kind: extension_method
       signature: "public func json<Value: Decodable>(_ type: Value.Type, upTo limit: ByteCount = .megabytes(1)) async throws -> Value"
       behavior:
-        - "delegates to Body.json(_:upTo:)"
+        - "delegates to RequestBody.json(_:upTo:)"
         - "default JSON body limit is 1 MB"
       limitations:
         - "does not enforce request content type yet"
+    Body:
+      kind: propertyWrapper
+      conforms:
+        - Sendable
+      generic: "Value: Decodable & Sendable"
+      properties:
+        - "wrappedValue: Value"
+      initializers:
+        - "public init(wrappedValue: Value)"
+      contract: "Preferred marker for @DaylilyServer macro JSON body input lowering; decoding is performed by Request.json(_:upTo:)."
     JSONBody:
       kind: propertyWrapper
       conforms:
@@ -1588,7 +1603,7 @@ public_api:
         - "wrappedValue: Value"
       initializers:
         - "public init(wrappedValue: Value)"
-      contract: "Marker for @DaylilyServer macro JSON body input lowering; decoding is performed by Request.json(_:upTo:)."
+      contract: "Compatibility alias spelling for @Body macro JSON body input lowering; decoding is performed by Request.json(_:upTo:)."
   DaylilyNIO:
     NIOHTTPServer:
       kind: struct
@@ -1630,18 +1645,18 @@ runtime_rules:
   typed_path_parameter_policy: "Parameters.require(_:as:) and Parameters.get(_:as:) use ParameterDecodable; missing required and invalid values map to 400; UUID is deferred."
   macro_path_parameter_policy: "@Path parameters are marker wrappers; @DaylilyServer validates route membership and lowers them into Parameters.require(_:as:) plus RouteInputMetadata.path(...)."
   query_and_header_input_policy: "Request.query uses QueryParameters; Headers has typed require/get; @Query lowers to req.query.require plus RouteInputMetadata.query(...) and @Header lowers to req.headers.require plus RouteInputMetadata.header(...)."
-  macro_json_body_policy: "@JSONBody parameters are marker wrappers in DaylilyJSON; @DaylilyServer lowers them into try await req.json(Type.self) plus RouteBodyMetadata.json(...). True @Body spelling is deferred because Body is the raw request body type."
+  macro_json_body_policy: "@Body parameters are the preferred marker wrappers in DaylilyJSON; @DaylilyServer lowers them into try await req.json(Type.self) plus RouteBodyMetadata.json(...). @JSONBody remains as a compatibility alias spelling with the same lowering. The raw one-shot request body type is RequestBody."
   lifecycle_policy: "Application lifecycle phases are configure, boot, started, shutdown, cleanup. Application.run binds lifecycle to transport; Application.respond(to:) does not run lifecycle. The default NIO server closes on SIGINT/SIGTERM."
   server_configuration_policy: "ServerConfiguration is the NIO-free user-facing server control type. Application.run(configuration:) bridges it into DaylilyNIO."
   test_client_policy: "TestClient is an in-memory helper in DaylilyTesting; it calls Application.respond(to:) directly and does not use transport. TestRequest and response assertions are testing helpers, not runtime behavior."
   route_metadata_policy: "Route metadata lives in DaylilyCore and is exposed through Route.describe(...) and Application.describeRoutes(); it does not affect routing and is the source of truth for OpenAPI generation."
   openapi_policy: "DaylilyOpenAPI maps Application.describeRoutes() into minimal OpenAPI documents; deep Swift schema derivation and richer operation metadata are separate tasks."
   wildcard_prefix: "*"
-  current_body_model: "Body one-shot API with NIO true streaming bridge and in-process buffered Body.bytes support"
+  current_body_model: "RequestBody one-shot API with NIO true streaming bridge and in-process buffered RequestBody.bytes support"
   future_body_model: "response body streaming and higher-level upload helpers"
   middleware_order: "application -> router dispatch -> group -> route -> handler"
-  middleware_body_policy: "middleware can read Body, but Body remains one-shot and no automatic replay occurs"
-  explicit_buffered_body_policy: "withBufferedBody consumes the original Body, buffers under an explicit limit, creates a one-shot replacement Body.bytes value, and does not enable automatic replay"
+  middleware_body_policy: "middleware can read RequestBody, but RequestBody remains one-shot and no automatic replay occurs"
+  explicit_buffered_body_policy: "withBufferedBody consumes the original RequestBody, buffers under an explicit limit, creates a one-shot replacement RequestBody.bytes value, and does not enable automatic replay"
   observability_policy: "DaylilyObservability owns request ID generation, request logging, timing, public error reason logging, and future observability helpers; DaylilyCore does not depend on logging backends, tracing SDKs, metrics clients, or transport APIs."
   errors:
     response_error: "status + reason"
@@ -1654,8 +1669,8 @@ runtime_rules:
 invariants:
   - "DaylilyCore does not import NIO."
   - "User-facing APIs do not expose NIO types."
-  - "Request.body is DaylilyCore.Body."
-  - "Body consumption is one-shot."
+  - "Request.body is DaylilyCore.RequestBody."
+  - "RequestBody consumption is one-shot."
   - "Runtime APIs are the ground truth."
   - "Macros lower into runtime APIs."
   - "swift build passes."
@@ -1789,7 +1804,7 @@ verification:
     cleanup: "stop the HelloDaylily process"
 
 roadmap:
-  current_task: "0017-001-true-body-input"
+  current_task: "0018-001-beta-docs"
   epics:
     completed:
       - "0001-runtime-foundation"
@@ -1804,7 +1819,7 @@ roadmap:
       - "0014-openapi-metadata"
       - "0015-http-verbs-beta-closure"
     next_recommended:
-      - "0017-001-true-body-input"
+      - "0018-001-beta-docs"
   completed:
     - "0001-001-minimal-http-server"
     - "0002-001-aidev-project-contract"
@@ -1836,10 +1851,10 @@ roadmap:
     - "0015-001-runtime-and-testing-http-verbs"
     - "0015-002-macro-and-openapi-http-verbs"
     - "0016-001-formal-test-target"
+    - "0017-001-true-body-input"
   in_progress: []
   next_recommended:
-    - "0017-001-true-body-input"
-  later:
     - "0018-001-beta-docs"
+  later:
     - "0019-001-release-hygiene"
     - "0013-003-observability-hooks"

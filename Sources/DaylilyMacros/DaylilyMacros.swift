@@ -266,9 +266,9 @@ private struct RouteMethod {
                 continue
             }
 
-            if try JSONBodyAttribute(parameter) != nil {
+            if try BodyAttribute(parameter) != nil {
                 guard !hasBodyParameter else {
-                    throw DaylilyMacroError("@\(routeName) handlers may only have one @JSONBody parameter.")
+                    throw DaylilyMacroError("@\(routeName) handlers may only have one @Body or @JSONBody parameter.")
                 }
 
                 hasBodyParameter = true
@@ -289,7 +289,7 @@ private struct RouteMethod {
                 continue
             }
 
-            throw DaylilyMacroError("@\(routeName) handler parameters must be Request or annotated with @Path, @Query, @Header, or @JSONBody in this MVP.")
+            throw DaylilyMacroError("@\(routeName) handler parameters must be Request or annotated with @Path, @Query, @Header, @Body, or @JSONBody.")
         }
 
         return HandlerCall(
@@ -384,9 +384,9 @@ private struct HandlerCall {
     }
 }
 
-private struct JSONBodyAttribute {
+private struct BodyAttribute {
     init?(_ parameter: FunctionParameterSyntax) throws {
-        var found = false
+        var foundName: String?
 
         for attributeElement in parameter.attributes {
             guard case let .attribute(attribute) = attributeElement else {
@@ -394,23 +394,23 @@ private struct JSONBodyAttribute {
             }
 
             let name = RouteAttribute.routeName(for: attribute.attributeName.description.trimmed)
-            guard name == "JSONBody" else {
+            guard name == "Body" || name == "JSONBody" else {
                 continue
             }
 
-            if found {
-                throw DaylilyMacroError("Handler parameters may only have one @JSONBody attribute.")
+            if let foundName {
+                throw DaylilyMacroError("Handler parameters may only have one @\(foundName) or @\(name) body attribute.")
             }
 
             let text = attribute.description
             if text.contains("("), text.contains(")") {
-                throw DaylilyMacroError("@JSONBody does not accept arguments in this MVP.")
+                throw DaylilyMacroError("@\(name) does not accept arguments.")
             }
 
-            found = true
+            foundName = name
         }
 
-        guard found else {
+        guard foundName != nil else {
             return nil
         }
     }

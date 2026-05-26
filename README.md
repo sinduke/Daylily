@@ -1,70 +1,174 @@
+<div align="center">
+
 # Daylily
 
-English | [简体中文](README.zh-CN.md)
+### Modern AI-first Swift web framework
+
+Built for the Swift Concurrency era.<br>
+Designed for humans and AI agents together.
+
+[English](README.md) | [简体中文](README.zh-CN.md)
+
+[Quick Start](#quick-start) •
+[Detailed Usage Guide](#detailed-usage-guide) •
+[AI-Native](#ai-native-by-design) •
+[Architecture](#architecture) •
+[Roadmap](#roadmap)
 
 [![CI](https://github.com/sinduke/Daylily/actions/workflows/ci.yml/badge.svg)](https://github.com/sinduke/Daylily/actions/workflows/ci.yml)
+![Swift](https://img.shields.io/badge/Swift-6-orange)
+![Platform](https://img.shields.io/badge/platform-macOS%2014%2B-blue)
+![Concurrency](https://img.shields.io/badge/Concurrency-Native-green)
+![OpenAPI](https://img.shields.io/badge/OpenAPI-MVP-8A2BE2)
+![Status](https://img.shields.io/badge/status-Experimental-red)
 
-Daylily is an experimental AI-native web framework for Swift.
+</div>
 
-It starts small on purpose: a declarative runtime, a NIO-backed HTTP server, and an AIDEV contract that lets AI agents understand, use, upgrade, and extend the project without first spelunking through source code.
+---
 
-> Still waiting? Daylily already shipped.
+## Why Daylily Exists
 
-## Why Daylily
+Server-side Swift has powerful foundations.
 
-Server-side Swift has strong foundations, but framework evolution can feel slow and opaque. Daylily takes a different path:
+But many frameworks still feel shaped by the pre-Concurrency era:
 
-- Build the runtime first.
-- Keep the core small.
-- Hide transport details from user APIs.
-- Make Swift Concurrency the default model.
-- Use macros as declaration sugar, not as the source of truth.
-- Let AI participate in the project through explicit architecture maps, contracts, registries, tasks, and playbooks.
+- EventLoop-heavy application code.
+- Transport details leaking into user-facing APIs.
+- Runtime patterns optimized for frameworks, not products.
+- Architecture that AI agents must reverse-engineer from source.
+- Macro-first designs where the runtime truth is hard to inspect.
 
-Daylily is not trying to be a clone of Vapor or Hummingbird. It is an experiment in what a Swift web framework can look like when AI-assisted development is part of the architecture from day one.
+Daylily takes another path:
 
-## Current Status
+- Swift Concurrency first.
+- Runtime-first architecture.
+- AI-native development workflow.
+- Explicit contracts over hidden magic.
+- Product-oriented developer experience.
 
-Implemented today:
+Daylily starts small on purpose: a declarative runtime, a NIO-backed HTTP/1.1 server, and an AIDEV contract that lets AI agents understand, use, upgrade, and extend the project without first spelunking through source code.
 
-- Swift package skeleton.
-- `Application` runtime.
-- Declarative route DSL: `Get`, `Post`, `Put`, `Patch`, `Delete`, `Head`, `Options`, `Group`.
-- Path parameters with `:name` syntax.
-- Runtime typed path parameter extraction.
-- Runtime typed query and header extraction.
-- `Request`, `Response`, `Status`, `Headers`, `Parameters`.
-- Daylily-owned `Body` request body model.
-- One-shot body consumption with `ByteChunk` and `ByteCount`.
-- True NIO request body streaming bridge with bounded buffering and practical backpressure.
-- Runtime middleware with application, group, and route scopes.
-- `DaylilyObservability` request logging middleware with request ID, correlation ID, latency, status, and public error reason fields.
-- Route metadata runtime for OpenAPI generation.
-- `DaylilyOpenAPI` minimal OpenAPI document generation from route metadata.
-- Application lifecycle hooks: `configure`, `boot`, `started`, `shutdown`, `cleanup`.
-- Default SIGINT/SIGTERM graceful server shutdown.
-- Explicit `ServerConfiguration` for host, port, backlog, address reuse, read batching, and shutdown signals.
-- Explicit `withBufferedBody(upTo:_:)` helper for bounded body inspection and replacement.
-- `ResponseConvertible` for `String`, `Status`, and `Response`.
-- Async JSON body decoding with `request.body.json(...)` and `request.json(...)`.
-- JSON responses with `JSON(...)`.
-- NIO-backed HTTP/1.1 server.
-- Macro route/group MVP: `@DaylilyServer`, `@GET`, `@POST`, `@PUT`, `@PATCH`, `@DELETE`, `@HEAD`, `@OPTIONS`, `@GROUP`.
-- Macro `@Path` typed path parameter injection.
-- Macro `@Query` and `@Header` typed input injection.
-- Macro `@JSONBody` typed JSON body injection.
-- Macro typed inputs lower into route metadata for OpenAPI.
-- `DaylilyTesting` in-memory `TestClient`, request builders, and JSON assertions.
-- Default `swift run` example server.
-- Lightweight behavior checks.
-- AIDEV project handoff system.
+## Hello World
 
-Not implemented yet:
+```swift
+import Daylily
 
-- Macro typed input injection beyond `@Path`, `@Query`, `@Header`, and `@JSONBody` (true `@Body` spelling, optional values, etc.).
-- Full OpenAPI schema derivation from Swift types.
-- Dependency injection.
-- Macro middleware attributes.
+@main
+@DaylilyServer
+struct App {
+    @GET("/hello")
+    func hello() -> String {
+        "Daylily ships."
+    }
+}
+```
+
+That's it.
+
+## Core Philosophy
+
+### AI-Native by Design
+
+Daylily is built so AI agents can safely understand and extend projects.
+
+Instead of forcing AI to infer architecture from source code alone, Daylily exposes:
+
+- architecture contracts;
+- API registries;
+- runtime guarantees;
+- extension playbooks;
+- project maps;
+- machine-readable metadata.
+
+AI becomes a first-class development participant.
+
+### Runtime First
+
+Macros are tools. Runtime truth matters more.
+
+Daylily prioritizes:
+
+- observable runtime state;
+- explicit contracts;
+- deterministic architecture;
+- introspection-friendly systems.
+
+### Swift Concurrency First
+
+Daylily is designed around modern Swift:
+
+- `async` / `await`;
+- `Sendable`;
+- structured concurrency;
+- transport boundaries that stay out of user-facing APIs.
+
+## Feature Matrix
+
+| Area | Status |
+| --- | --- |
+| Swift Concurrency-native runtime | Implemented |
+| Declarative route DSL | Implemented |
+| Macro route/group declarations | MVP |
+| Typed path/query/header inputs | Implemented |
+| Typed JSON body input with `@Body` | Implemented |
+| Middleware | Implemented |
+| Streaming request body | Implemented |
+| JSON body and response helpers | Implemented |
+| OpenAPI generation | MVP |
+| Observability middleware | MVP |
+| Transport-free testing helpers | Implemented |
+| AIDEV AI handoff system | Implemented |
+| Dependency injection | Planned |
+| Macro middleware attributes | Planned |
+| Full Swift schema derivation | Planned |
+
+## Architecture
+
+```text
+Client / SwiftUI / Flutter / API Consumer
+        |
+        v
+Shared DTOs and HTTP contracts
+        |
+        v
+Daylily Runtime
+        |
+        +--> Route metadata --> OpenAPI
+        |
+        +--> AIDEV contracts --> AI agents
+        |
+        v
+Transport layer
+```
+
+The runtime remains the source of truth. Macros lower into runtime routes and metadata; OpenAPI and AI tooling read the same explicit contract instead of guessing from source code.
+
+## Benchmarks
+
+Benchmarks are in progress.
+
+The current focus is:
+
+- predictable architecture;
+- concurrency correctness;
+- developer experience;
+- AI collaboration;
+- long-term maintainability.
+
+Raw performance benchmarks will be published after the runtime and beta documentation stabilize.
+
+## Ecosystem Vision
+
+Daylily is evolving toward a Swift cloud development experience, not only a routing library.
+
+Potential ecosystem directions:
+
+- authentication;
+- realtime features;
+- queues and background jobs;
+- deployment tooling;
+- AI-assisted architecture workflow;
+- fullstack Swift patterns.
 
 ## Quick Start
 
@@ -106,6 +210,18 @@ printf 'abcdef' | curl --http1.1 -H 'Transfer-Encoding: chunked' -H 'Content-Len
 curl http://127.0.0.1:8080/json/health
 curl -X POST -H 'content-type: application/json' --data '{"message":"hi"}' http://127.0.0.1:8080/json/echo
 ```
+
+## Detailed Usage Guide
+
+The rest of this README is the detailed usage guide. It keeps the concrete, copy-pasteable examples close to the project entry point:
+
+- [Current API](#current-api): runtime routes, typed parameters, JSON, lifecycle, and server configuration.
+- [Runtime Middleware](#runtime-middleware): application, group, and route middleware with one-shot body rules.
+- [Observability](#observability): request ID and request logging middleware.
+- [Route Metadata](#route-metadata): explicit metadata and minimal OpenAPI generation.
+- [DaylilyTesting](#daylilytesting): in-memory tests, request builders, and JSON assertions.
+- [Macro API MVP](#macro-api-mvp): `@DaylilyServer`, route macros, typed inputs, and macro limits.
+- [AI-Native Development](#ai-native-development): AIDEV contracts, registries, playbooks, and agent workflow.
 
 ## Current API
 
@@ -268,7 +384,7 @@ Order is:
 application -> router dispatch -> group -> route -> handler
 ```
 
-Middleware can read `request.body`, but `Body` is one-shot. If middleware consumes the body and then calls `next`, downstream code sees the body as already consumed. Daylily does not perform hidden body replay.
+Middleware can read `request.body`, but `RequestBody` is one-shot. If middleware consumes the body and then calls `next`, downstream code sees the body as already consumed. Daylily does not perform hidden body replay.
 
 When middleware intentionally needs to inspect body bytes and still pass an equivalent body downstream, use explicit buffering:
 
@@ -420,7 +536,7 @@ struct App {
     }
 
     @POST("/users")
-    func create(@JSONBody input: CreateUserInput) -> Status {
+    func create(@Body input: CreateUserInput) -> Status {
         .created
     }
 
@@ -470,19 +586,19 @@ struct App {
 
 The rule is simple: macros must lower into the runtime route system. The runtime remains the source of truth.
 
-Typed macro inputs also lower into runtime route metadata. `@Path`, `@Query`, `@Header`, and `@JSONBody` contribute OpenAPI-ready metadata through the same `Route.describe(...)` model used by handwritten routes.
+Typed macro inputs also lower into runtime route metadata. `@Path`, `@Query`, `@Header`, and preferred `@Body` inputs contribute OpenAPI-ready metadata through the same `Route.describe(...)` model used by handwritten routes. `@JSONBody` is retained as a compatibility alias spelling for `@Body`.
 
 MVP limits:
 
 - handlers must be instance methods;
 - the server type must be default-initializable with `Self()`;
-- handlers may use zero parameters, one `Request` parameter, `@Path`, `@Query`, `@Header`, and one `@JSONBody` parameter;
+- handlers may use zero parameters, one `Request` parameter, `@Path`, `@Query`, `@Header`, and one `@Body` parameter, with `@JSONBody` accepted as a compatibility alias spelling;
 - `@Path` lowers into `req.parameters.require(_:as:)`;
 - `@Path` names must match `:name` route segments;
 - `@Query` lowers into `req.query.require(_:as:)`;
 - `@Header` lowers into `req.headers.require(_:as:)`;
-- `@JSONBody` lowers into `try await req.json(Type.self)`;
-- true `@Body` spelling is deferred because `Body` is already Daylily's raw request body type;
+- `@Body` lowers into `try await req.json(Type.self)`; `@JSONBody` is a compatibility alias spelling with the same lowering;
+- the raw one-shot request body type is `RequestBody`;
 - grouped types must be default-initializable;
 - optional typed inputs, macro middleware attributes, DI, and deep OpenAPI schema derivation are future work.
 
@@ -561,9 +677,8 @@ The most important invariants:
 
 Near-term:
 
-1. Decide and implement true `@Body`.
-2. Add beta docs: quickstart, examples, and capability matrix.
-3. Add release hygiene: Linux CI, CHANGELOG, semver tag, and public API registry sync.
+1. Add beta docs: quickstart, examples, and capability matrix.
+2. Add release hygiene: Linux CI, CHANGELOG, semver tag, and public API registry sync.
 
 ## License
 

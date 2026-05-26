@@ -46,22 +46,22 @@ public struct ByteChunk: Sendable {
     }
 }
 
-public struct Body: Sendable {
+public struct RequestBody: Sendable {
     private let storage: BodyStorage
 
     private init(storage: BodyStorage) {
         self.storage = storage
     }
 
-    public static func bytes(_ bytes: [UInt8]) -> Body {
-        Body(storage: BodyStorage(source: .buffered(bytes)))
+    public static func bytes(_ bytes: [UInt8]) -> RequestBody {
+        RequestBody(storage: BodyStorage(source: .buffered(bytes)))
     }
 
     @_spi(Transport)
     public static func stream(bufferLimit: ByteCount = .megabytes(1)) -> BodyStream {
         let storage = BodyStreamStorage(bufferLimit: bufferLimit)
         return BodyStream(
-            body: Body(storage: BodyStorage(source: .stream(storage))),
+            body: RequestBody(storage: BodyStorage(source: .stream(storage))),
             writer: BodyStreamWriter(storage: storage)
         )
     }
@@ -97,7 +97,7 @@ public struct Body: Sendable {
 
 @_spi(Transport)
 public struct BodyStream: Sendable {
-    public let body: Body
+    public let body: RequestBody
     public let writer: BodyStreamWriter
 }
 
@@ -354,7 +354,7 @@ private actor BodyStreamStorage {
         }
 
         return try await withCheckedThrowingContinuation { continuation in
-            precondition(consumerContinuation == nil, "Body stream cannot have multiple active consumers")
+            precondition(consumerContinuation == nil, "RequestBody stream cannot have multiple active consumers")
             consumerContinuation = continuation
         }
     }

@@ -51,6 +51,11 @@ struct MacroSmoke {
         JSON(MacroEchoResponse(echo: input.message))
     }
 
+    @POST("/macro/body/echo")
+    func bodyEcho(@Body input: MacroEchoPayload) -> JSON<MacroEchoResponse> {
+        JSON(MacroEchoResponse(echo: input.message))
+    }
+
     @PUT("/macro/users/:id")
     func updateUser(@Path id: Int, req: Request) async throws -> String {
         "Macro updated user \(id):\(try await req.body.string(upTo: .kilobytes(64)))"
@@ -113,6 +118,11 @@ struct MacroSmoke {
 
         @POST("/json/echo")
         func jsonEcho(@JSONBody input: MacroEchoPayload) -> JSON<MacroEchoResponse> {
+            JSON(MacroEchoResponse(echo: input.message))
+        }
+
+        @POST("/body/echo")
+        func bodyEcho(@Body input: MacroEchoPayload) -> JSON<MacroEchoResponse> {
             JSON(MacroEchoResponse(echo: input.message))
         }
 

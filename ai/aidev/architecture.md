@@ -187,7 +187,7 @@ HTTPServerRequestPart.head/body/end
   ↓
 DaylilyNIO creates Request on head and streams body chunks
   ↓
-DaylilyCore.Request with streaming Body
+DaylilyCore.Request with streaming RequestBody
   ↓
 Application middleware
   ↓
@@ -208,23 +208,23 @@ DaylilyCore.Response
 NIO HTTP response parts
 ```
 
-Current body handling uses the Daylily `Body` abstraction. In-process requests may still use `Body.bytes(...)`, while `DaylilyNIO` creates a streaming `Body` as soon as it receives the request head.
+Current body handling uses the Daylily `RequestBody` abstraction. In-process requests may still use `RequestBody.bytes(...)`, while `DaylilyNIO` creates a streaming `RequestBody` as soon as it receives the request head.
 
 0008-001 body model:
 
 ```text
-Request.body -> Body
-Body.bytes -> BodyBytes
+Request.body -> RequestBody
+RequestBody.bytes -> BodyBytes
 BodyBytes.Element -> ByteChunk
 collect/string/json helpers require limits
 ```
 
-`Body` is one-shot and backed by shared storage, so copying `Body` does not allow a second read.
+`RequestBody` is one-shot and backed by shared storage, so copying `RequestBody` does not allow a second read.
 
 0008-002 NIO streaming bridge:
 
 ```text
-NIO head -> Request(body: streaming Body) -> route handler starts
+NIO head -> Request(body: streaming RequestBody) -> route handler starts
 NIO body chunk -> BodyStreamWriter -> BodyBytes -> ByteChunk
 NIO end -> finish BodyBytes
 NIO error/close -> BodyError.streamFailed
@@ -238,7 +238,7 @@ NIO error/close -> BodyError.streamFailed
 Application middleware -> router dispatch -> group middleware -> route middleware -> handler
 ```
 
-Application middleware wraps every request, including missing routes. Group and route middleware run only after a route match, so path parameters are available. Middleware may read `request.body`, but the `Body` remains one-shot and Daylily does not replay it automatically.
+Application middleware wraps every request, including missing routes. Group and route middleware run only after a route match, so path parameters are available. Middleware may read `request.body`, but the `RequestBody` remains one-shot and Daylily does not replay it automatically.
 
 0013-001 request logging middleware:
 
@@ -299,7 +299,8 @@ The generator maps Daylily route paths such as `/users/:id` into OpenAPI paths s
 0014-003 macro metadata bridge:
 
 ```text
-@Path / @Query / @Header / @JSONBody
+@Path / @Query / @Header / @Body
+@JSONBody compatibility alias spelling for @Body
   ↓
 @DaylilyServer generated Get/Post route
   ↓
@@ -340,7 +341,7 @@ Current behavior:
 - `BodyError` conforms to `ResponseError`.
 - Unknown errors map to `500 Internal Server Error`.
 - Missing route maps to `404 Not Found`.
-- Body over limit maps to `413 Payload Too Large`.
+- Request body over limit maps to `413 Payload Too Large`.
 - Application middleware can transform error responses produced by router dispatch.
 
 Future:
@@ -391,7 +392,8 @@ Implemented macro flow:
   used by @DaylilyServer
   lowers into Headers.require(_:as:)
 
-@JSONBody
+@Body
+@JSONBody compatibility alias spelling for @Body
   parameter marker
   used by @DaylilyServer
   lowers into Request.json(_:upTo:) through request.json(Type.self)
@@ -407,9 +409,9 @@ MVP limits:
 - server type must be default-initializable with `Self()`
 - group types must be default-initializable
 - route handlers must be instance methods
-- route handlers may have zero parameters, one `Request` parameter, `@Path`, `@Query`, `@Header`, and one `@JSONBody` parameter
+- route handlers may have zero parameters, one `Request` parameter, `@Path`, `@Query`, `@Header`, and one `@Body` parameter; `@JSONBody` remains as a compatibility alias spelling
 - `@Path` names must match `:name` route segments
-- true `@Body` spelling is deferred because `Body` is already Daylily's raw request body type
+- raw one-shot request body values use `RequestBody`
 - optional typed inputs, DI, macro middleware attributes, and deep OpenAPI schema derivation are not part of this MVP
 
 Important rule:

@@ -150,7 +150,7 @@ try await request.json(UserInput.self)
 try await request.withBufferedBody(upTo: .megabytes(1)) { replayed, bytes in ... }
 ```
 
-`request.body` is a one-shot `Body`. Reading bytes, collecting, decoding string, or decoding JSON consumes it.
+`request.body` is a one-shot `RequestBody`. Reading bytes, collecting, decoding string, or decoding JSON consumes it.
 
 Collection helpers must use explicit limits. `request.json(Type.self)` is convenience sugar with a default 1 MB limit.
 
@@ -158,15 +158,15 @@ Macro JSON body injection:
 
 ```swift
 @POST("/users")
-func create(@JSONBody input: CreateUserInput) async throws -> Status
+func create(@Body input: CreateUserInput) async throws -> Status
 ```
 
 Rules:
 
-- `@JSONBody` lowers to `try await req.json(CreateUserInput.self)`.
-- The marker lives in `DaylilyJSON`.
+- `@Body` lowers to `try await req.json(CreateUserInput.self)`.
+- The markers live in `DaylilyJSON`.
 - It uses the existing default `request.json(...)` limit of 1 MB.
-- True `@Body` spelling is deferred because `Body` is already Daylily's raw request body type.
+- `@Body` is the preferred spelling; `@JSONBody` remains only as a compatibility alias spelling with the same lowering.
 
 `ByteCount.kilobytes`, `.megabytes`, and `.gigabytes` are 1024-based.
 
@@ -183,7 +183,7 @@ Use `withBufferedBody(upTo:_:)` only when the caller explicitly wants in-memory 
 Macro future:
 
 ```swift
-func upload(@RawBody body: Body) async throws -> UploadResult
+func upload(@RawBody body: RequestBody) async throws -> UploadResult
 ```
 
 ## Responses

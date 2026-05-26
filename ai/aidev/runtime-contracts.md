@@ -381,7 +381,7 @@ Fields:
 - `method`: HTTP method.
 - `path`: request path without query string.
 - `headers`: normalized headers.
-- `body`: Daylily-owned `Body`.
+- `body`: Daylily-owned `RequestBody`.
 - `parameters`: path parameters populated by router.
 - `query`: parsed query parameters.
 
@@ -394,7 +394,7 @@ Guarantees:
 - `with(headers:)` returns a new request preserving method, path, body, parameters, and query while replacing headers.
 - `withBufferedBody(upTo:_:)` consumes the current body under an explicit limit.
 - `withBufferedBody(upTo:_:)` passes collected bytes and a replacement request to the operation closure.
-- The replacement request uses `Body.bytes(collectedBytes)`.
+- The replacement request uses `RequestBody.bytes(collectedBytes)`.
 - Replacement bodies remain one-shot.
 - Over-limit buffering throws `BodyError.tooLarge`, which renders as `413 Payload Too Large`.
 
@@ -407,8 +407,8 @@ Query and header behavior:
 Transport behavior:
 
 - `DaylilyNIO` creates `Request` after receiving the request head.
-- Network requests use a streaming `Body` fed by NIO body chunks.
-- In-process callers may still construct buffered bodies with `Body.bytes(...)`.
+- Network requests use a streaming `RequestBody` fed by NIO body chunks.
+- In-process callers may still construct buffered bodies with `RequestBody.bytes(...)`.
 
 Extension points:
 
@@ -418,7 +418,7 @@ Extension points:
 - remote address
 - request context
 
-## Body Contract
+## RequestBody Contract
 
 Owner:
 
@@ -426,7 +426,7 @@ Owner:
 
 Types:
 
-- `Body`
+- `RequestBody`
 - `BodyBytes`
 - `ByteChunk`
 - `ByteCount`
@@ -434,17 +434,17 @@ Types:
 
 Guarantees:
 
-- `Body` is the single request body abstraction.
-- `Body` is public value type backed by shared storage.
-- `Body` is uniformly one-shot.
-- Copying `Body` does not bypass one-shot consumption.
-- `Body.bytes` returns `BodyBytes`.
+- `RequestBody` is the single request body abstraction.
+- `RequestBody` is public value type backed by shared storage.
+- `RequestBody` is uniformly one-shot.
+- Copying `RequestBody` does not bypass one-shot consumption.
+- `RequestBody.bytes` returns `BodyBytes`.
 - `BodyBytes.Element` is `ByteChunk`.
 - `ByteChunk` exposes `bytes` and `count`.
 - `ByteChunk` does not conform to `Collection` in the first version.
-- `Body.collect(upTo:)` requires an explicit `ByteCount` limit.
-- `Body.string(upTo:)` requires an explicit `ByteCount` limit.
-- `Body.string(upTo:)` is strict UTF-8 and throws `BodyError.invalidEncoding` on invalid bytes.
+- `RequestBody.collect(upTo:)` requires an explicit `ByteCount` limit.
+- `RequestBody.string(upTo:)` requires an explicit `ByteCount` limit.
+- `RequestBody.string(upTo:)` is strict UTF-8 and throws `BodyError.invalidEncoding` on invalid bytes.
 - Buffered bodies yield at most one `ByteChunk`.
 - Streaming bodies yield transport-fed `ByteChunk` values in order.
 - Transport-only stream creation and writing uses `@_spi(Transport)` hooks, not normal user API.
@@ -484,7 +484,7 @@ Owner:
 
 Inputs:
 
-- `Body` bytes collected under an explicit limit for decode.
+- `RequestBody` bytes collected under an explicit limit for decode.
 - `Encodable & Sendable` values for encode.
 
 Outputs:
@@ -571,7 +571,7 @@ Guarantees:
 
 - Converts request head into Daylily method, path, headers.
 - Removes query string from `Request.path`.
-- Creates `Request` after the request head with a streaming `Body`.
+- Creates `Request` after the request head with a streaming `RequestBody`.
 - Starts the route handler before the entire request body is received.
 - Feeds NIO body chunks into Daylily `BodyBytes` in order.
 - Finishes `BodyBytes` when NIO receives request end.
@@ -613,9 +613,9 @@ Guarantees:
 - `TestClient` depends on `DaylilyCore`, not NIO.
 - `send(_:)` sends a `TestRequest` by converting it to a runtime `Request`.
 - `get(_:)` sends a GET request with optional headers.
-- `post(_:body:)` sends a POST request with optional headers and a `Body`, `[UInt8]`, or `String`.
-- `put(_:body:)` sends a PUT request with optional headers and a `Body`, `[UInt8]`, or `String`.
-- `patch(_:body:)` sends a PATCH request with optional headers and a `Body`, `[UInt8]`, or `String`.
+- `post(_:body:)` sends a POST request with optional headers and a `RequestBody`, `[UInt8]`, or `String`.
+- `put(_:body:)` sends a PUT request with optional headers and a `RequestBody`, `[UInt8]`, or `String`.
+- `patch(_:body:)` sends a PATCH request with optional headers and a `RequestBody`, `[UInt8]`, or `String`.
 - `delete(_:)`, `head(_:)`, and `options(_:)` send requests with optional headers.
 - `postJSON(_:headers:body:)` encodes an `Encodable` body and sets `content-type: application/json` when absent.
 - `Response.json(_:)` decodes response bytes with Foundation `JSONDecoder`.
@@ -660,8 +660,9 @@ Guarantees:
 - `@Path` names must match `:name` route segments in the full route path.
 - `@Query` parameters lower into `req.query.require(_:as:)`.
 - `@Header` parameters lower into `req.headers.require(_:as:)`.
-- `@JSONBody` parameters lower into `try await req.json(Type.self)`.
-- A handler may have at most one `@JSONBody` parameter.
+- `@Body` parameters lower into `try await req.json(Type.self)`.
+- `@JSONBody` remains as a compatibility alias spelling with the same lowering.
+- A handler may have at most one `@Body` or `@JSONBody` parameter.
 - Grouped handlers are called on default-initialized group instances.
 
 Known limitations:
@@ -669,7 +670,6 @@ Known limitations:
 - Server type must be default-initializable.
 - Group types must be default-initializable.
 - Static route handlers are not supported.
-- True `@Body` spelling is deferred because `Body` is already Daylily's raw request body type.
 - Optional typed inputs, macro middleware attributes, and DI are not supported yet.
 - OpenAPI metadata lowering exists for typed inputs; deeper schema inference and richer operation metadata are deferred.
 

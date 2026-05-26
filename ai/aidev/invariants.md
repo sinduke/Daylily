@@ -25,8 +25,8 @@ These rules define Daylily's shape. Do not break them without an ADR.
 1. Public closures should be `@Sendable`.
 2. Public runtime types should be `Sendable` when practical.
 3. `Request` and `Response` are Daylily-owned types.
-4. `Request.body` is a Daylily-owned `Body`, not a transport type.
-5. `Body` consumption is one-shot.
+4. `Request.body` is a Daylily-owned `RequestBody`, not a transport type.
+5. `RequestBody` consumption is one-shot.
 6. `String`, `Status`, and `Response` remain simple return values.
 7. New return types should conform to `ResponseConvertible`.
 8. Middleware must not add hidden request body replay.

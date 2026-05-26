@@ -156,7 +156,7 @@ private final class DaylilyHTTPHandler: ChannelInboundHandler, @unchecked Sendab
             return
         }
 
-        let stream = Body.stream()
+        let stream = RequestBody.stream()
         let request = makeRequest(head: head, body: stream.body)
         let current = CurrentRequest(head: head, writer: stream.writer)
         currentRequest = current
@@ -360,7 +360,7 @@ private final class DaylilyHTTPHandler: ChannelInboundHandler, @unchecked Sendab
         }
     }
 
-    private func makeRequest(head: HTTPRequestHead, body: Body) -> Request {
+    private func makeRequest(head: HTTPRequestHead, body: RequestBody) -> Request {
         var headers = Headers()
         for (name, value) in head.headers {
             headers[name] = value

@@ -50,7 +50,7 @@ Rules:
 - `@DaylilyServer` generates `static func main() async throws`.
 - The generated main creates `let server = Self()`.
 - Route handlers must be instance methods.
-- Route handlers may have zero parameters, one `Request` parameter, `@Path`, `@Query`, `@Header`, and one `@JSONBody` parameter.
+- Route handlers may have zero parameters, one `Request` parameter, `@Path`, `@Query`, `@Header`, and one `@Body` parameter, with `@JSONBody` accepted as a compatibility alias spelling.
 - `@GET` lowers to runtime `Get`.
 - `@POST` lowers to runtime `Post`.
 - `@PUT` lowers to runtime `Put`.
@@ -72,9 +72,10 @@ Rules:
 - `@Header` also lowers into `RouteInputMetadata.header(...)`.
 - Bare `@Header` uses the Swift local parameter name.
 - `@Header("name")` maps to an explicit header name.
-- `@JSONBody` lowers into `try await req.json(Type.self)`.
-- `@JSONBody` also lowers into `RouteBodyMetadata.json(...)`.
-- True `@Body` spelling is deferred because `Body` is already Daylily's raw request body type.
+- `@Body` lowers into `try await req.json(Type.self)`.
+- `@Body` also lowers into `RouteBodyMetadata.json(...)`.
+- `@JSONBody` is a compatibility alias spelling for `@Body` and uses the same lowering.
+- The raw one-shot request body type is `RequestBody`.
 - Grouped types are instantiated with `Self.GroupType()`.
 
 ### Application.run
@@ -254,7 +255,7 @@ public struct TestClient: Sendable {
     public func post(
         _ path: String,
         headers: Headers = [:],
-        body: Body = .bytes([])
+        body: RequestBody = .bytes([])
     ) async throws -> Response
 
     public func post(
@@ -275,11 +276,11 @@ public struct TestClient: Sendable {
         body value: Value
     ) async throws -> Response
 
-    public func put(_ path: String, headers: Headers = [:], body: Body = .bytes([])) async throws -> Response
+    public func put(_ path: String, headers: Headers = [:], body: RequestBody = .bytes([])) async throws -> Response
     public func put(_ path: String, headers: Headers = [:], body: [UInt8]) async throws -> Response
     public func put(_ path: String, headers: Headers = [:], body: String) async throws -> Response
 
-    public func patch(_ path: String, headers: Headers = [:], body: Body = .bytes([])) async throws -> Response
+    public func patch(_ path: String, headers: Headers = [:], body: RequestBody = .bytes([])) async throws -> Response
     public func patch(_ path: String, headers: Headers = [:], body: [UInt8]) async throws -> Response
     public func patch(_ path: String, headers: Headers = [:], body: String) async throws -> Response
 
@@ -296,25 +297,25 @@ public struct TestRequest: Sendable {
     public var method: HTTPMethod
     public var path: String
     public var headers: Headers
-    public var body: Body
+    public var body: RequestBody
 
     public init(
         method: HTTPMethod,
         path: String,
         headers: Headers = [:],
-        body: Body = .bytes([])
+        body: RequestBody = .bytes([])
     )
 
     public static func get(_ path: String, headers: Headers = [:]) -> TestRequest
-    public static func post(_ path: String, headers: Headers = [:], body: Body = .bytes([])) -> TestRequest
-    public static func put(_ path: String, headers: Headers = [:], body: Body = .bytes([])) -> TestRequest
-    public static func patch(_ path: String, headers: Headers = [:], body: Body = .bytes([])) -> TestRequest
+    public static func post(_ path: String, headers: Headers = [:], body: RequestBody = .bytes([])) -> TestRequest
+    public static func put(_ path: String, headers: Headers = [:], body: RequestBody = .bytes([])) -> TestRequest
+    public static func patch(_ path: String, headers: Headers = [:], body: RequestBody = .bytes([])) -> TestRequest
     public static func delete(_ path: String, headers: Headers = [:]) -> TestRequest
     public static func head(_ path: String, headers: Headers = [:]) -> TestRequest
     public static func options(_ path: String, headers: Headers = [:]) -> TestRequest
 
     public func withHeader(_ name: String, _ value: String) -> TestRequest
-    public func withBody(_ body: Body) -> TestRequest
+    public func withBody(_ body: RequestBody) -> TestRequest
     public func withBody(_ bytes: [UInt8]) -> TestRequest
     public func withBody(_ string: String) -> TestRequest
     public func withJSON<Value: Encodable>(_ value: Value) throws -> TestRequest
@@ -621,7 +622,7 @@ Rules:
 - Group and route middleware run after route matching, so path parameters are available.
 - Middleware may short-circuit by returning a response without calling `next`.
 - Middleware may throw; errors map through `Application.respond(to:)`.
-- Middleware may read `request.body`, but `Body` remains one-shot.
+- Middleware may read `request.body`, but `RequestBody` remains one-shot.
 - Daylily does not automatically replay consumed request bodies.
 
 Runtime verb boundary:
@@ -637,7 +638,7 @@ public struct Request: Sendable {
     public let method: HTTPMethod
     public let path: String
     public let headers: Headers
-    public let body: Body
+    public let body: RequestBody
     public let parameters: Parameters
     public let query: QueryParameters
 
@@ -645,7 +646,7 @@ public struct Request: Sendable {
         method: HTTPMethod,
         path: String,
         headers: Headers = [:],
-        body: Body = .bytes([]),
+        body: RequestBody = .bytes([]),
         parameters: Parameters = Parameters(),
         query: QueryParameters? = nil
     )
@@ -660,7 +661,7 @@ public struct Request: Sendable {
     )
 
     public func with(parameters: Parameters) -> Request
-    public func with(body: Body) -> Request
+    public func with(body: RequestBody) -> Request
     public func with(headers: Headers) -> Request
 
     public func withBufferedBody<R: Sendable>(
@@ -676,24 +677,24 @@ Rules:
 - Explicit `query:` overrides query text parsed from `path`.
 - `with(parameters:)`, `with(body:)`, `with(headers:)`, and `withBufferedBody(upTo:_:)` preserve query values.
 
-Body rules:
+RequestBody rules:
 
-- `body` is a Daylily-owned `Body`.
-- The `[UInt8]` initializer converts bytes into `Body.bytes(...)`.
-- `with(parameters:)` preserves the same `Body` storage and one-shot state.
+- `body` is a Daylily-owned `RequestBody`.
+- The `[UInt8]` initializer converts bytes into `RequestBody.bytes(...)`.
+- `with(parameters:)` preserves the same `RequestBody` storage and one-shot state.
 - `with(body:)` replaces only the body and preserves method, path, headers, and parameters.
 - `with(headers:)` replaces only headers and preserves method, path, body, parameters, and query.
-- `withBufferedBody(upTo:_:)` consumes the current body, creates a replacement `Body.bytes(...)`, and passes both replacement request and collected bytes to the closure.
+- `withBufferedBody(upTo:_:)` consumes the current body, creates a replacement `RequestBody.bytes(...)`, and passes both replacement request and collected bytes to the closure.
 - `withBufferedBody(upTo:_:)` requires an explicit `ByteCount` limit.
 - The replacement body from `withBufferedBody(upTo:_:)` is still one-shot.
 - Limit failures from `withBufferedBody(upTo:_:)` throw `BodyError.tooLarge`.
-- `DaylilyNIO` creates streaming bodies through transport SPI; user code still sees only `Body`.
+- `DaylilyNIO` creates streaming bodies through transport SPI; user code sees `RequestBody`.
 
-### Body
+### RequestBody
 
 ```swift
-public struct Body: Sendable {
-    public static func bytes(_ bytes: [UInt8]) -> Body
+public struct RequestBody: Sendable {
+    public static func bytes(_ bytes: [UInt8]) -> RequestBody
     public var bytes: BodyBytes { get }
     public func collect(upTo limit: ByteCount) async throws -> [UInt8]
     public func string(upTo limit: ByteCount) async throws -> String
@@ -702,11 +703,11 @@ public struct Body: Sendable {
 
 Rules:
 
-- `Body` is one-shot.
+- `RequestBody` is one-shot.
 - Reading `bytes`, `collect(upTo:)`, `string(upTo:)`, or JSON consumes the body.
 - A second read throws `BodyError.alreadyConsumed`.
-- `Body` is a public value type backed by shared storage.
-- Copying `Body` does not reset one-shot state.
+- `RequestBody` is a public value type backed by shared storage.
+- Copying `RequestBody` does not reset one-shot state.
 - Transport-owned streaming construction exists behind `@_spi(Transport)` and is not normal user API.
 
 ### BodyBytes
@@ -725,15 +726,15 @@ Rules:
 - Stream finish ends async iteration cleanly.
 - Stream failure throws `BodyError.streamFailed`.
 
-### Body Transport SPI
+### RequestBody Transport SPI
 
 ```swift
 @_spi(Transport)
-public static func Body.stream(bufferLimit: ByteCount = .megabytes(1)) -> BodyStream
+public static func RequestBody.stream(bufferLimit: ByteCount = .megabytes(1)) -> BodyStream
 
 @_spi(Transport)
 public struct BodyStream: Sendable {
-    public let body: Body
+    public let body: RequestBody
     public let writer: BodyStreamWriter
 }
 
@@ -1136,10 +1137,10 @@ Rules:
 - Sets `content-type: application/json` if no content type is already present.
 - Does not make all `Encodable` types automatically conform to `ResponseConvertible`.
 
-### Body JSON Decoding
+### RequestBody JSON Decoding
 
 ```swift
-public extension Body {
+public extension RequestBody {
     func json<Value: Decodable>(_ type: Value.Type, upTo limit: ByteCount) async throws -> Value
 }
 
@@ -1156,15 +1157,15 @@ Rules:
 - `request.body.json(Type.self, upTo:)` is the standard JSON body API.
 - `request.json(Type.self)` is convenience sugar with a default 1 MB limit.
 - Decodes collected body bytes with Foundation `JSONDecoder`.
-- Body collection limit failures keep their `BodyError` mapping.
+- RequestBody collection limit failures keep their `BodyError` mapping.
 - Decode failures throw `Abort(.badRequest, reason: "Invalid JSON body")`.
 - Request content type is not enforced yet.
 
-### JSONBody
+### Body Property Wrapper
 
 ```swift
 @propertyWrapper
-public struct JSONBody<Value: Decodable & Sendable>: Sendable {
+public struct Body<Value: Decodable & Sendable>: Sendable {
     public var wrappedValue: Value
     public init(wrappedValue: Value)
 }
@@ -1172,10 +1173,11 @@ public struct JSONBody<Value: Decodable & Sendable>: Sendable {
 
 Rules:
 
-- `JSONBody` is a macro marker for typed JSON body injection.
+- `Body` is the preferred macro marker for typed JSON body injection.
 - It lives in `DaylilyJSON`, not `DaylilyCore`.
 - `@DaylilyServer` lowers it into `try await req.json(Type.self)`.
 - The marker does not own runtime decode behavior.
+- `JSONBody` remains available as a compatibility alias spelling with the same behavior.
 
 ## Module DaylilyNIO
 
@@ -1226,7 +1228,7 @@ Rules:
 
 - This is transport infrastructure.
 - Most users should call `Application.run(...)` instead.
-- Creates `Request` after NIO request head with a streaming `Body`.
+- Creates `Request` after NIO request head with a streaming `RequestBody`.
 - Feeds NIO request body chunks into `BodyBytes`.
 - Uses bounded buffering and NIO `autoRead` control for practical backpressure.
 - Does not expose `ByteBuffer`, `HTTPServerRequestPart`, `Channel`, or `ChannelHandlerContext` through user APIs.

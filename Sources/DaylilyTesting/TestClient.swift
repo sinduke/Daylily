@@ -25,7 +25,7 @@ public struct TestClient: Sendable {
     public func post(
         _ path: String,
         headers: Headers = [:],
-        body: Body = .bytes([])
+        body: RequestBody = .bytes([])
     ) async throws -> Response {
         try await respond(to: Request(method: .post, path: path, headers: headers, body: body))
     }
@@ -57,7 +57,7 @@ public struct TestClient: Sendable {
     public func put(
         _ path: String,
         headers: Headers = [:],
-        body: Body = .bytes([])
+        body: RequestBody = .bytes([])
     ) async throws -> Response {
         try await respond(to: Request(method: .put, path: path, headers: headers, body: body))
     }
@@ -81,7 +81,7 @@ public struct TestClient: Sendable {
     public func patch(
         _ path: String,
         headers: Headers = [:],
-        body: Body = .bytes([])
+        body: RequestBody = .bytes([])
     ) async throws -> Response {
         try await respond(to: Request(method: .patch, path: path, headers: headers, body: body))
     }

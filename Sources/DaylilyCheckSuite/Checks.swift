@@ -1362,7 +1362,7 @@ public enum DaylilyChecks {
     }
 
     private static func bodyBytes() async throws {
-        let body = Body.bytes(Array("hi".utf8))
+        let body = RequestBody.bytes(Array("hi".utf8))
         var chunks: [ByteChunk] = []
 
         for try await chunk in body.bytes {
@@ -1375,14 +1375,14 @@ public enum DaylilyChecks {
     }
 
     private static func bodyCollect() async throws {
-        let body = Body.bytes(Array("collect".utf8))
+        let body = RequestBody.bytes(Array("collect".utf8))
         let bytes = try await body.collect(upTo: .kilobytes(1))
 
         try expect(bytes == Array("collect".utf8), "expected collected body bytes")
     }
 
     private static func bodyCollectLimit() async throws {
-        let body = Body.bytes(Array("toolarge".utf8))
+        let body = RequestBody.bytes(Array("toolarge".utf8))
 
         do {
             _ = try await body.collect(upTo: .bytes(2))
@@ -1394,14 +1394,14 @@ public enum DaylilyChecks {
     }
 
     private static func bodyStringHelper() async throws {
-        let body = Body.bytes(Array("hello".utf8))
+        let body = RequestBody.bytes(Array("hello".utf8))
         let text = try await body.string(upTo: .kilobytes(1))
 
         try expect(text == "hello", "expected body string")
     }
 
     private static func streamingBodyChunksInOrder() async throws {
-        let stream = Body.stream(bufferLimit: .bytes(2))
+        let stream = RequestBody.stream(bufferLimit: .bytes(2))
         let writer = stream.writer
 
         let producer = Task {
@@ -1421,7 +1421,7 @@ public enum DaylilyChecks {
     }
 
     private static func streamingBodyFailure() async throws {
-        let stream = Body.stream()
+        let stream = RequestBody.stream()
         await stream.writer.fail()
 
         do {
@@ -1434,7 +1434,7 @@ public enum DaylilyChecks {
     }
 
     private static func streamingBodyCancellation() async throws {
-        let stream = Body.stream()
+        let stream = RequestBody.stream()
         let reader = Task {
             try await stream.body.collect(upTo: .kilobytes(1))
         }
@@ -1446,7 +1446,7 @@ public enum DaylilyChecks {
     }
 
     private static func invalidUTF8Body() async throws {
-        let body = Body.bytes([0xFF])
+        let body = RequestBody.bytes([0xFF])
 
         do {
             _ = try await body.string(upTo: .kilobytes(1))
@@ -1458,7 +1458,7 @@ public enum DaylilyChecks {
     }
 
     private static func bodyOneShot() async throws {
-        let body = Body.bytes(Array("once".utf8))
+        let body = RequestBody.bytes(Array("once".utf8))
         _ = try await body.collect(upTo: .kilobytes(1))
 
         do {
@@ -1471,7 +1471,7 @@ public enum DaylilyChecks {
     }
 
     private static func copiedBodyIsOneShot() async throws {
-        let body = Body.bytes(Array("copy".utf8))
+        let body = RequestBody.bytes(Array("copy".utf8))
         let copy = body
 
         _ = try await body.collect(upTo: .kilobytes(1))
@@ -1501,7 +1501,7 @@ public enum DaylilyChecks {
     }
 
     private static func bodyJSON() async throws {
-        let body = Body.bytes(Array(#"{"message":"standard"}"#.utf8))
+        let body = RequestBody.bytes(Array(#"{"message":"standard"}"#.utf8))
         let payload = try await body.json(EchoPayload.self, upTo: .megabytes(1))
 
         try expect(payload == EchoPayload(message: "standard"), "expected standard body JSON decode")
