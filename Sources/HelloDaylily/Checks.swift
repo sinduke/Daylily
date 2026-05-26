@@ -6,6 +6,8 @@ import Foundation
 enum DaylilyChecks {
     static func run() async throws {
         try await exactRoute()
+        try await lifecycleHooks()
+        try await lifecycleErrors()
         try await testClientGet()
         try await testClientPostBody()
         try await testClientRespondToRequest()
@@ -75,6 +77,61 @@ enum DaylilyChecks {
 
         try expect(response.status == .ok, "expected 200 OK")
         try expect(response.bodyString == "Daylily ships.", "expected hello response")
+    }
+
+    private static func lifecycleHooks() async throws {
+        let log = EventLog()
+        let app = Application {
+            Get("/hello") {
+                "ok"
+            }
+        }
+        .configure {
+            await log.append("configure")
+        }
+        .boot {
+            await log.append("boot")
+        }
+        .started {
+            await log.append("started")
+        }
+        .shutdown {
+            await log.append("shutdown")
+        }
+        .cleanup {
+            await log.append("cleanup")
+        }
+
+        try await app.runLifecycle(.configure)
+        try await app.runLifecycle(.boot)
+        try await app.runLifecycle(.started)
+        try await app.runLifecycle(.shutdown)
+        try await app.runLifecycle(.cleanup)
+
+        let events = await log.snapshot()
+        try expect(
+            events == ["configure", "boot", "started", "shutdown", "cleanup"],
+            "expected lifecycle hooks to run in order"
+        )
+    }
+
+    private static func lifecycleErrors() async throws {
+        let app = Application {
+            Get("/hello") {
+                "ok"
+            }
+        }
+        .boot {
+            throw Abort(.badRequest, reason: "Boot failed")
+        }
+
+        do {
+            try await app.runLifecycle(.boot)
+            try expect(false, "expected lifecycle hook to throw")
+        } catch let error as Abort {
+            try expect(error.status == .badRequest, "expected lifecycle error status")
+            try expect(error.reason == "Boot failed", "expected lifecycle error reason")
+        }
     }
 
     private static func testClientGet() async throws {

@@ -168,7 +168,8 @@ Practical interleave:
 0011-002 DaylilyTesting request builders and JSON assertions (delivered)
 0010-003 @JSONBody macro/runtime bridge (delivered)
 0010-004 @Query / @Header (delivered)
-0012 Lifecycle
+0012-001 Application lifecycle MVP (delivered)
+0012-002 Graceful shutdown
 ```
 
 ## Recently Completed Epic
@@ -200,9 +201,29 @@ func search(
 ) -> String
 ```
 
-Next task:
+### 0012 Lifecycle / Server Controls
+
+Status: in-progress
+
+Delivered:
 
 - `0012-001-application-lifecycle-mvp`
+
+Delivered shape:
+
+```swift
+let app = Application {
+    Get("/hello") { "ok" }
+}
+.boot { ... }
+.started { ... }
+.shutdown { ... }
+.cleanup { ... }
+```
+
+Next task:
+
+- `0012-002-graceful-shutdown`
 
 ### Future Epics
 

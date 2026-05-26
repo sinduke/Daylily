@@ -126,6 +126,11 @@ Daylily/
 - Defines the public `Middleware` protocol.
 - Defines internal middleware type erasure and pipeline composition.
 
+`Sources/DaylilyCore/Lifecycle.swift`
+
+- Defines `LifecycleOperation` and `LifecyclePhase`.
+- Lifecycle hook storage and execution is owned by `Application`.
+
 `Sources/DaylilyCore/Parameters.swift`
 
 - Path parameter container with dynamic member access.
@@ -198,6 +203,7 @@ Daylily/
 `Sources/DaylilyNIO/NIOHTTPServer.swift`
 
 - NIO HTTP server and channel handler.
+- Accepts a `started` callback so `Application.run` can run lifecycle after bind.
 
 `Sources/DaylilyTesting/TestClient.swift`
 

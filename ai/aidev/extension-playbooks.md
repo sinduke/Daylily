@@ -191,6 +191,31 @@ Body rules:
 5. If downstream code needs an equivalent body, use `request.withBufferedBody(upTo:_:)` deliberately.
 6. `withBufferedBody(upTo:_:)` buffers in memory under a required limit and creates a one-shot replacement body.
 
+## Extend Lifecycle
+
+Current shape:
+
+```swift
+let app = Application {
+    Get("/hello") { "ok" }
+}
+.boot {
+    ...
+}
+.shutdown {
+    ...
+}
+```
+
+Rules:
+
+1. Keep lifecycle concepts in `DaylilyCore`.
+2. Keep NIO integration in `Daylily` / `DaylilyNIO`.
+3. Do not expose NIO types through lifecycle APIs.
+4. Preserve hook registration order within each phase.
+5. Run `started` only after server bind succeeds.
+6. Add checks for ordering and thrown lifecycle errors.
+
 ## Add Explicit Buffered Body Helper
 
 Current state:

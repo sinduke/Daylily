@@ -25,7 +25,9 @@ public struct NIOHTTPServer: Sendable {
         self.responder = responder
     }
 
-    public func run() async throws {
+    public func run(
+        started: @escaping @Sendable () async throws -> Void = {}
+    ) async throws {
         let group = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
 
         let responder = responder
@@ -45,9 +47,11 @@ public struct NIOHTTPServer: Sendable {
         print("Daylily listening on http://\(configuration.host):\(configuration.port)")
 
         do {
+            try await started()
             try await channel.closeFuture.get()
             try await group.shutdownGracefully()
         } catch {
+            channel.close(promise: nil)
             try? await group.shutdownGracefully()
             throw error
         }

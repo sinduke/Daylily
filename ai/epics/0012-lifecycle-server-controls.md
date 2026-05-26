@@ -1,6 +1,6 @@
 # 0012 Lifecycle And Server Controls
 
-Status: proposed
+Status: in-progress
 
 Purpose:
 
@@ -19,7 +19,7 @@ cleanup
 
 Recommended tasks:
 
-- `0012-001-application-lifecycle-mvp`
+- `0012-001-application-lifecycle-mvp` (implemented)
 - `0012-002-graceful-shutdown`
 - `0012-003-server-configuration`
 
@@ -28,6 +28,7 @@ Design notes:
 - Lifecycle should be runtime-first.
 - Transport should integrate with lifecycle without leaking NIO types into user APIs.
 - Server controls should remain explicit and boring.
+- `0012-001` delivered runtime lifecycle hooks and integrated `Application.run`.
 
 Non-goals for the first task:
 

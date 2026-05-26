@@ -19,7 +19,7 @@ struct App {
 }
 ```
 
-Current implemented surfaces are the runtime DSL, runtime middleware, the Daylily-owned `Body` model, explicit buffered body replacement, JSON body/response helpers, the macro route/group MVP, macro `@Path`, `@Query`, `@Header`, and `@JSONBody` typed input injection, and `DaylilyTesting` in-memory request/response helpers.
+Current implemented surfaces are the runtime DSL, runtime middleware, application lifecycle hooks, the Daylily-owned `Body` model, explicit buffered body replacement, JSON body/response helpers, the macro route/group MVP, macro `@Path`, `@Query`, `@Header`, and `@JSONBody` typed input injection, and `DaylilyTesting` in-memory request/response helpers.
 
 Runtime DSL:
 
@@ -69,6 +69,21 @@ let app = Application {
     .middleware(HeaderMiddleware())
 }
 .middleware(HeaderMiddleware())
+.configure {
+    // register configuration
+}
+.boot {
+    // open resources
+}
+.started {
+    // server has bound successfully
+}
+.shutdown {
+    // stop accepting work
+}
+.cleanup {
+    // release resources
+}
 
 try await app.run()
 ```
@@ -162,6 +177,7 @@ Implemented:
 - Core runtime.
 - Basic route DSL: `Get`, `Post`, `Group`.
 - Runtime middleware at application, group, and route scope.
+- Application lifecycle hooks: `configure`, `boot`, `started`, `shutdown`, `cleanup`.
 - Macro route/group MVP: `@DaylilyServer`, `@GET`, `@POST`, `@GROUP`.
 - Macro `@Path` typed path parameter injection.
 - Macro `@Query` and `@Header` typed input injection.
@@ -187,6 +203,7 @@ Not implemented:
 - OpenAPI.
 - Dependency injection.
 - Macro middleware attributes.
+- Graceful shutdown and production server controls.
 - Dedicated Swift test target.
 
 ## Read Order
@@ -260,5 +277,5 @@ Do not start with:
 Current strategic order:
 
 1. Keep AIDEV self-contained.
-2. Add lifecycle and production server controls.
+2. Add graceful shutdown and production server controls.
 3. Add observability middleware.

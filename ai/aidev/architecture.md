@@ -71,6 +71,8 @@ DaylilyCore -> Standard Library only
 
 Middleware lives in `DaylilyCore`. It is runtime infrastructure, not transport infrastructure.
 
+Lifecycle phases live in `DaylilyCore`. `Application.run` wires them to the current transport, and `DaylilyNIO` only exposes a transport-level `started` callback for bind completion.
+
 ## Non-Negotiable Boundaries
 
 `DaylilyCore` must not import:

@@ -64,6 +64,12 @@ Parameters:
 - `host`: address to bind. Default `127.0.0.1`.
 - `port`: port to bind. Default `8080`.
 
+Lifecycle order:
+
+```text
+configure -> boot -> NIO bind -> started -> server close -> shutdown -> cleanup
+```
+
 ## Module DaylilyTesting
 
 ### TestClient
@@ -175,6 +181,13 @@ public struct Application: Sendable {
     public init(routes: [Route])
     public init(routes: Routes)
     public func middleware<M: Middleware>(_ middleware: M) -> Application
+    public func lifecycle(_ phase: LifecyclePhase, _ operation: @escaping LifecycleOperation) -> Application
+    public func configure(_ operation: @escaping LifecycleOperation) -> Application
+    public func boot(_ operation: @escaping LifecycleOperation) -> Application
+    public func started(_ operation: @escaping LifecycleOperation) -> Application
+    public func shutdown(_ operation: @escaping LifecycleOperation) -> Application
+    public func cleanup(_ operation: @escaping LifecycleOperation) -> Application
+    public func runLifecycle(_ phase: LifecyclePhase) async throws
     public func respond(to request: Request) async -> Response
 }
 ```
@@ -184,6 +197,30 @@ Rules:
 - `respond(to:)` catches framework errors and always returns a `Response`.
 - It is the in-memory test surface for runtime behavior.
 - Application middleware wraps every request, including missing routes and error responses produced by router dispatch.
+- Lifecycle hooks are async, throwing, and run in registration order within each phase.
+- `respond(to:)` does not run lifecycle hooks.
+
+### Lifecycle
+
+```swift
+public typealias LifecycleOperation = @Sendable () async throws -> Void
+
+public enum LifecyclePhase: String, Sendable, CaseIterable {
+    case configure
+    case boot
+    case started
+    case shutdown
+    case cleanup
+}
+```
+
+Rules:
+
+- `configure` and `boot` run before server bind in `Application.run`.
+- `started` runs after NIO bind succeeds.
+- `shutdown` and `cleanup` run after server close.
+- `shutdown` and `cleanup` are attempted if server run fails after boot.
+- Lifecycle APIs do not expose NIO types.
 
 ### Route
 
@@ -855,7 +892,7 @@ public struct NIOHTTPServer: Sendable {
         responder: @escaping @Sendable (Request) async -> Response
     )
 
-    public func run() async throws
+    public func run(started: @escaping @Sendable () async throws -> Void = {}) async throws
 }
 ```
 

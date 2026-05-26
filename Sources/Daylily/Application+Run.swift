@@ -7,6 +7,25 @@ extension Application {
             await respond(to: request)
         }
 
-        try await server.run()
+        try await runLifecycle(.configure)
+        try await runLifecycle(.boot)
+
+        var didShutdown = false
+
+        do {
+            try await server.run {
+                try await runLifecycle(.started)
+            }
+            try await runLifecycle(.shutdown)
+            didShutdown = true
+            try await runLifecycle(.cleanup)
+        } catch {
+            if !didShutdown {
+                try? await runLifecycle(.shutdown)
+            }
+
+            try? await runLifecycle(.cleanup)
+            throw error
+        }
     }
 }

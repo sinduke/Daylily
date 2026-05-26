@@ -320,6 +320,29 @@ Current conformers:
 
 `Application.respond(to:)` maps `ResponseError.status` and `ResponseError.reason` into a text response.
 
+## Lifecycle
+
+Lifecycle hooks are runtime-level mounting points for resources and server operations.
+
+```swift
+let app = Application {
+    Get("/hello") { "ok" }
+}
+.configure { }
+.boot { }
+.started { }
+.shutdown { }
+.cleanup { }
+```
+
+`Application.run` uses this order:
+
+```text
+configure -> boot -> NIO bind -> started -> server close -> shutdown -> cleanup
+```
+
+`respond(to:)` does not run lifecycle hooks. In-memory tests can invoke individual phases with `runLifecycle(_:)`.
+
 ## Router
 
 `Router` matches an incoming `Request` to a `Route`.

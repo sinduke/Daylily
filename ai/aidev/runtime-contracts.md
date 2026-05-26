@@ -22,12 +22,40 @@ Guarantees:
 - `Abort`, `BodyError`, and `ParameterError` conform to `ResponseError`.
 - Unknown errors become `500 Internal Server Error`.
 - Missing route becomes `404 Not Found`.
+- `respond(to:)` does not run lifecycle hooks.
 
 Extension points:
 
 - error renderer
 - lifecycle hooks
 - service container
+
+## Lifecycle Contract
+
+Input:
+
+- Lifecycle hooks registered on `Application`.
+
+Output:
+
+- Async throwing lifecycle execution.
+
+Guarantees:
+
+- Supported phases are `configure`, `boot`, `started`, `shutdown`, and `cleanup`.
+- Hooks run in registration order within each phase.
+- `Application.run` calls `configure` and `boot` before server bind.
+- `Application.run` calls `started` after NIO bind succeeds.
+- `Application.run` calls `shutdown` after server close.
+- `Application.run` calls `cleanup` after shutdown.
+- `shutdown` and `cleanup` are attempted if server run fails after boot.
+- Lifecycle APIs do not expose NIO types.
+
+Known limitations:
+
+- No signal handling yet.
+- No graceful request draining yet.
+- No worker or pool integration yet.
 
 ## Middleware Contract
 

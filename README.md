@@ -38,6 +38,7 @@ Implemented today:
 - One-shot body consumption with `ByteChunk` and `ByteCount`.
 - True NIO request body streaming bridge with bounded buffering and practical backpressure.
 - Runtime middleware with application, group, and route scopes.
+- Application lifecycle hooks: `configure`, `boot`, `started`, `shutdown`, `cleanup`.
 - Explicit `withBufferedBody(upTo:_:)` helper for bounded body inspection and replacement.
 - `ResponseConvertible` for `String`, `Status`, and `Response`.
 - Async JSON body decoding with `request.body.json(...)` and `request.json(...)`.
@@ -56,6 +57,7 @@ Not implemented yet:
 
 - Macro typed input injection beyond `@Path`, `@Query`, `@Header`, and `@JSONBody` (true `@Body` spelling, optional values, etc.).
 - OpenAPI generation.
+- Graceful shutdown and production server controls.
 - Dependency injection.
 - Macro middleware attributes.
 
@@ -154,6 +156,29 @@ struct HelloDaylily {
 
         try await app.run()
     }
+}
+```
+
+Lifecycle hooks are available before ecosystem modules:
+
+```swift
+let app = Application {
+    Get("/hello") { "ok" }
+}
+.configure {
+    // register configuration
+}
+.boot {
+    // open resources
+}
+.started {
+    // server has bound successfully
+}
+.shutdown {
+    // stop accepting work
+}
+.cleanup {
+    // release resources
 }
 ```
 
@@ -398,7 +423,7 @@ The most important invariants:
 
 Near-term:
 
-1. Lifecycle and production server controls.
+1. Graceful shutdown and production server controls.
 2. Observability middleware.
 3. OpenAPI metadata before ecosystem modules.
 

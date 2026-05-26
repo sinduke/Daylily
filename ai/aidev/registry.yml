@@ -5,7 +5,7 @@ project:
   license: MIT
   license_file: LICENSE
   swift_tools_version: "6.0"
-  current_phase: "application_lifecycle_mvp"
+  current_phase: "graceful_shutdown_and_server_controls"
   authoritative_ai_entry:
     - AIDEV.md
     - ai/aidev/start-here.md
@@ -106,6 +106,7 @@ products:
       - request_response_models
       - body_model
       - middleware_runtime
+      - lifecycle_runtime
       - response_conversion
       - path_parameters
       - query_parameters
@@ -130,6 +131,7 @@ products:
     role: nio_transport
     responsibility:
       - bind_http_server
+      - expose_started_callback_after_bind
       - create_daylily_request_after_nio_head
       - stream_nio_body_chunks_into_daylily_body
       - apply_bounded_body_buffering_and_backpressure
@@ -273,6 +275,39 @@ implemented_features:
       - "query parsing supports &, name=value, empty values, plus-as-space, percent-decoded UTF-8, and last value wins"
       - "missing and invalid query/header values map to source-specific 400 responses"
       - "optional macro values, repeated query values, and cookies are deferred"
+  application_lifecycle_mvp:
+    status: implemented
+    epic: "0012-lifecycle-server-controls"
+    task: "0012-001-application-lifecycle-mvp"
+    modules:
+      - DaylilyCore
+      - Daylily
+      - DaylilyNIO
+    public_api:
+      - LifecycleOperation
+      - LifecyclePhase
+      - "Application.lifecycle(_:_:)"
+      - "Application.configure(_:)"
+      - "Application.boot(_:)"
+      - "Application.started(_:)"
+      - "Application.shutdown(_:)"
+      - "Application.cleanup(_:)"
+      - "Application.runLifecycle(_:)"
+      - "NIOHTTPServer.run(started:)"
+    lifecycle_order:
+      - configure
+      - boot
+      - "NIO bind"
+      - started
+      - "server close"
+      - shutdown
+      - cleanup
+    decisions:
+      - "Lifecycle hooks run in registration order within each phase"
+      - "Application.respond(to:) does not run lifecycle hooks"
+      - "Application.run calls started only after NIO bind succeeds"
+      - "shutdown and cleanup are attempted if server run fails after boot"
+      - "lifecycle APIs do not expose NIO types"
   daylily_testing_minimal_client:
     status: implemented
     epic: "0011-daylily-testing"
@@ -470,6 +505,12 @@ planned_features:
     next_task: null
   openapi:
     status: future
+  lifecycle_server_controls:
+    status: in-progress
+    epic: "0012-lifecycle-server-controls"
+    completed:
+      - "0012-001-application-lifecycle-mvp"
+    next_task: "0012-002-graceful-shutdown"
   dependency_injection:
     status: future
 
@@ -560,8 +601,29 @@ public_api:
         - "public init(routes: [Route])"
         - "public init(routes: Routes)"
         - "public func middleware<M: Middleware>(_ middleware: M) -> Application"
+        - "public func lifecycle(_ phase: LifecyclePhase, _ operation: @escaping LifecycleOperation) -> Application"
+        - "public func configure(_ operation: @escaping LifecycleOperation) -> Application"
+        - "public func boot(_ operation: @escaping LifecycleOperation) -> Application"
+        - "public func started(_ operation: @escaping LifecycleOperation) -> Application"
+        - "public func shutdown(_ operation: @escaping LifecycleOperation) -> Application"
+        - "public func cleanup(_ operation: @escaping LifecycleOperation) -> Application"
+        - "public func runLifecycle(_ phase: LifecyclePhase) async throws"
         - "public func respond(to request: Request) async -> Response"
-      contract: "Always returns a Response; runs application middleware around router dispatch; converts ResponseError and unknown errors."
+      contract: "Always returns a Response; runs application middleware around router dispatch; converts ResponseError and unknown errors; lifecycle hooks are explicit and not run by respond(to:)."
+    LifecyclePhase:
+      kind: enum
+      conforms:
+        - Sendable
+        - CaseIterable
+      cases:
+        - configure
+        - boot
+        - started
+        - shutdown
+        - cleanup
+    LifecycleOperation:
+      kind: typealias
+      signature: "public typealias LifecycleOperation = @Sendable () async throws -> Void"
     Route:
       kind: struct
       conforms:
@@ -857,6 +919,8 @@ public_api:
     NIOHTTPServer:
       kind: struct
       role: transport
+      methods:
+        - "public func run(started: @escaping @Sendable () async throws -> Void = {}) async throws"
     NIOServerConfiguration:
       kind: struct
       defaults:
@@ -884,6 +948,7 @@ runtime_rules:
   macro_path_parameter_policy: "@Path parameters are marker wrappers; @DaylilyServer validates route membership and lowers them into Parameters.require(_:as:)."
   query_and_header_input_policy: "Request.query uses QueryParameters; Headers has typed require/get; @Query lowers to req.query.require and @Header lowers to req.headers.require."
   macro_json_body_policy: "@JSONBody parameters are marker wrappers in DaylilyJSON; @DaylilyServer lowers them into try await req.json(Type.self). True @Body spelling is deferred because Body is the raw request body type."
+  lifecycle_policy: "Application lifecycle phases are configure, boot, started, shutdown, cleanup. Application.run binds lifecycle to transport; Application.respond(to:) does not run lifecycle."
   test_client_policy: "TestClient is an in-memory helper in DaylilyTesting; it calls Application.respond(to:) directly and does not use transport. TestRequest and response assertions are testing helpers, not runtime behavior."
   wildcard_prefix: "*"
   current_body_model: "Body one-shot API with NIO true streaming bridge and in-process buffered Body.bytes support"
@@ -949,6 +1014,7 @@ aidev_files:
     - ai/tasks/0010-004-query-and-header-inputs.md
     - ai/tasks/0011-001-minimal-test-client.md
     - ai/tasks/0011-002-request-builders-and-json-assertions.md
+    - ai/tasks/0012-001-application-lifecycle-mvp.md
   docs:
     - ai/aidev/project-map.md
     - ai/aidev/architecture.md
@@ -971,6 +1037,7 @@ extension_playbooks:
   - extend_json_body_decoding
   - extend_json_responses
   - add_middleware_runtime
+  - extend_lifecycle
   - add_explicit_buffered_body_helper
   - add_streaming_body
   - extend_macro_route_mvp
@@ -1048,9 +1115,12 @@ roadmap:
     - "0010-004-query-and-header-inputs"
     - "0011-001-minimal-test-client"
     - "0011-002-request-builders-and-json-assertions"
+    - "0012-001-application-lifecycle-mvp"
   in_progress: []
   next_recommended:
-    - "0012-001-application-lifecycle-mvp"
+    - "0012-002-graceful-shutdown"
   later:
+    - "0012-002-graceful-shutdown"
+    - "0012-003-server-configuration"
     - "0013-001-request-logging-middleware"
     - "0014-001-route-metadata-runtime"
