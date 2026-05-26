@@ -254,6 +254,18 @@ public struct TestClient: Sendable {
         headers: Headers = [:],
         body value: Value
     ) async throws -> Response
+
+    public func put(_ path: String, headers: Headers = [:], body: Body = .bytes([])) async throws -> Response
+    public func put(_ path: String, headers: Headers = [:], body: [UInt8]) async throws -> Response
+    public func put(_ path: String, headers: Headers = [:], body: String) async throws -> Response
+
+    public func patch(_ path: String, headers: Headers = [:], body: Body = .bytes([])) async throws -> Response
+    public func patch(_ path: String, headers: Headers = [:], body: [UInt8]) async throws -> Response
+    public func patch(_ path: String, headers: Headers = [:], body: String) async throws -> Response
+
+    public func delete(_ path: String, headers: Headers = [:]) async throws -> Response
+    public func head(_ path: String, headers: Headers = [:]) async throws -> Response
+    public func options(_ path: String, headers: Headers = [:]) async throws -> Response
 }
 ```
 
@@ -275,6 +287,11 @@ public struct TestRequest: Sendable {
 
     public static func get(_ path: String, headers: Headers = [:]) -> TestRequest
     public static func post(_ path: String, headers: Headers = [:], body: Body = .bytes([])) -> TestRequest
+    public static func put(_ path: String, headers: Headers = [:], body: Body = .bytes([])) -> TestRequest
+    public static func patch(_ path: String, headers: Headers = [:], body: Body = .bytes([])) -> TestRequest
+    public static func delete(_ path: String, headers: Headers = [:]) -> TestRequest
+    public static func head(_ path: String, headers: Headers = [:]) -> TestRequest
+    public static func options(_ path: String, headers: Headers = [:]) -> TestRequest
 
     public func withHeader(_ name: String, _ value: String) -> TestRequest
     public func withBody(_ body: Body) -> TestRequest
@@ -527,33 +544,32 @@ Rules:
 ### Route DSL
 
 ```swift
-public func Get<R: ResponseConvertible>(
-    _ path: String,
-    _ handler: @escaping @Sendable () async throws -> R
-) -> Route
-
-public func Get<R: ResponseConvertible>(
-    _ path: String,
-    _ handler: @escaping @Sendable (Request) async throws -> R
-) -> Route
-
-public func Post<R: ResponseConvertible>(
-    _ path: String,
-    _ handler: @escaping @Sendable () async throws -> R
-) -> Route
-
-public func Post<R: ResponseConvertible>(
-    _ path: String,
-    _ handler: @escaping @Sendable (Request) async throws -> R
-) -> Route
-
+public func Get<R: ResponseConvertible>(_ path: String, _ handler: @escaping @Sendable () async throws -> R) -> Route
+public func Get<R: ResponseConvertible>(_ path: String, _ handler: @escaping @Sendable (Request) async throws -> R) -> Route
+public func Post<R: ResponseConvertible>(_ path: String, _ handler: @escaping @Sendable () async throws -> R) -> Route
+public func Post<R: ResponseConvertible>(_ path: String, _ handler: @escaping @Sendable (Request) async throws -> R) -> Route
+public func Put<R: ResponseConvertible>(_ path: String, _ handler: @escaping @Sendable () async throws -> R) -> Route
+public func Put<R: ResponseConvertible>(_ path: String, _ handler: @escaping @Sendable (Request) async throws -> R) -> Route
+public func Patch<R: ResponseConvertible>(_ path: String, _ handler: @escaping @Sendable () async throws -> R) -> Route
+public func Patch<R: ResponseConvertible>(_ path: String, _ handler: @escaping @Sendable (Request) async throws -> R) -> Route
+public func Delete<R: ResponseConvertible>(_ path: String, _ handler: @escaping @Sendable () async throws -> R) -> Route
+public func Delete<R: ResponseConvertible>(_ path: String, _ handler: @escaping @Sendable (Request) async throws -> R) -> Route
+public func Head<R: ResponseConvertible>(_ path: String, _ handler: @escaping @Sendable () async throws -> R) -> Route
+public func Head<R: ResponseConvertible>(_ path: String, _ handler: @escaping @Sendable (Request) async throws -> R) -> Route
+public func Options<R: ResponseConvertible>(_ path: String, _ handler: @escaping @Sendable () async throws -> R) -> Route
+public func Options<R: ResponseConvertible>(_ path: String, _ handler: @escaping @Sendable (Request) async throws -> R) -> Route
 public func Group(_ prefix: String, @RouteBuilder routes: () -> [Route]) -> Routes
 ```
 
-Current verbs:
+Current runtime verbs:
 
 - `Get`
 - `Post`
+- `Put`
+- `Patch`
+- `Delete`
+- `Head`
+- `Options`
 
 ### Routes
 
@@ -588,11 +604,11 @@ Rules:
 - Middleware may read `request.body`, but `Body` remains one-shot.
 - Daylily does not automatically replay consumed request bodies.
 
-Planned verbs:
+Runtime verb boundary:
 
-- `Put`
-- `Patch`
-- `Delete`
+- `HEAD` and `OPTIONS` are explicit route methods.
+- There is no automatic `HEAD -> GET` fallback yet.
+- There is no automatic `OPTIONS Allow` response yet.
 
 ### Request
 
@@ -835,6 +851,8 @@ Router is public for now, but should be treated as runtime infrastructure.
 public enum HTTPMethod: String, Sendable {
     case delete = "DELETE"
     case get = "GET"
+    case head = "HEAD"
+    case options = "OPTIONS"
     case patch = "PATCH"
     case post = "POST"
     case put = "PUT"

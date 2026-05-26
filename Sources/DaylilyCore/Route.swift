@@ -207,6 +207,76 @@ public func Post<R: ResponseConvertible>(
     Route(method: .post, path: path, handler: handler)
 }
 
+public func Put<R: ResponseConvertible>(
+    _ path: String,
+    _ handler: @escaping @Sendable () async throws -> R
+) -> Route {
+    Route(method: .put, path: path, handler: handler)
+}
+
+public func Put<R: ResponseConvertible>(
+    _ path: String,
+    _ handler: @escaping @Sendable (Request) async throws -> R
+) -> Route {
+    Route(method: .put, path: path, handler: handler)
+}
+
+public func Patch<R: ResponseConvertible>(
+    _ path: String,
+    _ handler: @escaping @Sendable () async throws -> R
+) -> Route {
+    Route(method: .patch, path: path, handler: handler)
+}
+
+public func Patch<R: ResponseConvertible>(
+    _ path: String,
+    _ handler: @escaping @Sendable (Request) async throws -> R
+) -> Route {
+    Route(method: .patch, path: path, handler: handler)
+}
+
+public func Delete<R: ResponseConvertible>(
+    _ path: String,
+    _ handler: @escaping @Sendable () async throws -> R
+) -> Route {
+    Route(method: .delete, path: path, handler: handler)
+}
+
+public func Delete<R: ResponseConvertible>(
+    _ path: String,
+    _ handler: @escaping @Sendable (Request) async throws -> R
+) -> Route {
+    Route(method: .delete, path: path, handler: handler)
+}
+
+public func Head<R: ResponseConvertible>(
+    _ path: String,
+    _ handler: @escaping @Sendable () async throws -> R
+) -> Route {
+    Route(method: .head, path: path, handler: handler)
+}
+
+public func Head<R: ResponseConvertible>(
+    _ path: String,
+    _ handler: @escaping @Sendable (Request) async throws -> R
+) -> Route {
+    Route(method: .head, path: path, handler: handler)
+}
+
+public func Options<R: ResponseConvertible>(
+    _ path: String,
+    _ handler: @escaping @Sendable () async throws -> R
+) -> Route {
+    Route(method: .options, path: path, handler: handler)
+}
+
+public func Options<R: ResponseConvertible>(
+    _ path: String,
+    _ handler: @escaping @Sendable (Request) async throws -> R
+) -> Route {
+    Route(method: .options, path: path, handler: handler)
+}
+
 public func Group(_ prefix: String, @RouteBuilder routes: () -> [Route]) -> Routes {
     Routes(routes: routes().map { $0.prefixed(with: prefix) })
 }

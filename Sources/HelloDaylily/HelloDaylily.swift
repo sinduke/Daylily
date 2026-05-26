@@ -60,6 +60,30 @@ struct HelloDaylily {
 
                 return JSON(UploadCountPayload(bytes: bytes, chunks: chunks))
             }
+
+            Put("/users/:id") { request in
+                let id = try request.parameters.require("id", as: Int.self)
+                let body = try await request.body.string(upTo: .kilobytes(64))
+                return "Updated user \(id): \(body)"
+            }
+
+            Patch("/users/:id") { request in
+                let id = try request.parameters.require("id", as: Int.self)
+                let body = try await request.body.string(upTo: .kilobytes(64))
+                return "Patched user \(id): \(body)"
+            }
+
+            Delete("/users/:id") {
+                Status.noContent
+            }
+
+            Head("/health") {
+                Status.ok
+            }
+
+            Options("/health") {
+                Status.noContent
+            }
         }
 
         return app

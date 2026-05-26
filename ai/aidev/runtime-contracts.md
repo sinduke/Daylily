@@ -210,10 +210,11 @@ Guarantees:
 - Route middleware preserves declaration order.
 - Route metadata is preserved when routes are prefixed, grouped, or wrapped with middleware.
 - Route metadata does not affect matching or handler execution.
+- Runtime DSL supports `Get`, `Post`, `Put`, `Patch`, `Delete`, `Head`, and `Options`.
+- `HEAD` and `OPTIONS` are explicit route methods; there is no automatic `HEAD -> GET` fallback or automatic `OPTIONS Allow` response yet.
 
 Extension points:
 
-- additional HTTP verbs
 - route metadata
 - OpenAPI metadata
 - middleware metadata
@@ -614,6 +615,9 @@ Guarantees:
 - `send(_:)` sends a `TestRequest` by converting it to a runtime `Request`.
 - `get(_:)` sends a GET request with optional headers.
 - `post(_:body:)` sends a POST request with optional headers and a `Body`, `[UInt8]`, or `String`.
+- `put(_:body:)` sends a PUT request with optional headers and a `Body`, `[UInt8]`, or `String`.
+- `patch(_:body:)` sends a PATCH request with optional headers and a `Body`, `[UInt8]`, or `String`.
+- `delete(_:)`, `head(_:)`, and `options(_:)` send requests with optional headers.
 - `postJSON(_:headers:body:)` encodes an `Encodable` body and sets `content-type: application/json` when absent.
 - `Response.json(_:)` decodes response bytes with Foundation `JSONDecoder`.
 - `requireStatus(_:)`, `requireBody(_:)`, and `requireJSON(_:as:)` throw `TestFailure` when assertions fail.

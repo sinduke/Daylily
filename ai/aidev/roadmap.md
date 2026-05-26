@@ -308,7 +308,7 @@ Macro typed inputs now lower into route metadata:
 
 Suggested next task:
 
-- `0015-001-complete-http-verbs`
+- `0015-002-macro-and-openapi-http-verbs`
 
 ## Beta Closure Sequence
 
@@ -319,12 +319,35 @@ Goal:
 Recommended sequence:
 
 ```text
-0015-001 Complete HTTP verbs: PUT / PATCH / DELETE
+0015-001 Runtime and testing HTTP verbs: PUT / PATCH / DELETE / HEAD / OPTIONS (delivered)
+0015-002 Macro and OpenAPI HTTP verbs: @PUT / @PATCH / @DELETE / @HEAD / @OPTIONS
 0016-001 Formal test target
 0017-001 True @Body input spelling
 0018-001 Beta docs: quickstart, examples, capability matrix
 0019-001 Release hygiene: Linux CI, CHANGELOG, semver tag, public API registry sync
 ```
+
+### 0015 HTTP Verbs Beta Closure
+
+Status: in-progress
+
+Delivered:
+
+- `0015-001-runtime-and-testing-http-verbs`
+
+Delivered runtime shape:
+
+```swift
+Put("/users/:id") { request in ... }
+Patch("/users/:id") { request in ... }
+Delete("/users/:id") { Status.noContent }
+Head("/health") { Status.ok }
+Options("/health") { Status.noContent }
+```
+
+Remaining:
+
+- `0015-002-macro-and-openapi-http-verbs`
 
 ### Future Epics
 

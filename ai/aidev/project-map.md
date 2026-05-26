@@ -137,7 +137,7 @@ Daylily/
 
 `Sources/DaylilyCore/HTTPMethod.swift`
 
-- HTTP method enum.
+- HTTP method enum for `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, and `OPTIONS`.
 
 `Sources/DaylilyCore/Middleware.swift`
 
@@ -190,7 +190,7 @@ Daylily/
 `Sources/DaylilyCore/Route.swift`
 
 - Route and `Routes` models.
-- `Get`, `Post`, `Group` runtime DSL.
+- `Get`, `Post`, `Put`, `Patch`, `Delete`, `Head`, `Options`, and `Group` runtime DSL.
 - Stores route middleware and group middleware resolution.
 - Stores route metadata.
 
@@ -257,7 +257,7 @@ Daylily/
 `Sources/DaylilyTesting/TestClient.swift`
 
 - In-memory test client.
-- Provides `respond(to:)`, `send(_:)`, `get(_:)`, `post(_:body:)`, and `postJSON(_:headers:body:)`.
+- Provides `respond(to:)`, `send(_:)`, verb helpers, and `postJSON(_:headers:body:)`.
 - Reuses `Application`, `Request`, `Response`, `Headers`, and `Body`.
 
 `Sources/DaylilyTesting/TestRequest.swift`

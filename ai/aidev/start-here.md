@@ -19,7 +19,7 @@ struct App {
 }
 ```
 
-Current implemented surfaces are the runtime DSL, runtime route metadata, minimal `DaylilyOpenAPI` document generation, runtime middleware, `DaylilyObservability` request ID and request logging middleware, application lifecycle hooks, the Daylily-owned `Body` model, explicit buffered body replacement, JSON body/response helpers, the macro route/group MVP, macro `@Path`, `@Query`, `@Header`, and `@JSONBody` typed input injection with route metadata lowering, and `DaylilyTesting` in-memory request/response helpers.
+Current implemented surfaces are the runtime DSL for `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, and `OPTIONS`, runtime route metadata, minimal `DaylilyOpenAPI` document generation, runtime middleware, `DaylilyObservability` request ID and request logging middleware, application lifecycle hooks, the Daylily-owned `Body` model, explicit buffered body replacement, JSON body/response helpers, the macro route/group MVP, macro `@Path`, `@Query`, `@Header`, and `@JSONBody` typed input injection with route metadata lowering, and `DaylilyTesting` in-memory request/response helpers.
 
 Runtime DSL:
 
@@ -77,6 +77,30 @@ let app = Application {
         try await request.body.string(upTo: .kilobytes(64))
     }
     .middleware(HeaderMiddleware())
+
+    Put("/users/:id") { request in
+        let id = try request.parameters.require("id", as: Int.self)
+        let body = try await request.body.string(upTo: .kilobytes(64))
+        return "Updated user \(id): \(body)"
+    }
+
+    Patch("/users/:id") { request in
+        let id = try request.parameters.require("id", as: Int.self)
+        let body = try await request.body.string(upTo: .kilobytes(64))
+        return "Patched user \(id): \(body)"
+    }
+
+    Delete("/users/:id") {
+        Status.noContent
+    }
+
+    Head("/health") {
+        Status.ok
+    }
+
+    Options("/health") {
+        Status.noContent
+    }
 }
 .middleware(HeaderMiddleware())
 .middleware(RequestIDMiddleware())
@@ -218,7 +242,7 @@ Implemented:
 
 - Swift package.
 - Core runtime.
-- Basic route DSL: `Get`, `Post`, `Group`.
+- Basic route DSL: `Get`, `Post`, `Put`, `Patch`, `Delete`, `Head`, `Options`, `Group`.
 - Runtime route metadata and `Application.describeRoutes()`.
 - Minimal OpenAPI document generation through `Application.openAPI(title:version:)`.
 - Runtime middleware at application, group, and route scope.
@@ -248,8 +272,9 @@ Implemented:
 
 Not implemented:
 
+- Macro route verbs beyond `@GET` and `@POST`.
 - Macro typed input injection beyond `@Path`, `@Query`, `@Header`, and `@JSONBody` (true `@Body` spelling, optional values, etc.).
-- OpenAPI.
+- Deep OpenAPI schema derivation.
 - Dependency injection.
 - Macro middleware attributes.
 - Dedicated Swift test target.
@@ -323,7 +348,7 @@ Do not start with:
 
 Current strategic order:
 
-1. Complete HTTP verbs: `PUT`, `PATCH`, `DELETE`.
+1. Add macro/OpenAPI support for `PUT`, `PATCH`, `DELETE`, `HEAD`, and `OPTIONS`.
 2. Add a formal test target.
 3. Decide and implement true `@Body`.
 4. Add beta docs: quickstart, JSON API example, middleware example, testing example, and capability matrix.

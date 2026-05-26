@@ -221,6 +221,11 @@ implemented_features:
       - Application
       - Get
       - Post
+      - Put
+      - Patch
+      - Delete
+      - Head
+      - Options
       - Group
   path_parameters:
     status: implemented
@@ -427,6 +432,39 @@ implemented_features:
       - "Response assertion helpers throw TestFailure"
       - "DaylilyTesting remains transport-free and NIO-free"
       - "runtime JSON behavior remains owned by DaylilyJSON"
+  runtime_and_testing_http_verbs:
+    status: implemented
+    epic: "0015-http-verbs-beta-closure"
+    task: "0015-001-runtime-and-testing-http-verbs"
+    modules:
+      - DaylilyCore
+      - DaylilyTesting
+      - HelloDaylily
+    public_api:
+      - "HTTPMethod.head"
+      - "HTTPMethod.options"
+      - Put
+      - Patch
+      - Delete
+      - Head
+      - Options
+      - "TestClient.put(_:headers:body:)"
+      - "TestClient.patch(_:headers:body:)"
+      - "TestClient.delete(_:headers:)"
+      - "TestClient.head(_:headers:)"
+      - "TestClient.options(_:headers:)"
+      - "TestRequest.put(_:headers:body:)"
+      - "TestRequest.patch(_:headers:body:)"
+      - "TestRequest.delete(_:headers:)"
+      - "TestRequest.head(_:headers:)"
+      - "TestRequest.options(_:headers:)"
+    decisions:
+      - "PUT, PATCH, DELETE, HEAD, and OPTIONS are first-class runtime route DSL functions."
+      - "HEAD and OPTIONS are explicit route methods only in this slice."
+      - "No automatic HEAD to GET fallback is introduced."
+      - "No automatic OPTIONS Allow response is introduced."
+      - "DELETE has no special default response; examples may return Status.noContent."
+      - "Macro support is deferred to 0015-002."
   nio_http_server:
     status: implemented
     protocol: HTTP/1.1
@@ -739,11 +777,13 @@ planned_features:
   dependency_injection:
     status: future
   beta_closure:
-    status: planned
-    completed: []
-    next_task: "0015-001-complete-http-verbs"
+    status: in-progress
+    completed:
+      - "0015-001-runtime-and-testing-http-verbs"
+    next_task: "0015-002-macro-and-openapi-http-verbs"
     sequence:
-      - "0015-001-complete-http-verbs"
+      - "0015-001-runtime-and-testing-http-verbs"
+      - "0015-002-macro-and-openapi-http-verbs"
       - "0016-001-formal-test-target"
       - "0017-001-true-body-input"
       - "0018-001-beta-docs"
@@ -949,6 +989,15 @@ public_api:
         - "public func post(_ path: String, headers: Headers = [:], body: [UInt8]) async throws -> Response"
         - "public func post(_ path: String, headers: Headers = [:], body: String) async throws -> Response"
         - "public func postJSON<Value: Encodable>(_ path: String, headers: Headers = [:], body value: Value) async throws -> Response"
+        - "public func put(_ path: String, headers: Headers = [:], body: Body = .bytes([])) async throws -> Response"
+        - "public func put(_ path: String, headers: Headers = [:], body: [UInt8]) async throws -> Response"
+        - "public func put(_ path: String, headers: Headers = [:], body: String) async throws -> Response"
+        - "public func patch(_ path: String, headers: Headers = [:], body: Body = .bytes([])) async throws -> Response"
+        - "public func patch(_ path: String, headers: Headers = [:], body: [UInt8]) async throws -> Response"
+        - "public func patch(_ path: String, headers: Headers = [:], body: String) async throws -> Response"
+        - "public func delete(_ path: String, headers: Headers = [:]) async throws -> Response"
+        - "public func head(_ path: String, headers: Headers = [:]) async throws -> Response"
+        - "public func options(_ path: String, headers: Headers = [:]) async throws -> Response"
       contract: "Transport-free in-memory test client that calls Application.respond(to:) directly."
     TestRequest:
       kind: struct
@@ -962,6 +1011,11 @@ public_api:
       factories:
         - "public static func get(_ path: String, headers: Headers = [:]) -> TestRequest"
         - "public static func post(_ path: String, headers: Headers = [:], body: Body = .bytes([])) -> TestRequest"
+        - "public static func put(_ path: String, headers: Headers = [:], body: Body = .bytes([])) -> TestRequest"
+        - "public static func patch(_ path: String, headers: Headers = [:], body: Body = .bytes([])) -> TestRequest"
+        - "public static func delete(_ path: String, headers: Headers = [:]) -> TestRequest"
+        - "public static func head(_ path: String, headers: Headers = [:]) -> TestRequest"
+        - "public static func options(_ path: String, headers: Headers = [:]) -> TestRequest"
       methods:
         - "public func withHeader(_ name: String, _ value: String) -> TestRequest"
         - "public func withBody(_ body: Body) -> TestRequest"
@@ -1022,6 +1076,32 @@ public_api:
     LifecycleOperation:
       kind: typealias
       signature: "public typealias LifecycleOperation = @Sendable () async throws -> Void"
+    HTTPMethod:
+      kind: enum
+      conforms:
+        - Sendable
+      cases:
+        - "delete = DELETE"
+        - "get = GET"
+        - "head = HEAD"
+        - "options = OPTIONS"
+        - "patch = PATCH"
+        - "post = POST"
+        - "put = PUT"
+      initializer: "public init?(_ rawValue: String)"
+      contract: "Parses supported HTTP methods case-insensitively."
+    RouteDSL:
+      kind: functions
+      functions:
+        - "Get(_:_:)"
+        - "Post(_:_:)"
+        - "Put(_:_:)"
+        - "Patch(_:_:)"
+        - "Delete(_:_:)"
+        - "Head(_:_:)"
+        - "Options(_:_:)"
+        - "Group(_:routes:)"
+      contract: "Each verb function has zero-parameter and Request-parameter async handler overloads that return Route."
     ServerConfiguration:
       kind: struct
       conforms:
@@ -1486,6 +1566,7 @@ aidev_files:
     - ai/epics/0012-lifecycle-server-controls.md
     - ai/epics/0013-observability-middleware.md
     - ai/epics/0014-openapi-metadata.md
+    - ai/epics/0015-http-verbs-beta-closure.md
   tasks:
     - ai/tasks/0001-001-minimal-http-server.md
     - ai/tasks/0002-001-aidev-project-contract.md
@@ -1514,6 +1595,7 @@ aidev_files:
     - ai/tasks/0014-001-route-metadata-runtime.md
     - ai/tasks/0014-002-openapi-schema-mvp.md
     - ai/tasks/0014-003-macro-metadata-bridge.md
+    - ai/tasks/0015-001-runtime-and-testing-http-verbs.md
   docs:
     - ai/aidev/project-map.md
     - ai/aidev/architecture.md
@@ -1574,6 +1656,11 @@ verification:
       - "curl 'http://127.0.0.1:8080/search?term=daylily&page=1'"
       - "curl -H 'x-daylily: ships' http://127.0.0.1:8080/headers"
       - "curl -X POST --data 'hi' http://127.0.0.1:8080/echo"
+      - "curl -X PUT --data 'full' http://127.0.0.1:8080/users/42"
+      - "curl -X PATCH --data 'partial' http://127.0.0.1:8080/users/42"
+      - "curl -i -X DELETE http://127.0.0.1:8080/users/42"
+      - "curl -I http://127.0.0.1:8080/health"
+      - "curl -i -X OPTIONS http://127.0.0.1:8080/health"
       - "printf 'abcdef' | curl --http1.1 -H 'Transfer-Encoding: chunked' -H 'Content-Length:' --data-binary @- http://127.0.0.1:8080/upload/count"
       - "perl -e 'print \"a\" x 70000' | curl -X POST --data-binary @- http://127.0.0.1:8080/echo"
       - "curl http://127.0.0.1:8080/json/health"
@@ -1581,7 +1668,7 @@ verification:
     cleanup: "stop the HelloDaylily process"
 
 roadmap:
-  current_task: "0015-001-complete-http-verbs"
+  current_task: "0015-002-macro-and-openapi-http-verbs"
   epics:
     completed:
       - "0001-runtime-foundation"
@@ -1595,7 +1682,7 @@ roadmap:
       - "0012-lifecycle-server-controls"
       - "0014-openapi-metadata"
     next_recommended:
-      - "0015-beta-closure"
+      - "0015-http-verbs-beta-closure"
   completed:
     - "0001-001-minimal-http-server"
     - "0002-001-aidev-project-contract"
@@ -1624,9 +1711,10 @@ roadmap:
     - "0014-001-route-metadata-runtime"
     - "0014-002-openapi-schema-mvp"
     - "0014-003-macro-metadata-bridge"
+    - "0015-001-runtime-and-testing-http-verbs"
   in_progress: []
   next_recommended:
-    - "0015-001-complete-http-verbs"
+    - "0015-002-macro-and-openapi-http-verbs"
   later:
     - "0016-001-formal-test-target"
     - "0017-001-true-body-input"

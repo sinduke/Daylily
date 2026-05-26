@@ -29,7 +29,7 @@ Implemented today:
 
 - Swift package skeleton.
 - `Application` runtime.
-- Declarative route DSL: `Get`, `Post`, `Group`.
+- Declarative route DSL: `Get`, `Post`, `Put`, `Patch`, `Delete`, `Head`, `Options`, `Group`.
 - Path parameters with `:name` syntax.
 - Runtime typed path parameter extraction.
 - Runtime typed query and header extraction.
@@ -39,7 +39,7 @@ Implemented today:
 - True NIO request body streaming bridge with bounded buffering and practical backpressure.
 - Runtime middleware with application, group, and route scopes.
 - `DaylilyObservability` request logging middleware with request ID, correlation ID, latency, status, and public error reason fields.
-- Route metadata runtime for future OpenAPI generation.
+- Route metadata runtime for OpenAPI generation.
 - `DaylilyOpenAPI` minimal OpenAPI document generation from route metadata.
 - Application lifecycle hooks: `configure`, `boot`, `started`, `shutdown`, `cleanup`.
 - Default SIGINT/SIGTERM graceful server shutdown.
@@ -61,6 +61,7 @@ Implemented today:
 
 Not implemented yet:
 
+- Macro route verbs beyond `@GET` and `@POST`.
 - Macro typed input injection beyond `@Path`, `@Query`, `@Header`, and `@JSONBody` (true `@Body` spelling, optional values, etc.).
 - Full OpenAPI schema derivation from Swift types.
 - Dependency injection.
@@ -90,6 +91,11 @@ curl http://127.0.0.1:8080/users/42
 curl 'http://127.0.0.1:8080/search?term=daylily&page=1'
 curl -H 'x-daylily: ships' http://127.0.0.1:8080/headers
 curl -X POST --data 'hi' http://127.0.0.1:8080/echo
+curl -X PUT --data 'full' http://127.0.0.1:8080/users/42
+curl -X PATCH --data 'partial' http://127.0.0.1:8080/users/42
+curl -i -X DELETE http://127.0.0.1:8080/users/42
+curl -I http://127.0.0.1:8080/health
+curl -i -X OPTIONS http://127.0.0.1:8080/health
 printf 'abcdef' | curl --http1.1 -H 'Transfer-Encoding: chunked' -H 'Content-Length:' --data-binary @- http://127.0.0.1:8080/upload/count
 curl http://127.0.0.1:8080/json/health
 curl -X POST -H 'content-type: application/json' --data '{"message":"hi"}' http://127.0.0.1:8080/json/echo
@@ -156,6 +162,30 @@ struct HelloDaylily {
 
             Post("/echo") { request in
                 try await request.body.string(upTo: .kilobytes(64))
+            }
+
+            Put("/users/:id") { request in
+                let id = try request.parameters.require("id", as: Int.self)
+                let body = try await request.body.string(upTo: .kilobytes(64))
+                return "Updated user \(id): \(body)"
+            }
+
+            Patch("/users/:id") { request in
+                let id = try request.parameters.require("id", as: Int.self)
+                let body = try await request.body.string(upTo: .kilobytes(64))
+                return "Patched user \(id): \(body)"
+            }
+
+            Delete("/users/:id") {
+                Status.noContent
+            }
+
+            Head("/health") {
+                Status.ok
+            }
+
+            Options("/health") {
+                Status.noContent
             }
         }
 
@@ -496,7 +526,7 @@ The most important invariants:
 
 Near-term:
 
-1. Complete HTTP verbs: `PUT`, `PATCH`, `DELETE`.
+1. Add macro/OpenAPI support for `PUT`, `PATCH`, `DELETE`, `HEAD`, and `OPTIONS`.
 2. Add a formal test target.
 3. Decide and implement true `@Body`.
 4. Add beta docs: quickstart, examples, and capability matrix.

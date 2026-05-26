@@ -10,10 +10,11 @@ Steps:
 
 1. Confirm `HTTPMethod` already has the method. If not, add it.
 2. Add runtime DSL overloads in `Route.swift`.
-3. Add checks in `HelloDaylily --check`.
-4. Update `api-registry.md`.
-5. Update `registry.yml`.
-6. Run validation commands.
+3. Add `DaylilyTesting` helpers when the method should be ergonomic in tests.
+4. Add checks in `HelloDaylily --check`.
+5. Update `api-registry.md`.
+6. Update `registry.yml`.
+7. Run validation commands.
 
 Do not touch NIO transport unless the method cannot be parsed.
 

@@ -34,6 +34,43 @@ public struct TestRequest: Sendable {
         TestRequest(method: .post, path: path, headers: headers, body: body)
     }
 
+    public static func put(
+        _ path: String,
+        headers: Headers = [:],
+        body: Body = .bytes([])
+    ) -> TestRequest {
+        TestRequest(method: .put, path: path, headers: headers, body: body)
+    }
+
+    public static func patch(
+        _ path: String,
+        headers: Headers = [:],
+        body: Body = .bytes([])
+    ) -> TestRequest {
+        TestRequest(method: .patch, path: path, headers: headers, body: body)
+    }
+
+    public static func delete(
+        _ path: String,
+        headers: Headers = [:]
+    ) -> TestRequest {
+        TestRequest(method: .delete, path: path, headers: headers)
+    }
+
+    public static func head(
+        _ path: String,
+        headers: Headers = [:]
+    ) -> TestRequest {
+        TestRequest(method: .head, path: path, headers: headers)
+    }
+
+    public static func options(
+        _ path: String,
+        headers: Headers = [:]
+    ) -> TestRequest {
+        TestRequest(method: .options, path: path, headers: headers)
+    }
+
     public func withHeader(_ name: String, _ value: String) -> TestRequest {
         var copy = self
         copy.headers[name] = value

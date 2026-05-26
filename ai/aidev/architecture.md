@@ -127,8 +127,18 @@ Application {
     Get("/hello") {
         "Daylily ships."
     }
+
+    Put("/users/:id") { request in
+        "updated"
+    }
+
+    Delete("/users/:id") {
+        Status.noContent
+    }
 }
 ```
+
+Runtime route verbs currently include `Get`, `Post`, `Put`, `Patch`, `Delete`, `Head`, and `Options`. `HEAD` and `OPTIONS` are explicit route methods; there is no automatic `HEAD -> GET` fallback or automatic `OPTIONS Allow` response yet.
 
 Macro syntax lowers into runtime APIs.
 

@@ -18,6 +18,10 @@ enum DaylilyChecks {
         try await testClientNotFound()
         try await testClientRequestBuilder()
         try await testClientPostJSON()
+        try httpMethodParsing()
+        try await runtimeHTTPVerbs()
+        try await testClientHTTPVerbs()
+        try await testRequestHTTPVerbBuilders()
         try await responseTestingHelpers()
         try await responseTestingFailure()
         try await pathParameter()
@@ -426,6 +430,131 @@ enum DaylilyChecks {
 
         try response.requireStatus(.ok)
         try response.requireJSON(EchoResponse(echo: "testing"))
+    }
+
+    private static func httpMethodParsing() throws {
+        try expect(HTTPMethod("PUT") == .put, "expected PUT method parsing")
+        try expect(HTTPMethod("patch") == .patch, "expected case-insensitive PATCH method parsing")
+        try expect(HTTPMethod("DELETE") == .delete, "expected DELETE method parsing")
+        try expect(HTTPMethod("HEAD") == .head, "expected HEAD method parsing")
+        try expect(HTTPMethod("options") == .options, "expected OPTIONS method parsing")
+        try expect(HTTPMethod("TRACE") == nil, "expected unknown method to stay unsupported")
+    }
+
+    private static func runtimeHTTPVerbs() async throws {
+        let app = Application {
+            Put("/resource") { request in
+                "put:\(try await request.body.string(upTo: .kilobytes(1)))"
+            }
+
+            Patch("/resource") { request in
+                "patch:\(try await request.body.string(upTo: .kilobytes(1)))"
+            }
+
+            Delete("/resource") {
+                Status.noContent
+            }
+
+            Head("/resource") {
+                Status.ok
+            }
+
+            Options("/resource") {
+                "options"
+            }
+        }
+
+        let put = await app.respond(to: Request(method: .put, path: "/resource", body: Array("full".utf8)))
+        let patch = await app.respond(to: Request(method: .patch, path: "/resource", body: Array("partial".utf8)))
+        let delete = await app.respond(to: Request(method: .delete, path: "/resource"))
+        let head = await app.respond(to: Request(method: .head, path: "/resource"))
+        let options = await app.respond(to: Request(method: .options, path: "/resource"))
+        let wrongMethod = await app.respond(to: Request(method: .post, path: "/resource"))
+
+        try expect(put.status == .ok, "expected PUT route response")
+        try expect(put.bodyString == "put:full", "expected PUT route body")
+        try expect(patch.status == .ok, "expected PATCH route response")
+        try expect(patch.bodyString == "patch:partial", "expected PATCH route body")
+        try expect(delete.status == .noContent, "expected DELETE route no content")
+        try expect(delete.body.isEmpty, "expected DELETE no content body")
+        try expect(head.status == .ok, "expected HEAD route response")
+        try expect(options.status == .ok, "expected OPTIONS route response")
+        try expect(options.bodyString == "options", "expected OPTIONS route body")
+        try expect(wrongMethod.status == .notFound, "expected wrong method to remain not found")
+    }
+
+    private static func testClientHTTPVerbs() async throws {
+        let app = Application {
+            Put("/resource") { request in
+                "put:\(try await request.body.string(upTo: .kilobytes(1)))"
+            }
+
+            Patch("/resource") { request in
+                "patch:\(try await request.body.string(upTo: .kilobytes(1)))"
+            }
+
+            Delete("/resource") {
+                Status.noContent
+            }
+
+            Head("/resource") {
+                Status.ok
+            }
+
+            Options("/resource") {
+                "options"
+            }
+        }
+        let client = TestClient(app)
+
+        let put = try await client.put("/resource", body: "full")
+        let patch = try await client.patch("/resource", body: "partial")
+        let delete = try await client.delete("/resource")
+        let head = try await client.head("/resource")
+        let options = try await client.options("/resource")
+
+        try expect(put.bodyString == "put:full", "expected TestClient PUT body")
+        try expect(patch.bodyString == "patch:partial", "expected TestClient PATCH body")
+        try expect(delete.status == .noContent, "expected TestClient DELETE no content")
+        try expect(head.status == .ok, "expected TestClient HEAD status")
+        try expect(options.bodyString == "options", "expected TestClient OPTIONS body")
+    }
+
+    private static func testRequestHTTPVerbBuilders() async throws {
+        let app = Application {
+            Put("/builder") { request in
+                "\(request.method.rawValue):\(request.headers["x-daylily"] ?? "missing"):\(try await request.body.string(upTo: .kilobytes(1)))"
+            }
+
+            Patch("/builder") { request in
+                "\(request.method.rawValue):\(request.headers["x-daylily"] ?? "missing"):\(try await request.body.string(upTo: .kilobytes(1)))"
+            }
+
+            Delete("/builder") { request in
+                "\(request.method.rawValue):\(request.headers["x-daylily"] ?? "missing")"
+            }
+
+            Head("/builder") { request in
+                "\(request.method.rawValue):\(request.headers["x-daylily"] ?? "missing")"
+            }
+
+            Options("/builder") { request in
+                "\(request.method.rawValue):\(request.headers["x-daylily"] ?? "missing")"
+            }
+        }
+        let client = TestClient(app)
+
+        let put = try await client.send(TestRequest.put("/builder").withHeader("x-daylily", "builder").withBody("full"))
+        let patch = try await client.send(TestRequest.patch("/builder").withHeader("x-daylily", "builder").withBody("partial"))
+        let delete = try await client.send(TestRequest.delete("/builder", headers: ["x-daylily": "builder"]))
+        let head = try await client.send(TestRequest.head("/builder", headers: ["x-daylily": "builder"]))
+        let options = try await client.send(TestRequest.options("/builder", headers: ["x-daylily": "builder"]))
+
+        try expect(put.bodyString == "PUT:builder:full", "expected TestRequest PUT builder")
+        try expect(patch.bodyString == "PATCH:builder:partial", "expected TestRequest PATCH builder")
+        try expect(delete.bodyString == "DELETE:builder", "expected TestRequest DELETE builder")
+        try expect(head.bodyString == "HEAD:builder", "expected TestRequest HEAD builder")
+        try expect(options.bodyString == "OPTIONS:builder", "expected TestRequest OPTIONS builder")
     }
 
     private static func responseTestingHelpers() async throws {

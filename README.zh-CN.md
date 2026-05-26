@@ -29,7 +29,7 @@ Daylily 不是 Vapor 或 Hummingbird 的复制品。它是在探索：如果 AI 
 
 - Swift package 骨架。
 - `Application` runtime。
-- 声明式路由 DSL：`Get`、`Post`、`Group`。
+- 声明式路由 DSL：`Get`、`Post`、`Put`、`Patch`、`Delete`、`Head`、`Options`、`Group`。
 - `:name` 形式的路径参数。
 - 运行时类型化路径参数提取。
 - 运行时类型化 query 和 header 提取。
@@ -39,7 +39,7 @@ Daylily 不是 Vapor 或 Hummingbird 的复制品。它是在探索：如果 AI 
 - 真正的 NIO request body streaming bridge，带有有界缓冲和实用 backpressure。
 - 支持 application、group、route 作用域的 runtime middleware。
 - `DaylilyObservability` request logging middleware，包含 request ID、correlation ID、latency、status 和公开 error reason 字段。
-- 面向未来 OpenAPI generation 的 route metadata runtime。
+- 面向 OpenAPI generation 的 route metadata runtime。
 - `DaylilyOpenAPI`，可以从 route metadata 生成最小 OpenAPI document。
 - Application lifecycle hooks：`configure`、`boot`、`started`、`shutdown`、`cleanup`。
 - 默认 SIGINT/SIGTERM graceful server shutdown。
@@ -61,6 +61,7 @@ Daylily 不是 Vapor 或 Hummingbird 的复制品。它是在探索：如果 AI 
 
 还没有实现：
 
+- `@GET` 和 `@POST` 之外的 macro route verbs。
 - `@Path`、`@Query`、`@Header`、`@JSONBody` 之外的宏级类型化输入注入（真正的 `@Body` 写法、optional values 等）。
 - 从 Swift 类型深度推导完整 OpenAPI schema。
 - 依赖注入。
@@ -90,6 +91,11 @@ curl http://127.0.0.1:8080/users/42
 curl 'http://127.0.0.1:8080/search?term=daylily&page=1'
 curl -H 'x-daylily: ships' http://127.0.0.1:8080/headers
 curl -X POST --data 'hi' http://127.0.0.1:8080/echo
+curl -X PUT --data 'full' http://127.0.0.1:8080/users/42
+curl -X PATCH --data 'partial' http://127.0.0.1:8080/users/42
+curl -i -X DELETE http://127.0.0.1:8080/users/42
+curl -I http://127.0.0.1:8080/health
+curl -i -X OPTIONS http://127.0.0.1:8080/health
 printf 'abcdef' | curl --http1.1 -H 'Transfer-Encoding: chunked' -H 'Content-Length:' --data-binary @- http://127.0.0.1:8080/upload/count
 curl http://127.0.0.1:8080/json/health
 curl -X POST -H 'content-type: application/json' --data '{"message":"hi"}' http://127.0.0.1:8080/json/echo
@@ -156,6 +162,30 @@ struct HelloDaylily {
 
             Post("/echo") { request in
                 try await request.body.string(upTo: .kilobytes(64))
+            }
+
+            Put("/users/:id") { request in
+                let id = try request.parameters.require("id", as: Int.self)
+                let body = try await request.body.string(upTo: .kilobytes(64))
+                return "Updated user \(id): \(body)"
+            }
+
+            Patch("/users/:id") { request in
+                let id = try request.parameters.require("id", as: Int.self)
+                let body = try await request.body.string(upTo: .kilobytes(64))
+                return "Patched user \(id): \(body)"
+            }
+
+            Delete("/users/:id") {
+                Status.noContent
+            }
+
+            Head("/health") {
+                Status.ok
+            }
+
+            Options("/health") {
+                Status.noContent
             }
         }
 
@@ -496,7 +526,7 @@ Daylily/
 
 近期：
 
-1. 补齐 HTTP verbs：`PUT`、`PATCH`、`DELETE`。
+1. 为 `PUT`、`PATCH`、`DELETE`、`HEAD`、`OPTIONS` 补齐 macro/OpenAPI 支持。
 2. 添加正式 test target。
 3. 决定并实现真正的 `@Body`。
 4. 补齐 beta docs：quickstart、examples、capability matrix。
