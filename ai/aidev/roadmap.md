@@ -308,7 +308,7 @@ Macro typed inputs now lower into route metadata:
 
 Suggested next task:
 
-- `0015-002-macro-and-openapi-http-verbs`
+- `0016-001-formal-test-target`
 
 ## Beta Closure Sequence
 
@@ -320,7 +320,7 @@ Recommended sequence:
 
 ```text
 0015-001 Runtime and testing HTTP verbs: PUT / PATCH / DELETE / HEAD / OPTIONS (delivered)
-0015-002 Macro and OpenAPI HTTP verbs: @PUT / @PATCH / @DELETE / @HEAD / @OPTIONS
+0015-002 Macro and OpenAPI HTTP verbs: @PUT / @PATCH / @DELETE / @HEAD / @OPTIONS (delivered)
 0016-001 Formal test target
 0017-001 True @Body input spelling
 0018-001 Beta docs: quickstart, examples, capability matrix
@@ -329,11 +329,12 @@ Recommended sequence:
 
 ### 0015 HTTP Verbs Beta Closure
 
-Status: in-progress
+Status: implemented
 
 Delivered:
 
 - `0015-001-runtime-and-testing-http-verbs`
+- `0015-002-macro-and-openapi-http-verbs`
 
 Delivered runtime shape:
 
@@ -347,7 +348,7 @@ Options("/health") { Status.noContent }
 
 Remaining:
 
-- `0015-002-macro-and-openapi-http-verbs`
+- Formal test target work starts at `0016-001-formal-test-target`.
 
 ### Future Epics
 

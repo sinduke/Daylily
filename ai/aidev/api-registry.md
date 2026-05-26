@@ -27,6 +27,21 @@ public macro GET(_ path: String)
 public macro POST(_ path: String)
 
 @attached(peer)
+public macro PUT(_ path: String)
+
+@attached(peer)
+public macro PATCH(_ path: String)
+
+@attached(peer)
+public macro DELETE(_ path: String)
+
+@attached(peer)
+public macro HEAD(_ path: String)
+
+@attached(peer)
+public macro OPTIONS(_ path: String)
+
+@attached(peer)
 public macro GROUP(_ prefix: String)
 ```
 
@@ -38,6 +53,11 @@ Rules:
 - Route handlers may have zero parameters, one `Request` parameter, `@Path`, `@Query`, `@Header`, and one `@JSONBody` parameter.
 - `@GET` lowers to runtime `Get`.
 - `@POST` lowers to runtime `Post`.
+- `@PUT` lowers to runtime `Put`.
+- `@PATCH` lowers to runtime `Patch`.
+- `@DELETE` lowers to runtime `Delete`.
+- `@HEAD` lowers to runtime `Head`.
+- `@OPTIONS` lowers to runtime `Options`.
 - `@GROUP` marks a nested struct as a route group and contributes a path prefix.
 - `@Path` lowers into `req.parameters.require(_:as:)`.
 - `@Path` also lowers into `RouteInputMetadata.path(...)`.
@@ -535,7 +555,7 @@ public struct RouteDescription: Equatable, Sendable {
 
 Rules:
 
-- Runtime route metadata is the source of truth for future OpenAPI generation.
+- Runtime route metadata is the source of truth for OpenAPI generation.
 - Metadata describes routes but does not change routing, middleware, lifecycle, body, or response behavior.
 - `Application.describeRoutes()` returns route descriptions without invoking handlers.
 - Path/query/header/body/response metadata uses Swift type names as strings in the first slice.
@@ -1224,6 +1244,6 @@ public struct RouteMarkerMacro
 
 Rules:
 
-- Macro implementations generate code that uses `Application`, `Get`, and `Post`.
+- Macro implementations generate code that uses `Application` and runtime route DSL functions.
 - `@GROUP` changes generated route paths, not `DaylilyCore`.
 - Macro implementations must not replace the runtime route system.

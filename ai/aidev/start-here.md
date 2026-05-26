@@ -195,6 +195,31 @@ struct App {
             "ok"
         }
     }
+
+    @PUT("/users/:id")
+    func update(@Path id: Int, req: Request) async throws -> String {
+        "updated"
+    }
+
+    @PATCH("/users/:id")
+    func patch(@Path id: Int, req: Request) async throws -> String {
+        "patched"
+    }
+
+    @DELETE("/users/:id")
+    func delete(@Path id: Int) -> Status {
+        .noContent
+    }
+
+    @HEAD("/health")
+    func head() -> Status {
+        .ok
+    }
+
+    @OPTIONS("/health")
+    func options() -> Status {
+        .noContent
+    }
 }
 ```
 
@@ -250,7 +275,7 @@ Implemented:
 - Application lifecycle hooks: `configure`, `boot`, `started`, `shutdown`, `cleanup`.
 - Default SIGINT/SIGTERM graceful server shutdown.
 - Explicit `ServerConfiguration`.
-- Macro route/group MVP: `@DaylilyServer`, `@GET`, `@POST`, `@GROUP`.
+- Macro route/group MVP: `@DaylilyServer`, `@GET`, `@POST`, `@PUT`, `@PATCH`, `@DELETE`, `@HEAD`, `@OPTIONS`, `@GROUP`.
 - Macro `@Path` typed path parameter injection.
 - Macro `@Query` and `@Header` typed input injection.
 - Macro `@JSONBody` typed JSON body injection.
@@ -272,7 +297,6 @@ Implemented:
 
 Not implemented:
 
-- Macro route verbs beyond `@GET` and `@POST`.
 - Macro typed input injection beyond `@Path`, `@Query`, `@Header`, and `@JSONBody` (true `@Body` spelling, optional values, etc.).
 - Deep OpenAPI schema derivation.
 - Dependency injection.
@@ -348,8 +372,7 @@ Do not start with:
 
 Current strategic order:
 
-1. Add macro/OpenAPI support for `PUT`, `PATCH`, `DELETE`, `HEAD`, and `OPTIONS`.
-2. Add a formal test target.
-3. Decide and implement true `@Body`.
-4. Add beta docs: quickstart, JSON API example, middleware example, testing example, and capability matrix.
-5. Add release hygiene: Linux CI, CHANGELOG, semver tag, and public API registry sync.
+1. Add a formal test target.
+2. Decide and implement true `@Body`.
+3. Add beta docs: quickstart, JSON API example, middleware example, testing example, and capability matrix.
+4. Add release hygiene: Linux CI, CHANGELOG, semver tag, and public API registry sync.

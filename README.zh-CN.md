@@ -49,7 +49,7 @@ Daylily 不是 Vapor 或 Hummingbird 的复制品。它是在探索：如果 AI 
 - 通过 `request.body.json(...)` 和 `request.json(...)` 异步解码 JSON body。
 - 通过 `JSON(...)` 返回 JSON response。
 - 基于 NIO 的 HTTP/1.1 server。
-- Macro route/group MVP：`@DaylilyServer`、`@GET`、`@POST`、`@GROUP`。
+- Macro route/group MVP：`@DaylilyServer`、`@GET`、`@POST`、`@PUT`、`@PATCH`、`@DELETE`、`@HEAD`、`@OPTIONS`、`@GROUP`。
 - Macro `@Path` 类型化路径参数注入。
 - Macro `@Query` 和 `@Header` 类型化输入注入。
 - Macro `@JSONBody` 类型化 JSON body 注入。
@@ -61,7 +61,6 @@ Daylily 不是 Vapor 或 Hummingbird 的复制品。它是在探索：如果 AI 
 
 还没有实现：
 
-- `@GET` 和 `@POST` 之外的 macro route verbs。
 - `@Path`、`@Query`、`@Header`、`@JSONBody` 之外的宏级类型化输入注入（真正的 `@Body` 写法、optional values 等）。
 - 从 Swift 类型深度推导完整 OpenAPI schema。
 - 依赖注入。
@@ -418,6 +417,31 @@ struct App {
         .created
     }
 
+    @PUT("/users/:id")
+    func update(@Path id: Int, req: Request) async throws -> String {
+        "updated"
+    }
+
+    @PATCH("/users/:id")
+    func patch(@Path id: Int, req: Request) async throws -> String {
+        "patched"
+    }
+
+    @DELETE("/users/:id")
+    func delete(@Path id: Int) -> Status {
+        .noContent
+    }
+
+    @HEAD("/health")
+    func head() -> Status {
+        .ok
+    }
+
+    @OPTIONS("/health")
+    func options() -> Status {
+        .noContent
+    }
+
     @GET("/search")
     func search(
         @Query term: String,
@@ -453,7 +477,7 @@ MVP 限制：
 - `@JSONBody` 会降级到 `try await req.json(Type.self)`；
 - 真正的 `@Body` 写法暂缓，因为 `Body` 已经是 Daylily 的 raw request body 类型；
 - group type 必须可以默认初始化；
-- optional typed inputs、macro middleware attributes、DI、OpenAPI 都是后续工作。
+- optional typed inputs、macro middleware attributes、DI 和深度 OpenAPI schema 推导都是后续工作。
 
 ## AI-Native 开发
 
@@ -526,11 +550,10 @@ Daylily/
 
 近期：
 
-1. 为 `PUT`、`PATCH`、`DELETE`、`HEAD`、`OPTIONS` 补齐 macro/OpenAPI 支持。
-2. 添加正式 test target。
-3. 决定并实现真正的 `@Body`。
-4. 补齐 beta docs：quickstart、examples、capability matrix。
-5. 补齐 release hygiene：Linux CI、CHANGELOG、semver tag 和 public API registry 同步。
+1. 添加正式 test target。
+2. 决定并实现真正的 `@Body`。
+3. 补齐 beta docs：quickstart、examples、capability matrix。
+4. 补齐 release hygiene：Linux CI、CHANGELOG、semver tag 和 public API registry 同步。
 
 ## License
 

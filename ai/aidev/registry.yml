@@ -487,10 +487,15 @@ implemented_features:
       - "@DaylilyServer"
       - "@GET"
       - "@POST"
+      - "@PUT"
+      - "@PATCH"
+      - "@DELETE"
+      - "@HEAD"
+      - "@OPTIONS"
     limitations:
       - "server type must be default-initializable with Self()"
       - "handlers must be instance methods"
-      - "handlers may have zero parameters, one Request parameter, and @Path parameters"
+      - "handlers may have zero parameters, one Request parameter, @Path, @Query, @Header, and one @JSONBody parameter"
   group_macro:
     status: implemented
     task: "0003-002-group-macro-mvp"
@@ -688,7 +693,7 @@ implemented_features:
       - "Metadata describes routes but does not affect matching or handler execution"
       - "Group prefixing and middleware attachment preserve route metadata"
       - "Type names are strings in the first route metadata slice"
-      - "Schema derivation, OpenAPI document generation, and macro metadata lowering are separate tasks"
+      - "Deep schema derivation and richer OpenAPI operation coverage are separate tasks"
   openapi_schema_mvp:
     status: implemented
     epic: "0014-openapi-metadata"
@@ -731,6 +736,35 @@ implemented_features:
       - "Macro metadata uses the same runtime metadata model as handwritten routes"
       - "Runtime extraction behavior is unchanged"
       - "Summary, description, tags, response inference, and deep schemas are deferred"
+  macro_and_openapi_http_verbs:
+    status: implemented
+    epic: "0015-http-verbs-beta-closure"
+    task: "0015-002-macro-and-openapi-http-verbs"
+    modules:
+      - Daylily
+      - DaylilyMacros
+      - DaylilyOpenAPI
+      - HelloDaylily
+    public_api:
+      - "@PUT"
+      - "@PATCH"
+      - "@DELETE"
+      - "@HEAD"
+      - "@OPTIONS"
+    lowering:
+      - "@PUT lowers to runtime Put"
+      - "@PATCH lowers to runtime Patch"
+      - "@DELETE lowers to runtime Delete"
+      - "@HEAD lowers to runtime Head"
+      - "@OPTIONS lowers to runtime Options"
+      - "Macro typed inputs still lower into runtime extraction and route metadata"
+    decisions:
+      - "Macros remain marker sugar collected by @DaylilyServer."
+      - "OpenAPI generation continues to read Application.describeRoutes()."
+      - "OpenAPI method keys come from HTTPMethod.rawValue.lowercased()."
+      - "HEAD and OPTIONS remain explicit route methods only."
+      - "No automatic HEAD to GET fallback is introduced."
+      - "No automatic OPTIONS Allow response is introduced."
 
 planned_features:
   typed_handler_inputs:
@@ -780,7 +814,8 @@ planned_features:
     status: in-progress
     completed:
       - "0015-001-runtime-and-testing-http-verbs"
-    next_task: "0015-002-macro-and-openapi-http-verbs"
+      - "0015-002-macro-and-openapi-http-verbs"
+    next_task: "0016-001-formal-test-target"
     sequence:
       - "0015-001-runtime-and-testing-http-verbs"
       - "0015-002-macro-and-openapi-http-verbs"
@@ -815,6 +850,21 @@ public_api:
       POST:
         signature: "public macro POST(_ path: String)"
         role: "mark instance method as POST route"
+      PUT:
+        signature: "public macro PUT(_ path: String)"
+        role: "mark instance method as PUT route"
+      PATCH:
+        signature: "public macro PATCH(_ path: String)"
+        role: "mark instance method as PATCH route"
+      DELETE:
+        signature: "public macro DELETE(_ path: String)"
+        role: "mark instance method as DELETE route"
+      HEAD:
+        signature: "public macro HEAD(_ path: String)"
+        role: "mark instance method as HEAD route"
+      OPTIONS:
+        signature: "public macro OPTIONS(_ path: String)"
+        role: "mark instance method as OPTIONS route"
       GROUP:
         signature: "public macro GROUP(_ prefix: String)"
         role: "mark nested struct as route group"
@@ -1144,7 +1194,7 @@ public_api:
         - "inputs: [RouteInputMetadata]"
         - "requestBody: RouteBodyMetadata?"
         - "responses: [RouteResponseMetadata]"
-      contract: "Runtime-owned descriptive metadata for future OpenAPI generation."
+      contract: "Runtime-owned descriptive metadata for OpenAPI generation."
     RouteInputLocation:
       kind: enum
       conforms:
@@ -1442,6 +1492,26 @@ public_api:
           overloads:
             - "(_ path: String, _ handler: @escaping @Sendable () async throws -> R) -> Route"
             - "(_ path: String, _ handler: @escaping @Sendable (Request) async throws -> R) -> Route"
+        Put:
+          overloads:
+            - "(_ path: String, _ handler: @escaping @Sendable () async throws -> R) -> Route"
+            - "(_ path: String, _ handler: @escaping @Sendable (Request) async throws -> R) -> Route"
+        Patch:
+          overloads:
+            - "(_ path: String, _ handler: @escaping @Sendable () async throws -> R) -> Route"
+            - "(_ path: String, _ handler: @escaping @Sendable (Request) async throws -> R) -> Route"
+        Delete:
+          overloads:
+            - "(_ path: String, _ handler: @escaping @Sendable () async throws -> R) -> Route"
+            - "(_ path: String, _ handler: @escaping @Sendable (Request) async throws -> R) -> Route"
+        Head:
+          overloads:
+            - "(_ path: String, _ handler: @escaping @Sendable () async throws -> R) -> Route"
+            - "(_ path: String, _ handler: @escaping @Sendable (Request) async throws -> R) -> Route"
+        Options:
+          overloads:
+            - "(_ path: String, _ handler: @escaping @Sendable () async throws -> R) -> Route"
+            - "(_ path: String, _ handler: @escaping @Sendable (Request) async throws -> R) -> Route"
         Group:
           signature: "(_ prefix: String, @RouteBuilder routes: () -> [Route]) -> Routes"
   DaylilyJSON:
@@ -1504,6 +1574,11 @@ public_api:
       used_by:
         - "@GET"
         - "@POST"
+        - "@PUT"
+        - "@PATCH"
+        - "@DELETE"
+        - "@HEAD"
+        - "@OPTIONS"
         - "@GROUP"
 
 runtime_rules:
@@ -1519,8 +1594,8 @@ runtime_rules:
   lifecycle_policy: "Application lifecycle phases are configure, boot, started, shutdown, cleanup. Application.run binds lifecycle to transport; Application.respond(to:) does not run lifecycle. The default NIO server closes on SIGINT/SIGTERM."
   server_configuration_policy: "ServerConfiguration is the NIO-free user-facing server control type. Application.run(configuration:) bridges it into DaylilyNIO."
   test_client_policy: "TestClient is an in-memory helper in DaylilyTesting; it calls Application.respond(to:) directly and does not use transport. TestRequest and response assertions are testing helpers, not runtime behavior."
-  route_metadata_policy: "Route metadata lives in DaylilyCore and is exposed through Route.describe(...) and Application.describeRoutes(); it does not affect routing and is the source of truth for future OpenAPI generation."
-  openapi_policy: "DaylilyOpenAPI maps Application.describeRoutes() into minimal OpenAPI documents; deep Swift schema derivation and macro metadata lowering are separate tasks."
+  route_metadata_policy: "Route metadata lives in DaylilyCore and is exposed through Route.describe(...) and Application.describeRoutes(); it does not affect routing and is the source of truth for OpenAPI generation."
+  openapi_policy: "DaylilyOpenAPI maps Application.describeRoutes() into minimal OpenAPI documents; deep Swift schema derivation and richer operation metadata are separate tasks."
   wildcard_prefix: "*"
   current_body_model: "Body one-shot API with NIO true streaming bridge and in-process buffered Body.bytes support"
   future_body_model: "response body streaming and higher-level upload helpers"
@@ -1596,6 +1671,7 @@ aidev_files:
     - ai/tasks/0014-002-openapi-schema-mvp.md
     - ai/tasks/0014-003-macro-metadata-bridge.md
     - ai/tasks/0015-001-runtime-and-testing-http-verbs.md
+    - ai/tasks/0015-002-macro-and-openapi-http-verbs.md
   docs:
     - ai/aidev/project-map.md
     - ai/aidev/architecture.md
@@ -1668,7 +1744,7 @@ verification:
     cleanup: "stop the HelloDaylily process"
 
 roadmap:
-  current_task: "0015-002-macro-and-openapi-http-verbs"
+  current_task: "0016-001-formal-test-target"
   epics:
     completed:
       - "0001-runtime-foundation"
@@ -1681,8 +1757,9 @@ roadmap:
       - "0011-daylily-testing"
       - "0012-lifecycle-server-controls"
       - "0014-openapi-metadata"
-    next_recommended:
       - "0015-http-verbs-beta-closure"
+    next_recommended:
+      - "0016-001-formal-test-target"
   completed:
     - "0001-001-minimal-http-server"
     - "0002-001-aidev-project-contract"
@@ -1712,11 +1789,11 @@ roadmap:
     - "0014-002-openapi-schema-mvp"
     - "0014-003-macro-metadata-bridge"
     - "0015-001-runtime-and-testing-http-verbs"
+    - "0015-002-macro-and-openapi-http-verbs"
   in_progress: []
   next_recommended:
-    - "0015-002-macro-and-openapi-http-verbs"
-  later:
     - "0016-001-formal-test-target"
+  later:
     - "0017-001-true-body-input"
     - "0018-001-beta-docs"
     - "0019-001-release-hygiene"

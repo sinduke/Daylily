@@ -7,14 +7,24 @@ Public runtime DSL functions currently use Swift-style capitalized route compone
 ```swift
 Get("/hello") { ... }
 Post("/echo") { ... }
+Put("/users/:id") { ... }
+Patch("/users/:id") { ... }
+Delete("/users/:id") { ... }
+Head("/health") { ... }
+Options("/health") { ... }
 Group("/api") { ... }
 ```
 
-Future macros use uppercase HTTP method names:
+Macros use uppercase HTTP method names:
 
 ```swift
 @GET("/hello")
 @POST("/users")
+@PUT("/users/:id")
+@PATCH("/users/:id")
+@DELETE("/users/:id")
+@HEAD("/health")
+@OPTIONS("/health")
 @GROUP("/api")
 ```
 

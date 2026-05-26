@@ -51,6 +51,31 @@ struct MacroSmoke {
         JSON(MacroEchoResponse(echo: input.message))
     }
 
+    @PUT("/macro/users/:id")
+    func updateUser(@Path id: Int, req: Request) async throws -> String {
+        "Macro updated user \(id):\(try await req.body.string(upTo: .kilobytes(64)))"
+    }
+
+    @PATCH("/macro/users/:id")
+    func patchUser(@Path id: Int, req: Request) async throws -> String {
+        "Macro patched user \(id):\(try await req.body.string(upTo: .kilobytes(64)))"
+    }
+
+    @DELETE("/macro/users/:id")
+    func deleteUser(@Path id: Int) -> Status {
+        .noContent
+    }
+
+    @HEAD("/macro/health")
+    func headHealth() -> Status {
+        .ok
+    }
+
+    @OPTIONS("/macro/health")
+    func optionsHealth() -> Status {
+        .noContent
+    }
+
     @GROUP("/macro/api")
     struct API {
         @GET("/health")
@@ -89,6 +114,31 @@ struct MacroSmoke {
         @POST("/json/echo")
         func jsonEcho(@JSONBody input: MacroEchoPayload) -> JSON<MacroEchoResponse> {
             JSON(MacroEchoResponse(echo: input.message))
+        }
+
+        @PUT("/users/:id")
+        func updateUser(@Path id: Int, req: Request) async throws -> String {
+            "Macro group updated user \(id):\(try await req.body.string(upTo: .kilobytes(64)))"
+        }
+
+        @PATCH("/users/:id")
+        func patchUser(@Path id: Int, req: Request) async throws -> String {
+            "Macro group patched user \(id):\(try await req.body.string(upTo: .kilobytes(64)))"
+        }
+
+        @DELETE("/users/:id")
+        func deleteUser(@Path id: Int) -> Status {
+            .noContent
+        }
+
+        @HEAD("/health")
+        func headHealth() -> Status {
+            .ok
+        }
+
+        @OPTIONS("/health")
+        func optionsHealth() -> Status {
+            .noContent
         }
     }
 }

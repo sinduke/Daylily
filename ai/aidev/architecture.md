@@ -350,7 +350,7 @@ Implemented macro flow:
   builds Application { ... }
   calls app.run()
 
-@GET / @POST
+@GET / @POST / @PUT / @PATCH / @DELETE / @HEAD / @OPTIONS
   marker macros
   used by @DaylilyServer
 
@@ -393,7 +393,7 @@ MVP limits:
 - route handlers may have zero parameters, one `Request` parameter, `@Path`, `@Query`, `@Header`, and one `@JSONBody` parameter
 - `@Path` names must match `:name` route segments
 - true `@Body` spelling is deferred because `Body` is already Daylily's raw request body type
-- optional typed inputs, DI, macro middleware attributes, and OpenAPI are not part of this MVP
+- optional typed inputs, DI, macro middleware attributes, and deep OpenAPI schema derivation are not part of this MVP
 
 Important rule:
 

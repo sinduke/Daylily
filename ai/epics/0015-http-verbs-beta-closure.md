@@ -1,6 +1,6 @@
 # 0015 HTTP Verbs Beta Closure
 
-Status: in-progress
+Status: implemented
 
 Purpose:
 
@@ -10,7 +10,7 @@ Purpose:
 Recommended tasks:
 
 - `0015-001-runtime-and-testing-http-verbs` (implemented)
-- `0015-002-macro-and-openapi-http-verbs`
+- `0015-002-macro-and-openapi-http-verbs` (implemented)
 
 Design notes:
 

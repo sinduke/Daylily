@@ -30,7 +30,7 @@ public struct DaylilyServerMacro: MemberMacro {
         )
 
         guard !collection.routes.isEmpty else {
-            throw DaylilyMacroError("@DaylilyServer requires at least one @GET or @POST method.")
+            throw DaylilyMacroError("@DaylilyServer requires at least one route method.")
         }
 
         let routeDeclarations = collection.routes.map { $0.routeDeclaration }.joined(separator: "\n\n")
@@ -102,7 +102,7 @@ private struct RouteCollector {
                 )
 
                 guard !nested.routes.isEmpty else {
-                    throw DaylilyMacroError("@GROUP(\(group.path.swiftStringLiteral)) must contain at least one @GET or @POST method.")
+                    throw DaylilyMacroError("@GROUP(\(group.path.swiftStringLiteral)) must contain at least one route method.")
                 }
 
                 collection.append(nested)
@@ -569,6 +569,16 @@ private struct RouteAttribute {
             return "Get"
         case "POST":
             return "Post"
+        case "PUT":
+            return "Put"
+        case "PATCH":
+            return "Patch"
+        case "DELETE":
+            return "Delete"
+        case "HEAD":
+            return "Head"
+        case "OPTIONS":
+            return "Options"
         default:
             return nil
         }

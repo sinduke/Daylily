@@ -279,12 +279,36 @@ enum DaylilyChecks {
             Get("/ping") {
                 "pong"
             }
+
+            Put("/verbs/:id") {
+                "put"
+            }
+            .describe(inputs: [.path("id", type: "Int")])
+
+            Patch("/verbs/:id") {
+                "patch"
+            }
+
+            Delete("/verbs/:id") {
+                Status.noContent
+            }
+            .describe(responses: [.response(.noContent)])
+
+            Head("/verbs/:id") {
+                Status.ok
+            }
+
+            Options("/verbs/:id") {
+                Status.noContent
+            }
+            .describe(responses: [.response(.noContent)])
         }
 
         let document = app.openAPI(title: "Daylily Demo", version: "0.1.0")
         let showUser = document.paths["/users/{id}"]?["get"]
         let createUser = document.paths["/users"]?["post"]
         let ping = document.paths["/ping"]?["get"]
+        let verbs = document.paths["/verbs/{id}"]
 
         try expect(document.openapi == "3.1.0", "expected default OpenAPI version")
         try expect(document.info == OpenAPIInfo(title: "Daylily Demo", version: "0.1.0"), "expected OpenAPI info")
@@ -341,6 +365,18 @@ enum DaylilyChecks {
             "expected OpenAPI created response metadata"
         )
         try expect(ping?.responses["200"] == OpenAPIResponse(description: "OK"), "expected default 200 response")
+        try expect(verbs?["put"]?.parameters == [
+            OpenAPIParameter(
+                name: "id",
+                location: "path",
+                required: true,
+                schema: OpenAPISchema(type: "integer", format: "int64")
+            ),
+        ], "expected OpenAPI PUT method and path parameter")
+        try expect(verbs?["patch"]?.responses["200"] == OpenAPIResponse(description: "OK"), "expected OpenAPI PATCH method")
+        try expect(verbs?["delete"]?.responses["204"] == OpenAPIResponse(description: "No Content"), "expected OpenAPI DELETE method")
+        try expect(verbs?["head"]?.responses["200"] == OpenAPIResponse(description: "OK"), "expected OpenAPI HEAD method")
+        try expect(verbs?["options"]?.responses["204"] == OpenAPIResponse(description: "No Content"), "expected OpenAPI OPTIONS method")
     }
 
     private static func testClientGet() async throws {

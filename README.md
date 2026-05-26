@@ -49,7 +49,7 @@ Implemented today:
 - Async JSON body decoding with `request.body.json(...)` and `request.json(...)`.
 - JSON responses with `JSON(...)`.
 - NIO-backed HTTP/1.1 server.
-- Macro route/group MVP: `@DaylilyServer`, `@GET`, `@POST`, `@GROUP`.
+- Macro route/group MVP: `@DaylilyServer`, `@GET`, `@POST`, `@PUT`, `@PATCH`, `@DELETE`, `@HEAD`, `@OPTIONS`, `@GROUP`.
 - Macro `@Path` typed path parameter injection.
 - Macro `@Query` and `@Header` typed input injection.
 - Macro `@JSONBody` typed JSON body injection.
@@ -61,7 +61,6 @@ Implemented today:
 
 Not implemented yet:
 
-- Macro route verbs beyond `@GET` and `@POST`.
 - Macro typed input injection beyond `@Path`, `@Query`, `@Header`, and `@JSONBody` (true `@Body` spelling, optional values, etc.).
 - Full OpenAPI schema derivation from Swift types.
 - Dependency injection.
@@ -418,6 +417,31 @@ struct App {
         .created
     }
 
+    @PUT("/users/:id")
+    func update(@Path id: Int, req: Request) async throws -> String {
+        "updated"
+    }
+
+    @PATCH("/users/:id")
+    func patch(@Path id: Int, req: Request) async throws -> String {
+        "patched"
+    }
+
+    @DELETE("/users/:id")
+    func delete(@Path id: Int) -> Status {
+        .noContent
+    }
+
+    @HEAD("/health")
+    func head() -> Status {
+        .ok
+    }
+
+    @OPTIONS("/health")
+    func options() -> Status {
+        .noContent
+    }
+
     @GET("/search")
     func search(
         @Query term: String,
@@ -453,7 +477,7 @@ MVP limits:
 - `@JSONBody` lowers into `try await req.json(Type.self)`;
 - true `@Body` spelling is deferred because `Body` is already Daylily's raw request body type;
 - grouped types must be default-initializable;
-- optional typed inputs, macro middleware attributes, DI, and OpenAPI are future work.
+- optional typed inputs, macro middleware attributes, DI, and deep OpenAPI schema derivation are future work.
 
 ## AI-Native Development
 
@@ -526,11 +550,10 @@ The most important invariants:
 
 Near-term:
 
-1. Add macro/OpenAPI support for `PUT`, `PATCH`, `DELETE`, `HEAD`, and `OPTIONS`.
-2. Add a formal test target.
-3. Decide and implement true `@Body`.
-4. Add beta docs: quickstart, examples, and capability matrix.
-5. Add release hygiene: Linux CI, CHANGELOG, semver tag, and public API registry sync.
+1. Add a formal test target.
+2. Decide and implement true `@Body`.
+3. Add beta docs: quickstart, examples, and capability matrix.
+4. Add release hygiene: Linux CI, CHANGELOG, semver tag, and public API registry sync.
 
 ## License
 

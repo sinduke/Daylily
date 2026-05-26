@@ -256,9 +256,8 @@ Guarantees:
 
 Non-goals:
 
-- Full OpenAPI document generation.
-- Schema derivation for Swift types.
-- Macro metadata lowering.
+- Rich OpenAPI operation coverage beyond the current metadata fields.
+- Deep schema derivation from Swift declarations.
 - Documentation UI.
 
 ## OpenAPI Document Contract
@@ -638,7 +637,7 @@ Extension points:
 Input:
 
 - A declaration group annotated with `@DaylilyServer`.
-- Instance methods annotated with `@GET` or `@POST`.
+- Instance methods annotated with `@GET`, `@POST`, `@PUT`, `@PATCH`, `@DELETE`, `@HEAD`, or `@OPTIONS`.
 
 Output:
 
@@ -650,6 +649,11 @@ Guarantees:
 - Generated code creates `Application { ... }`.
 - `@GET` lowers to runtime `Get`.
 - `@POST` lowers to runtime `Post`.
+- `@PUT` lowers to runtime `Put`.
+- `@PATCH` lowers to runtime `Patch`.
+- `@DELETE` lowers to runtime `Delete`.
+- `@HEAD` lowers to runtime `Head`.
+- `@OPTIONS` lowers to runtime `Options`.
 - `@GROUP` contributes a path prefix for nested route methods.
 - Zero-parameter handlers are called as `server.method()`.
 - `Request` parameters are called with the route request.

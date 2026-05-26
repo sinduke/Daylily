@@ -313,10 +313,18 @@ struct App {
         "Daylily ships."
     }
 
+    @DELETE("/sessions/:id")
+    func deleteSession(@Path id: String) -> Status {
+        .noContent
+    }
+
     @GROUP("/api")
     struct API {
         @GET("/health")
         func health() -> String { "ok" }
+
+        @OPTIONS("/health")
+        func healthOptions() -> Status { .noContent }
     }
 }
 ```
@@ -332,10 +340,10 @@ When extending:
 Still non-goals until separate tasks:
 
 - true `@Body` spelling
-- `@Query`
-- `@Header`
-- OpenAPI
+- optional typed inputs
+- macro middleware attributes
 - DI
+- deep OpenAPI schema derivation
 
 ## Extend JSON Body Macro Injection
 

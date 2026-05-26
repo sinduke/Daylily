@@ -33,7 +33,7 @@ Daylily/
 - Public user-facing library.
 - Re-exports `DaylilyCore`, `DaylilyJSON`, `DaylilyNIO`, `DaylilyObservability`, and `DaylilyOpenAPI`.
 - Adds `Application.run(host:port:)`.
-- Exposes `@DaylilyServer`, `@GET`, `@POST`, and `@GROUP`.
+- Exposes `@DaylilyServer`, HTTP route marker macros, and `@GROUP`.
 
 `DaylilyCore`
 
@@ -52,7 +52,7 @@ Daylily/
 
 - Internal macro target.
 - Swift macro implementation target.
-- Owns the compiler plugin for `@DaylilyServer`, `@GET`, `@POST`, and `@GROUP`.
+- Owns the compiler plugin for `@DaylilyServer`, HTTP route markers, and `@GROUP`.
 - Must lower macro syntax into runtime APIs instead of bypassing them.
 - Lowers typed macro inputs into runtime route metadata.
 
@@ -108,7 +108,7 @@ Daylily/
 
 `Sources/Daylily/Macros.swift`
 
-- Public macro declarations for `@DaylilyServer`, `@GET`, `@POST`, and `@GROUP`.
+- Public macro declarations for `@DaylilyServer`, HTTP route markers, and `@GROUP`.
 
 `Sources/DaylilyCore/Application.swift`
 
@@ -227,7 +227,7 @@ Daylily/
 
 - Macro implementation and compiler plugin registration.
 - `@DaylilyServer` scans route methods and group structs, then generates `static main() async throws`.
-- `@GET`, `@POST`, and `@GROUP` are marker macros used by `@DaylilyServer`.
+- HTTP route markers and `@GROUP` are marker macros used by `@DaylilyServer`.
 - `@Path`, `@Query`, `@Header`, and `@JSONBody` handler inputs lower into runtime extraction and route metadata.
 
 `Sources/DaylilyNIO/NIOHTTPServer.swift`
