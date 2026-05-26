@@ -2,9 +2,13 @@
 
 All notable changes to Daylily will be documented in this file.
 
-Daylily is currently experimental. The project has not published a tagged package release yet.
+Daylily is currently experimental. Public APIs may change before beta or stable release.
 
 ## Unreleased
+
+No changes yet.
+
+## 0.1.0-alpha.1 - 2026-05-26
 
 ### Added
 
@@ -22,8 +26,11 @@ Daylily is currently experimental. The project has not published a tagged packag
 - Beta docs: quickstart, capability matrix, JSON API example, middleware example, and testing example.
 - GitHub Actions validation for macOS and Linux.
 
+### Fixed
+
+- Linux build compatibility for DaylilyNIO graceful shutdown signal handling.
+
 ### Release Notes
 
-- Candidate first tag: `0.1.0-alpha.1`.
-- Do not tag until GitHub Actions passes on both macOS and Linux.
-- Public API is still experimental and may change before a beta or stable release.
+- First public SwiftPM alpha release.
+- Public API is still experimental and may change before beta or stable release.

@@ -311,7 +311,7 @@ Macro typed inputs now lower into route metadata:
 
 Suggested next task:
 
-- Wait for macOS/Linux CI to pass, then tag `0.1.0-alpha.1` if green.
+- After `0.1.0-alpha.1`, stabilize dependency injection design.
 
 ## Beta Closure Sequence
 
@@ -351,7 +351,8 @@ Options("/health") { Status.noContent }
 
 Remaining:
 
-- Wait for CI, then tag `0.1.0-alpha.1` if macOS and Linux are green.
+- `0.1.0-alpha.1` is the first public alpha release after macOS and Linux CI are green.
+- Next major capability area is dependency injection.
 
 ### Future Epics
 

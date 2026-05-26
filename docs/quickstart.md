@@ -1,6 +1,6 @@
 # Quick Start
 
-This guide uses the Daylily repository checkout directly. Package installation docs will come after release hygiene and tagging work.
+This guide covers both SwiftPM package usage and running the Daylily repository checkout directly.
 
 ## Requirements
 
@@ -9,7 +9,23 @@ This guide uses the Daylily repository checkout directly. Package installation d
 - Linux is validated in GitHub Actions with the official Swift Docker image.
 - Xcode toolchain for Swift Testing if Command Line Tools cannot find the `Testing` module.
 
+## Install with SwiftPM
+
+Add Daylily as a package dependency:
+
+```swift
+.package(url: "https://github.com/sinduke/Daylily.git", from: "0.1.0-alpha.1")
+```
+
+Add the product to your target:
+
+```swift
+.product(name: "Daylily", package: "Daylily")
+```
+
 ## Clone and Build
+
+For local framework development or examples, use the repository checkout:
 
 ```sh
 git clone https://github.com/sinduke/Daylily.git

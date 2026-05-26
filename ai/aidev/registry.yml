@@ -523,14 +523,15 @@ implemented_features:
       - "capability matrix"
   release_hygiene:
     status: implemented
-    task: "0019-001-release-hygiene"
+    task: "0019-002-alpha-release"
     files:
       - CHANGELOG.md
+      - docs/quickstart.md
       - docs/release-readiness.md
       - .github/workflows/ci.yml
     decisions:
-      - "First candidate tag is 0.1.0-alpha.1."
-      - "Do not create a tag until GitHub Actions passes on macOS and Linux."
+      - "First public alpha tag is 0.1.0-alpha.1."
+      - "Tag only after GitHub Actions passes on macOS and Linux."
       - "Public API remains experimental."
       - "Linux validation is CI-owned through the official Swift Docker image."
   macro_route_mvp:
@@ -890,6 +891,7 @@ planned_features:
       - "0017-001-true-body-input"
       - "0018-001-beta-docs"
       - "0019-001-release-hygiene"
+      - "0019-002-alpha-release"
     next_task: null
     sequence:
       - "0015-001-runtime-and-testing-http-verbs"
@@ -898,6 +900,7 @@ planned_features:
       - "0017-001-true-body-input"
       - "0018-001-beta-docs"
       - "0019-001-release-hygiene"
+      - "0019-002-alpha-release"
 
 public_api:
   Daylily:
@@ -1866,7 +1869,7 @@ roadmap:
       - "0018-beta-docs"
       - "0019-release-hygiene"
     next_recommended:
-      - "wait-for-ci-then-tag-0.1.0-alpha.1-if-green"
+      - "stabilize-dependency-injection-design"
   completed:
     - "0001-001-minimal-http-server"
     - "0002-001-aidev-project-contract"
@@ -1901,8 +1904,9 @@ roadmap:
     - "0017-001-true-body-input"
     - "0018-001-beta-docs"
     - "0019-001-release-hygiene"
+    - "0019-002-alpha-release"
   in_progress: []
   next_recommended:
-    - "wait-for-ci-then-tag-0.1.0-alpha.1-if-green"
+    - "stabilize-dependency-injection-design"
   later:
     - "0013-003-observability-hooks"

@@ -4,9 +4,8 @@ Daylily is in experimental beta-closure work. This document tracks what is ready
 
 ## Current Release Status
 
-- Package release: not tagged yet.
-- Suggested first tag: `0.1.0-alpha.1`.
-- Release condition: GitHub Actions must pass on macOS and Linux before tagging.
+- Package release: `0.1.0-alpha.1`.
+- Release condition: GitHub Actions passes on macOS and Linux before tagging.
 - Stability: experimental API, suitable for exploration and feedback, not production promises.
 
 ## Validation Surface

@@ -173,6 +173,20 @@ Potential ecosystem directions:
 
 ## Quick Start
 
+Use Daylily as a SwiftPM package:
+
+```swift
+.package(url: "https://github.com/sinduke/Daylily.git", from: "0.1.0-alpha.1")
+```
+
+Add the product to your target:
+
+```swift
+.product(name: "Daylily", package: "Daylily")
+```
+
+For local framework development or examples, run from source.
+
 From the project root:
 
 ```sh
@@ -691,8 +705,11 @@ The most important invariants:
 
 Near-term:
 
-1. Wait for macOS/Linux CI to pass, then decide whether to tag `0.1.0-alpha.1`.
-2. Continue release hygiene with public API registry review before tagging.
+1. Stabilize dependency injection design.
+2. Add middleware macro attributes.
+3. Expand OpenAPI schema generation.
+4. Add WebSocket/realtime experiments.
+5. Publish benchmark methodology.
 
 ## License
 

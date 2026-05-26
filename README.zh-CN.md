@@ -173,6 +173,20 @@ Daylily 不是只想成为 routing library，而是在探索 Swift cloud develop
 
 ## 快速开始
 
+作为 SwiftPM package 使用：
+
+```swift
+.package(url: "https://github.com/sinduke/Daylily.git", from: "0.1.0-alpha.1")
+```
+
+把 product 加到 target 里：
+
+```swift
+.product(name: "Daylily", package: "Daylily")
+```
+
+本地开发框架或运行示例时，可以继续从源码启动。
+
 在项目根目录执行：
 
 ```sh
@@ -691,8 +705,11 @@ Daylily/
 
 近期：
 
-1. 等待 macOS/Linux CI 通过，然后决定是否创建 `0.1.0-alpha.1` tag。
-2. tag 前继续做 public API registry review。
+1. 稳定 dependency injection design。
+2. 增加 middleware macro attributes。
+3. 扩展 OpenAPI schema generation。
+4. 增加 WebSocket/realtime experiments。
+5. 发布 benchmark methodology。
 
 ## License
 

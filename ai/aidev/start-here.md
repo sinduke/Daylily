@@ -386,5 +386,5 @@ Do not start with:
 
 Current strategic order:
 
-1. Wait for macOS/Linux CI to pass, then decide whether to tag `0.1.0-alpha.1`.
-2. Review public API registry before any tag.
+1. Publish `0.1.0-alpha.1` only after macOS/Linux CI is green.
+2. Then stabilize dependency injection design.

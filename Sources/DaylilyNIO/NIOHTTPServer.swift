@@ -1,5 +1,9 @@
 @_spi(Transport) import DaylilyCore
+#if canImport(Darwin)
 import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#endif
 import Dispatch
 import NIOCore
 import NIOHTTP1
