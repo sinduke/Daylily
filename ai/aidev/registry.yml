@@ -5,7 +5,7 @@ project:
   license: MIT
   license_file: LICENSE
   swift_tools_version: "6.0"
-  current_phase: "observability_request_id_timing"
+  current_phase: "beta_closure"
   authoritative_ai_entry:
     - AIDEV.md
     - ai/aidev/start-here.md
@@ -153,13 +153,17 @@ products:
     kind: library
     role: observability_helpers
     responsibility:
+      - provide_request_id_middleware
+      - provide_request_id_generator
       - provide_request_logging_middleware
       - provide_request_log_sink_protocol
       - provide_console_request_log_sink
       - provide_in_memory_request_log_sink_for_checks
+      - record_request_duration_and_public_error_reason
       - keep_logging_and_tracing_out_of_core
     depends_on:
       - DaylilyCore
+      - Foundation
     forbidden_imports:
       - NIO
       - NIOCore
@@ -588,6 +592,42 @@ implemented_features:
       - "OpenTelemetry"
       - "structured logging framework commitment"
       - "metrics backend integration"
+  request_id_and_timing:
+    status: implemented
+    epic: "0013-observability-middleware"
+    task: "0013-002-request-id-and-timing"
+    module: DaylilyObservability
+    public_api:
+      - RequestIDGenerator
+      - RequestIDHeaders
+      - RequestIDs
+      - RequestIDMiddleware
+      - "Request.daylilyRequestID"
+      - "Request.correlationID"
+      - "Request.withRequestIDs(requestID:correlationID:)"
+      - "Request.with(headers:)"
+      - "RequestLog.requestID"
+      - "RequestLog.correlationID"
+      - "RequestLog.durationNanoseconds"
+      - "RequestLog.errorReason"
+    decisions:
+      - "Daylily always generates its own request ID for each request."
+      - "Generated request IDs use the dl_<UUID> shape."
+      - "Incoming x-request-id is external correlation data, not Daylily-owned uniqueness."
+      - "Responses always include x-daylily-request-id."
+      - "Responses preserve incoming x-request-id when present."
+      - "Responses write generated requestID to x-request-id only when incoming x-request-id is absent."
+      - "RequestLog.correlationID stays nil when x-request-id was populated only for compatibility."
+      - "RequestLoggingMiddleware measures elapsed time around next.respond(to:) and stores nanoseconds."
+      - "RequestLoggingMiddleware records public error reasons for 4xx and 5xx responses."
+      - "Request.with(headers:) preserves method, path, query, parameters, and one-shot body storage."
+      - "UUID generation stays outside DaylilyCore."
+    non_goals:
+      - "OpenTelemetry"
+      - "trace/span model"
+      - "metrics backend"
+      - "Server-Timing response header"
+      - "automatic outgoing client propagation"
   route_metadata_runtime:
     status: implemented
     epic: "0014-openapi-metadata"
@@ -684,9 +724,9 @@ planned_features:
     epic: "0013-observability-middleware"
     completed:
       - "0013-001-request-logging-middleware"
-    next_task: "0014-001-route-metadata-runtime"
-    deferred:
       - "0013-002-request-id-and-timing"
+    next_task: null
+    deferred:
       - "0013-003-observability-hooks"
   openapi:
     status: implemented
@@ -698,6 +738,16 @@ planned_features:
     next_task: null
   dependency_injection:
     status: future
+  beta_closure:
+    status: planned
+    completed: []
+    next_task: "0015-001-complete-http-verbs"
+    sequence:
+      - "0015-001-complete-http-verbs"
+      - "0016-001-formal-test-target"
+      - "0017-001-true-body-input"
+      - "0018-001-beta-docs"
+      - "0019-001-release-hygiene"
 
 public_api:
   Daylily:
@@ -738,7 +788,29 @@ public_api:
         - "method: HTTPMethod"
         - "path: String"
         - "status: Status"
-      initializer: "public init(method: HTTPMethod, path: String, status: Status)"
+        - "requestID: String?"
+        - "correlationID: String?"
+        - "durationNanoseconds: UInt64?"
+        - "errorReason: String?"
+      initializer: "public init(method: HTTPMethod, path: String, status: Status, requestID: String? = nil, correlationID: String? = nil, durationNanoseconds: UInt64? = nil, errorReason: String? = nil)"
+    RequestIDGenerator:
+      kind: typealias
+      signature: "public typealias RequestIDGenerator = @Sendable () -> String"
+    RequestIDHeaders:
+      kind: enum
+      constants:
+        - "requestID = x-request-id"
+        - "daylilyRequestID = x-daylily-request-id"
+    RequestIDs:
+      kind: enum
+      methods:
+        - "public static func generate() -> String"
+    RequestIDMiddleware:
+      kind: struct
+      conforms:
+        - Middleware
+      initializer: "public init(generator: @escaping RequestIDGenerator = RequestIDs.generate)"
+      contract: "Generates a Daylily-owned request ID, preserves external x-request-id as correlation data, and writes response ID headers."
     RequestLogSink:
       kind: protocol
       conforms:
@@ -751,7 +823,7 @@ public_api:
       conforms:
         - Middleware
       initializer: "public init(sink: Sink)"
-      contract: "Records method, path, and final status around downstream middleware/handler execution."
+      contract: "Records method, path, final status, request ID, external correlation ID, duration, and public error reason around downstream middleware/handler execution."
     ConsoleRequestLogSink:
       kind: struct
       conforms:
@@ -1077,8 +1149,9 @@ public_api:
         - "public init(method:path:headers:body: [UInt8], parameters: Parameters = Parameters(), query: QueryParameters? = nil)"
         - "public func with(parameters: Parameters) -> Request"
         - "public func with(body: Body) -> Request"
+        - "public func with(headers: Headers) -> Request"
         - "public func withBufferedBody<R: Sendable>(upTo limit: ByteCount, _ operation: @Sendable (Request, [UInt8]) async throws -> R) async throws -> R"
-      contract: "Request initializers strip query text from path and populate query; DaylilyNIO creates streaming Body values through transport SPI; in-process callers may use Body.bytes(...); explicit body buffering uses withBufferedBody(upTo:_:)."
+      contract: "Request initializers strip query text from path and populate query; DaylilyNIO creates streaming Body values through transport SPI; in-process callers may use Body.bytes(...); request copying helpers preserve one-shot body storage; explicit body buffering uses withBufferedBody(upTo:_:)."
     Parameters:
       kind: struct
       conforms:
@@ -1374,7 +1447,7 @@ runtime_rules:
   middleware_order: "application -> router dispatch -> group -> route -> handler"
   middleware_body_policy: "middleware can read Body, but Body remains one-shot and no automatic replay occurs"
   explicit_buffered_body_policy: "withBufferedBody consumes the original Body, buffers under an explicit limit, creates a one-shot replacement Body.bytes value, and does not enable automatic replay"
-  observability_policy: "DaylilyObservability owns request logging and future observability helpers; DaylilyCore does not depend on logging backends, tracing SDKs, metrics clients, or transport APIs."
+  observability_policy: "DaylilyObservability owns request ID generation, request logging, timing, public error reason logging, and future observability helpers; DaylilyCore does not depend on logging backends, tracing SDKs, metrics clients, or transport APIs."
   errors:
     response_error: "status + reason"
     abort: "ResponseError conformer"
@@ -1437,6 +1510,7 @@ aidev_files:
     - ai/tasks/0012-002-graceful-shutdown.md
     - ai/tasks/0012-003-server-configuration.md
     - ai/tasks/0013-001-request-logging-middleware.md
+    - ai/tasks/0013-002-request-id-and-timing.md
     - ai/tasks/0014-001-route-metadata-runtime.md
     - ai/tasks/0014-002-openapi-schema-mvp.md
     - ai/tasks/0014-003-macro-metadata-bridge.md
@@ -1507,7 +1581,7 @@ verification:
     cleanup: "stop the HelloDaylily process"
 
 roadmap:
-  current_task: "0013-002-request-id-and-timing"
+  current_task: "0015-001-complete-http-verbs"
   epics:
     completed:
       - "0001-runtime-foundation"
@@ -1521,7 +1595,7 @@ roadmap:
       - "0012-lifecycle-server-controls"
       - "0014-openapi-metadata"
     next_recommended:
-      - "0014-openapi-metadata"
+      - "0015-beta-closure"
   completed:
     - "0001-001-minimal-http-server"
     - "0002-001-aidev-project-contract"
@@ -1546,11 +1620,16 @@ roadmap:
     - "0012-002-graceful-shutdown"
     - "0012-003-server-configuration"
     - "0013-001-request-logging-middleware"
+    - "0013-002-request-id-and-timing"
     - "0014-001-route-metadata-runtime"
     - "0014-002-openapi-schema-mvp"
     - "0014-003-macro-metadata-bridge"
   in_progress: []
   next_recommended:
-    - "0013-002-request-id-and-timing"
+    - "0015-001-complete-http-verbs"
   later:
+    - "0016-001-formal-test-target"
+    - "0017-001-true-body-input"
+    - "0018-001-beta-docs"
+    - "0019-001-release-hygiene"
     - "0013-003-observability-hooks"

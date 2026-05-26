@@ -137,6 +137,7 @@ Owner:
 Implemented by:
 
 - `ai/tasks/0013-001-request-logging-middleware.md`
+- `ai/tasks/0013-002-request-id-and-timing.md`
 
 Shape:
 
@@ -145,6 +146,10 @@ public struct RequestLog: Equatable, Sendable {
     public var method: HTTPMethod
     public var path: String
     public var status: Status
+    public var requestID: String?
+    public var correlationID: String?
+    public var durationNanoseconds: UInt64?
+    public var errorReason: String?
 }
 
 public protocol RequestLogSink: Sendable {
@@ -152,28 +157,34 @@ public protocol RequestLogSink: Sendable {
 }
 
 public struct RequestLoggingMiddleware<Sink: RequestLogSink>: Middleware
+public struct RequestIDMiddleware: Middleware
 ```
 
 Guarantees:
 
 - Request logging is implemented as normal middleware.
 - The middleware calls downstream exactly once when it does not short-circuit by throwing before `next`.
-- Successful downstream responses record `RequestLog(method:path:status:)` with the response status.
+- `RequestIDMiddleware` generates a Daylily-owned `requestID` for every request.
+- Incoming `x-request-id` is treated as external `correlationID`, not as Daylily's unique request identity.
+- `RequestIDMiddleware` always writes `x-daylily-request-id`.
+- `RequestIDMiddleware` preserves incoming `x-request-id` when present.
+- `RequestIDMiddleware` writes generated `requestID` to `x-request-id` only when the incoming header is absent.
+- Downstream responses record method, path, status, request ID, external correlation ID, duration, and public error reason when status is `4xx` or `5xx`.
 - Thrown `ResponseError` values record their public `status` and are rethrown.
 - Unknown thrown errors record `500 Internal Server Error` and are rethrown.
+- `RequestLoggingMiddleware` measures duration around `next.respond(to:)` and stores nanoseconds.
 - `ConsoleRequestLogSink` writes a simple development log line.
 - `InMemoryRequestLogSink` stores logs for checks and early tests.
 
 Boundaries:
 
 - `DaylilyObservability` depends on `DaylilyCore`.
+- `DaylilyObservability` may use Foundation for default UUID request ID generation.
 - `DaylilyCore` does not depend on `DaylilyObservability`.
-- No logging backend, metrics backend, tracing SDK, or transport dependency is required by the first observability slice.
+- No logging backend, metrics backend, tracing SDK, or transport dependency is required by the current observability slice.
 
 Extension points:
 
-- request id
-- latency timing
 - structured log fields
 - OpenTelemetry bridge
 - metrics hooks
@@ -380,6 +391,7 @@ Guarantees:
 - `with(parameters:)` returns a new request preserving method, path, headers, body, and query.
 - Preserved body uses shared one-shot state.
 - `with(body:)` returns a new request preserving method, path, headers, parameters, and query while replacing body.
+- `with(headers:)` returns a new request preserving method, path, body, parameters, and query while replacing headers.
 - `withBufferedBody(upTo:_:)` consumes the current body under an explicit limit.
 - `withBufferedBody(upTo:_:)` passes collected bytes and a replacement request to the operation closure.
 - The replacement request uses `Body.bytes(collectedBytes)`.
@@ -651,11 +663,12 @@ Known limitations:
 - Group types must be default-initializable.
 - Static route handlers are not supported.
 - True `@Body` spelling is deferred because `Body` is already Daylily's raw request body type.
-- Optional typed inputs, macro middleware attributes, DI, and OpenAPI metadata are not supported yet.
+- Optional typed inputs, macro middleware attributes, and DI are not supported yet.
+- OpenAPI metadata lowering exists for typed inputs; deeper schema inference and richer operation metadata are deferred.
 
 Extension points:
 
 - more macro typed input families
 - macro middleware attributes
-- route metadata
+- richer route metadata
 - better diagnostics

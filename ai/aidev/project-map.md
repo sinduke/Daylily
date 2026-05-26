@@ -68,7 +68,7 @@ Daylily/
 
 - Optional observability helpers.
 - Depends on `DaylilyCore`.
-- Owns `RequestLoggingMiddleware`, `RequestLog`, and request log sinks.
+- Owns `RequestIDMiddleware`, `RequestLoggingMiddleware`, `RequestLog`, and request log sinks.
 - Must not pull logging backends, tracing SDKs, or transport-specific APIs into `DaylilyCore`.
 
 `DaylilyOpenAPI`
@@ -241,6 +241,12 @@ Daylily/
 - Defines `RequestLogSink`.
 - Defines `RequestLoggingMiddleware`.
 - Provides `ConsoleRequestLogSink` and `InMemoryRequestLogSink`.
+
+`Sources/DaylilyObservability/RequestIDMiddleware.swift`
+
+- Defines `RequestIDMiddleware`.
+- Defines `RequestIDGenerator`, `RequestIDs`, and `RequestIDHeaders`.
+- Adds `Request.daylilyRequestID`, `Request.correlationID`, and `Request.withRequestIDs(...)`.
 
 `Sources/DaylilyOpenAPI/OpenAPI.swift`
 

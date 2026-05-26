@@ -197,10 +197,11 @@ Current shape:
 
 ```swift
 let app = Application {
-    Get("/hello") {
-        "Daylily ships."
+    Get("/hello") { request in
+        request.daylilyRequestID ?? "missing"
     }
 }
+.middleware(RequestIDMiddleware())
 .middleware(RequestLoggingMiddleware(sink: ConsoleRequestLogSink()))
 ```
 
@@ -213,11 +214,11 @@ Rules:
 5. Record public error semantics, not private thrown error internals.
 6. Add `InMemoryRequestLogSink`-style checks for new observable fields.
 7. Update `api-registry.md`, `runtime-contracts.md`, and `registry.yml`.
+8. Treat incoming `x-request-id` as correlation data, not as Daylily's unique request identity.
+9. Keep Daylily-generated request identity in `x-daylily-request-id`.
 
 Next likely slices:
 
-- request id
-- latency timing
 - structured log fields
 - OpenTelemetry bridge
 - metrics hooks

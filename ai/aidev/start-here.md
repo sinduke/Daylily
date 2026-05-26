@@ -19,7 +19,7 @@ struct App {
 }
 ```
 
-Current implemented surfaces are the runtime DSL, runtime route metadata, minimal `DaylilyOpenAPI` document generation, runtime middleware, `DaylilyObservability` request logging middleware, application lifecycle hooks, the Daylily-owned `Body` model, explicit buffered body replacement, JSON body/response helpers, the macro route/group MVP, macro `@Path`, `@Query`, `@Header`, and `@JSONBody` typed input injection with route metadata lowering, and `DaylilyTesting` in-memory request/response helpers.
+Current implemented surfaces are the runtime DSL, runtime route metadata, minimal `DaylilyOpenAPI` document generation, runtime middleware, `DaylilyObservability` request ID and request logging middleware, application lifecycle hooks, the Daylily-owned `Body` model, explicit buffered body replacement, JSON body/response helpers, the macro route/group MVP, macro `@Path`, `@Query`, `@Header`, and `@JSONBody` typed input injection with route metadata lowering, and `DaylilyTesting` in-memory request/response helpers.
 
 Runtime DSL:
 
@@ -79,6 +79,7 @@ let app = Application {
     .middleware(HeaderMiddleware())
 }
 .middleware(HeaderMiddleware())
+.middleware(RequestIDMiddleware())
 .middleware(RequestLoggingMiddleware(sink: ConsoleRequestLogSink()))
 .configure {
     // register configuration
@@ -118,7 +119,7 @@ let app = Application {
 .middleware(RequestLoggingMiddleware(sink: ConsoleRequestLogSink()))
 ```
 
-`RequestLoggingMiddleware` records method, path, and final status. The module depends on `DaylilyCore`, is re-exported by `Daylily`, and must not force logging or tracing dependencies into the core runtime.
+`RequestIDMiddleware` generates Daylily-owned request IDs. Incoming `x-request-id` is external correlation data, not Daylily's unique request identity. `RequestLoggingMiddleware` records method, path, final status, request ID, external correlation ID, duration, and public error reason. The module depends on `DaylilyCore`, is re-exported by `Daylily`, and must not force logging or tracing dependencies into the core runtime.
 
 Route metadata is runtime-owned:
 
@@ -221,7 +222,7 @@ Implemented:
 - Runtime route metadata and `Application.describeRoutes()`.
 - Minimal OpenAPI document generation through `Application.openAPI(title:version:)`.
 - Runtime middleware at application, group, and route scope.
-- `DaylilyObservability` request logging middleware.
+- `DaylilyObservability` request ID and request logging middleware.
 - Application lifecycle hooks: `configure`, `boot`, `started`, `shutdown`, `cleanup`.
 - Default SIGINT/SIGTERM graceful server shutdown.
 - Explicit `ServerConfiguration`.
@@ -322,6 +323,8 @@ Do not start with:
 
 Current strategic order:
 
-1. Keep AIDEV self-contained.
-2. Review the 0014 OpenAPI metadata slice.
-3. Return to request id, timing, and observability hooks.
+1. Complete HTTP verbs: `PUT`, `PATCH`, `DELETE`.
+2. Add a formal test target.
+3. Decide and implement true `@Body`.
+4. Add beta docs: quickstart, JSON API example, middleware example, testing example, and capability matrix.
+5. Add release hygiene: Linux CI, CHANGELOG, semver tag, and public API registry sync.

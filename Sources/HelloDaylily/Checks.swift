@@ -47,6 +47,12 @@ enum DaylilyChecks {
         try await requestLoggingMiddleware()
         try await requestLoggingMiddlewareAbort()
         try await requestLoggingMiddlewareUnhandledError()
+        try await requestIDMiddlewareWithoutIncomingHeader()
+        try await requestIDMiddlewareWithIncomingHeader()
+        try await requestIDMiddlewareAddsHeadersToErrors()
+        try await requestLoggingMiddlewareRequestIDAndTiming()
+        try await requestLoggingMiddlewareGeneratedRequestIDHasNoExternalCorrelation()
+        try await requestWithHeadersPreservesBody()
         try await requestWithBodyReplacement()
         try await withBufferedBodyMiddleware()
         try await withBufferedBodyReplacementIsOneShot()
@@ -897,9 +903,16 @@ enum DaylilyChecks {
         let logs = await sink.snapshot()
 
         try expect(response.status == .ok, "expected request logging response 200")
+        try expect(logs.count == 1, "expected one successful request log")
+        try expect(logs[0].method == .get, "expected successful request log method")
+        try expect(logs[0].path == "/hello", "expected successful request log path")
+        try expect(logs[0].status == .ok, "expected successful request log status")
+        try expect(logs[0].requestID == nil, "expected no request id without request id middleware")
+        try expect(logs[0].correlationID == nil, "expected no correlation id without request id middleware")
+        try expect(logs[0].errorReason == nil, "expected no error reason for successful request log")
         try expect(
-            logs == [RequestLog(method: .get, path: "/hello", status: .ok)],
-            "expected successful request log"
+            logs[0].durationNanoseconds != nil,
+            "expected successful request log duration"
         )
     }
 
@@ -916,10 +929,12 @@ enum DaylilyChecks {
         let logs = await sink.snapshot()
 
         try expect(response.status == .badRequest, "expected request logging abort response")
-        try expect(
-            logs == [RequestLog(method: .get, path: "/fail", status: .badRequest)],
-            "expected abort request log"
-        )
+        try expect(logs.count == 1, "expected one abort request log")
+        try expect(logs[0].method == .get, "expected abort request log method")
+        try expect(logs[0].path == "/fail", "expected abort request log path")
+        try expect(logs[0].status == .badRequest, "expected abort request log status")
+        try expect(logs[0].errorReason == "nope", "expected abort request log error reason")
+        try expect(logs[0].durationNanoseconds != nil, "expected abort request log duration")
     }
 
     private static func requestLoggingMiddlewareUnhandledError() async throws {
@@ -935,9 +950,154 @@ enum DaylilyChecks {
         let logs = await sink.snapshot()
 
         try expect(response.status == .internalServerError, "expected request logging unhandled error response")
+        try expect(logs.count == 1, "expected one unhandled error request log")
+        try expect(logs[0].method == .get, "expected unhandled error request log method")
+        try expect(logs[0].path == "/boom", "expected unhandled error request log path")
+        try expect(logs[0].status == .internalServerError, "expected unhandled error request log status")
         try expect(
-            logs == [RequestLog(method: .get, path: "/boom", status: .internalServerError)],
-            "expected unhandled error request log"
+            logs[0].errorReason == "Internal Server Error",
+            "expected unhandled error request log reason"
+        )
+        try expect(logs[0].durationNanoseconds != nil, "expected unhandled error request log duration")
+    }
+
+    private static func requestIDMiddlewareWithoutIncomingHeader() async throws {
+        let app = Application {
+            Get("/ids") { request in
+                "\(request.daylilyRequestID ?? "missing"):\(request.correlationID ?? "missing")"
+            }
+        }
+        .middleware(RequestIDMiddleware(generator: { "dl_generated" }))
+
+        let response = await app.respond(to: Request(method: .get, path: "/ids"))
+
+        try expect(response.status == .ok, "expected request id response 200")
+        try expect(response.bodyString == "dl_generated:dl_generated", "expected generated request id in handler")
+        try expect(
+            response.headers[RequestIDHeaders.daylilyRequestID] == "dl_generated",
+            "expected Daylily request id response header"
+        )
+        try expect(
+            response.headers[RequestIDHeaders.requestID] == "dl_generated",
+            "expected compatibility request id response header"
+        )
+    }
+
+    private static func requestIDMiddlewareWithIncomingHeader() async throws {
+        let app = Application {
+            Get("/ids") { request in
+                "\(request.daylilyRequestID ?? "missing"):\(request.correlationID ?? "missing")"
+            }
+        }
+        .middleware(RequestIDMiddleware(generator: { "dl_server" }))
+
+        let response = await app.respond(
+            to: Request(method: .get, path: "/ids", headers: [RequestIDHeaders.requestID: "client-correlation"])
+        )
+
+        try expect(response.status == .ok, "expected request id correlation response 200")
+        try expect(response.bodyString == "dl_server:client-correlation", "expected handler to see both ids")
+        try expect(
+            response.headers[RequestIDHeaders.daylilyRequestID] == "dl_server",
+            "expected generated Daylily request id header"
+        )
+        try expect(
+            response.headers[RequestIDHeaders.requestID] == "client-correlation",
+            "expected incoming correlation id to be preserved"
+        )
+    }
+
+    private static func requestIDMiddlewareAddsHeadersToErrors() async throws {
+        let app = Application {
+            Get("/fail") { () async throws -> String in
+                throw Abort(.badRequest, reason: "missing field")
+            }
+        }
+        .middleware(RequestIDMiddleware(generator: { "dl_error" }))
+
+        let response = await app.respond(to: Request(method: .get, path: "/fail"))
+
+        try expect(response.status == .badRequest, "expected request id error response")
+        try expect(response.bodyString == "missing field", "expected public error reason")
+        try expect(
+            response.headers[RequestIDHeaders.daylilyRequestID] == "dl_error",
+            "expected Daylily request id on error response"
+        )
+        try expect(
+            response.headers[RequestIDHeaders.requestID] == "dl_error",
+            "expected compatibility request id on error response"
+        )
+    }
+
+    private static func requestLoggingMiddlewareRequestIDAndTiming() async throws {
+        let sink = InMemoryRequestLogSink()
+        let app = Application {
+            Get("/observed") {
+                "ok"
+            }
+        }
+        .middleware(RequestIDMiddleware(generator: { "dl_log" }))
+        .middleware(RequestLoggingMiddleware(sink: sink))
+
+        let response = await app.respond(
+            to: Request(method: .get, path: "/observed", headers: [RequestIDHeaders.requestID: "client-log"])
+        )
+        let logs = await sink.snapshot()
+
+        try expect(response.status == .ok, "expected observed response 200")
+        try expect(logs.count == 1, "expected one observed request log")
+        try expect(logs[0].requestID == "dl_log", "expected log request id")
+        try expect(logs[0].correlationID == "client-log", "expected log external correlation id")
+        try expect(logs[0].durationNanoseconds != nil, "expected log duration")
+    }
+
+    private static func requestWithHeadersPreservesBody() async throws {
+        let request = Request(
+            method: .post,
+            path: "/headers?debug=true",
+            headers: ["x-original": "yes"],
+            body: Array("once".utf8),
+            parameters: Parameters(["id": "42"])
+        )
+
+        let replaced = request.with(headers: ["x-replaced": "yes"])
+        let body = try await replaced.body.string(upTo: .kilobytes(1))
+
+        try expect(replaced.method == .post, "expected header replacement to preserve method")
+        try expect(replaced.path == "/headers", "expected header replacement to preserve path")
+        try expect(replaced.query.debug == "true", "expected header replacement to preserve query")
+        try expect(replaced.parameters.id == "42", "expected header replacement to preserve parameters")
+        try expect(replaced.headers["x-original"] == nil, "expected header replacement to replace headers")
+        try expect(replaced.headers["x-replaced"] == "yes", "expected header replacement headers")
+        try expect(body == "once", "expected header replacement to preserve body")
+
+        do {
+            _ = try await request.body.string(upTo: .kilobytes(1))
+            try expect(false, "expected original body to share one-shot state after header replacement")
+        } catch let error as BodyError {
+            try expect(error.status == .internalServerError, "expected shared body consumed status")
+            try expect(error.reason == "Request body already consumed", "expected shared body consumed reason")
+        }
+    }
+
+    private static func requestLoggingMiddlewareGeneratedRequestIDHasNoExternalCorrelation() async throws {
+        let sink = InMemoryRequestLogSink()
+        let app = Application {
+            Get("/observed") {
+                "ok"
+            }
+        }
+        .middleware(RequestIDMiddleware(generator: { "dl_generated_log" }))
+        .middleware(RequestLoggingMiddleware(sink: sink))
+
+        _ = await app.respond(to: Request(method: .get, path: "/observed"))
+        let logs = await sink.snapshot()
+
+        try expect(logs.count == 1, "expected one generated id request log")
+        try expect(logs[0].requestID == "dl_generated_log", "expected generated log request id")
+        try expect(
+            logs[0].correlationID == nil,
+            "expected generated compatibility x-request-id not to be logged as external correlation id"
         )
     }
 

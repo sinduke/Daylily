@@ -172,6 +172,7 @@ Practical interleave:
 0012-002 Graceful shutdown (delivered)
 0012-003 Server configuration (delivered)
 0013-001 Request logging middleware (delivered)
+0013-002 Request ID and timing (delivered)
 0014-001 Route metadata runtime (delivered)
 0014-002 OpenAPI schema MVP (delivered)
 0014-003 Macro metadata bridge (delivered)
@@ -228,9 +229,10 @@ let app = Application {
 .cleanup { ... }
 ```
 
-Next task:
+Follow-up:
 
-- `0013-002-request-id-and-timing`
+- Observability and OpenAPI slices are now delivered.
+- The next work should move into the beta closure sequence.
 
 ### 0013 Observability Middleware
 
@@ -239,19 +241,35 @@ Status: in-progress
 Delivered:
 
 - `0013-001-request-logging-middleware`
+- `0013-002-request-id-and-timing`
 
 Delivered shape:
 
 ```swift
 let app = Application {
-    Get("/hello") { "ok" }
+    Get("/hello") { request in
+        request.daylilyRequestID ?? "missing"
+    }
 }
+.middleware(RequestIDMiddleware())
 .middleware(RequestLoggingMiddleware(sink: ConsoleRequestLogSink()))
+```
+
+Delivered request identity shape:
+
+- `requestID` is a Daylily-generated `dl_<UUID>`, unique per request inside this service.
+- `correlationID` is external `x-request-id`, optional and not guaranteed unique.
+
+Response header behavior:
+
+```text
+always write x-daylily-request-id
+preserve incoming x-request-id when present
+write generated requestID to x-request-id only when no incoming x-request-id exists
 ```
 
 Remaining future slices:
 
-- request id and timing
 - observability hooks
 
 ### 0014 OpenAPI Metadata
@@ -290,7 +308,23 @@ Macro typed inputs now lower into route metadata:
 
 Suggested next task:
 
-- `0013-002-request-id-and-timing`
+- `0015-001-complete-http-verbs`
+
+## Beta Closure Sequence
+
+Goal:
+
+- Close the minimum beta capability loop before ecosystem packages.
+
+Recommended sequence:
+
+```text
+0015-001 Complete HTTP verbs: PUT / PATCH / DELETE
+0016-001 Formal test target
+0017-001 True @Body input spelling
+0018-001 Beta docs: quickstart, examples, capability matrix
+0019-001 Release hygiene: Linux CI, CHANGELOG, semver tag, public API registry sync
+```
 
 ### Future Epics
 

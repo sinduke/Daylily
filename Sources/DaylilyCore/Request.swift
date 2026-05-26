@@ -63,6 +63,17 @@ public struct Request: Sendable {
         )
     }
 
+    public func with(headers: Headers) -> Request {
+        Request(
+            method: method,
+            path: path,
+            headers: headers,
+            body: body,
+            parameters: parameters,
+            query: query
+        )
+    }
+
     public func withBufferedBody<R: Sendable>(
         upTo limit: ByteCount,
         _ operation: @Sendable (Request, [UInt8]) async throws -> R

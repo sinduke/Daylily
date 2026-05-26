@@ -38,7 +38,7 @@ Daylily 不是 Vapor 或 Hummingbird 的复制品。它是在探索：如果 AI 
 - 基于 `ByteChunk` 和 `ByteCount` 的 one-shot body 消费。
 - 真正的 NIO request body streaming bridge，带有有界缓冲和实用 backpressure。
 - 支持 application、group、route 作用域的 runtime middleware。
-- `DaylilyObservability` request logging middleware。
+- `DaylilyObservability` request logging middleware，包含 request ID、correlation ID、latency、status 和公开 error reason 字段。
 - 面向未来 OpenAPI generation 的 route metadata runtime。
 - `DaylilyOpenAPI`，可以从 route metadata 生成最小 OpenAPI document。
 - Application lifecycle hooks：`configure`、`boot`、`started`、`shutdown`、`cleanup`。
@@ -251,18 +251,21 @@ replacement body 依然是 one-shot，而且 helper 必须传入明确的大小�
 
 ## Observability
 
-`DaylilyObservability` 目前提供 request logging middleware，同时不把 logging backend 或 tracing 依赖塞进 `DaylilyCore`：
+`DaylilyObservability` 提供 request ID 和 request logging middleware，同时不把 logging backend 或 tracing 依赖塞进 `DaylilyCore`：
 
 ```swift
 let app = Application {
-    Get("/hello") {
-        "Daylily ships."
+    Get("/hello") { request in
+        request.daylilyRequestID ?? "missing"
     }
 }
+.middleware(RequestIDMiddleware())
 .middleware(RequestLoggingMiddleware(sink: ConsoleRequestLogSink()))
 ```
 
-`RequestLoggingMiddleware` 会记录 method、path 和最终 status。`InMemoryRequestLogSink` 可用于行为检查和早期测试。
+`RequestIDMiddleware` 总是生成 Daylily 自己的 `x-daylily-request-id`。传入的 `x-request-id` 会被当成外部 correlation data，而不是 Daylily 的唯一 request identity。没有传入 `x-request-id` 时，Daylily 会把生成的 request ID 写入 `x-request-id`，用于生态兼容。
+
+`RequestLoggingMiddleware` 会记录 method、path、最终 status、request ID、外部 correlation ID、duration 和公开 error reason。`InMemoryRequestLogSink` 可用于行为检查和早期测试。
 
 ## Route Metadata
 
@@ -467,6 +470,8 @@ Daylily/
 │   ├── DaylilyCore/
 │   ├── DaylilyJSON/
 │   ├── DaylilyNIO/
+│   ├── DaylilyObservability/
+│   ├── DaylilyOpenAPI/
 │   ├── DaylilyTesting/
 │   └── HelloDaylily/
 └── ai/
@@ -491,9 +496,11 @@ Daylily/
 
 近期：
 
-1. Observability middleware。
-2. OpenAPI metadata。
-3. Core experience 稳定之后再扩生态模块。
+1. 补齐 HTTP verbs：`PUT`、`PATCH`、`DELETE`。
+2. 添加正式 test target。
+3. 决定并实现真正的 `@Body`。
+4. 补齐 beta docs：quickstart、examples、capability matrix。
+5. 补齐 release hygiene：Linux CI、CHANGELOG、semver tag 和 public API registry 同步。
 
 ## License
 

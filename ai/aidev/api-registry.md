@@ -87,8 +87,20 @@ public struct RequestLog: Equatable, Sendable {
     public var method: HTTPMethod
     public var path: String
     public var status: Status
+    public var requestID: String?
+    public var correlationID: String?
+    public var durationNanoseconds: UInt64?
+    public var errorReason: String?
 
-    public init(method: HTTPMethod, path: String, status: Status)
+    public init(
+        method: HTTPMethod,
+        path: String,
+        status: Status,
+        requestID: String? = nil,
+        correlationID: String? = nil,
+        durationNanoseconds: UInt64? = nil,
+        errorReason: String? = nil
+    )
 }
 ```
 
@@ -109,6 +121,32 @@ public struct RequestLoggingMiddleware<Sink: RequestLogSink>: Middleware {
 }
 ```
 
+### Request ID
+
+```swift
+public typealias RequestIDGenerator = @Sendable () -> String
+
+public enum RequestIDHeaders {
+    public static let requestID: String
+    public static let daylilyRequestID: String
+}
+
+public enum RequestIDs {
+    public static func generate() -> String
+}
+
+public struct RequestIDMiddleware: Middleware {
+    public init(generator: @escaping RequestIDGenerator = RequestIDs.generate)
+    public func handle(_ request: Request, next: Handler) async throws -> Response
+}
+
+public extension Request {
+    var daylilyRequestID: String? { get }
+    var correlationID: String? { get }
+    func withRequestIDs(requestID: String, correlationID: String?) -> Request
+}
+```
+
 ### Sinks
 
 ```swift
@@ -126,8 +164,10 @@ public actor InMemoryRequestLogSink: RequestLogSink {
 
 Rules:
 
-- `DaylilyObservability` depends on `DaylilyCore`.
-- `RequestLoggingMiddleware` records method, path, and final status.
+- `DaylilyObservability` depends on `DaylilyCore` and uses Foundation for default UUID request ID generation.
+- `RequestIDMiddleware` generates `x-daylily-request-id`.
+- Incoming `x-request-id` is external correlation data, not Daylily's unique request identity.
+- `RequestLoggingMiddleware` records method, path, final status, request ID, external correlation ID, duration, and public error reason.
 - Successful downstream responses record `response.status`.
 - Thrown `ResponseError` values record `error.status` and then rethrow.
 - Unknown thrown errors record `500 Internal Server Error` and then rethrow.
@@ -585,6 +625,7 @@ public struct Request: Sendable {
 
     public func with(parameters: Parameters) -> Request
     public func with(body: Body) -> Request
+    public func with(headers: Headers) -> Request
 
     public func withBufferedBody<R: Sendable>(
         upTo limit: ByteCount,
@@ -597,7 +638,7 @@ Rules:
 
 - Initializers strip query text from `path` and populate `query` when `path` includes `?`.
 - Explicit `query:` overrides query text parsed from `path`.
-- `with(parameters:)`, `with(body:)`, and `withBufferedBody(upTo:_:)` preserve query values.
+- `with(parameters:)`, `with(body:)`, `with(headers:)`, and `withBufferedBody(upTo:_:)` preserve query values.
 
 Body rules:
 
@@ -605,6 +646,7 @@ Body rules:
 - The `[UInt8]` initializer converts bytes into `Body.bytes(...)`.
 - `with(parameters:)` preserves the same `Body` storage and one-shot state.
 - `with(body:)` replaces only the body and preserves method, path, headers, and parameters.
+- `with(headers:)` replaces only headers and preserves method, path, body, parameters, and query.
 - `withBufferedBody(upTo:_:)` consumes the current body, creates a replacement `Body.bytes(...)`, and passes both replacement request and collected bytes to the closure.
 - `withBufferedBody(upTo:_:)` requires an explicit `ByteCount` limit.
 - The replacement body from `withBufferedBody(upTo:_:)` is still one-shot.

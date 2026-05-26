@@ -227,6 +227,22 @@ RequestLogSink
 
 Request logging is a normal middleware and follows the same ordering, short-circuiting, and error mapping rules as other middleware. It records the final response status for successful downstream responses, `ResponseError.status` for framework errors, and `500 Internal Server Error` for unknown thrown errors.
 
+0013-002 request ID and timing:
+
+```text
+RequestIDMiddleware
+  ↓
+generate dl_<UUID> requestID
+  ↓
+read external x-request-id as correlationID
+  ↓
+write x-daylily-request-id and compatibility x-request-id
+  ↓
+RequestLoggingMiddleware records IDs, status, duration, and public error reason
+```
+
+Daylily never relies on externally supplied IDs for uniqueness. `x-daylily-request-id` is the Daylily-generated request identity. Incoming `x-request-id` is treated as external correlation data and is preserved when present.
+
 0014-001 route metadata runtime:
 
 ```text

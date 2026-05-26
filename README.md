@@ -38,7 +38,7 @@ Implemented today:
 - One-shot body consumption with `ByteChunk` and `ByteCount`.
 - True NIO request body streaming bridge with bounded buffering and practical backpressure.
 - Runtime middleware with application, group, and route scopes.
-- `DaylilyObservability` request logging middleware.
+- `DaylilyObservability` request logging middleware with request ID, correlation ID, latency, status, and public error reason fields.
 - Route metadata runtime for future OpenAPI generation.
 - `DaylilyOpenAPI` minimal OpenAPI document generation from route metadata.
 - Application lifecycle hooks: `configure`, `boot`, `started`, `shutdown`, `cleanup`.
@@ -251,18 +251,21 @@ The replacement body is still one-shot, and the helper requires an explicit size
 
 ## Observability
 
-`DaylilyObservability` currently provides request logging middleware without adding logging backends or tracing dependencies to `DaylilyCore`:
+`DaylilyObservability` provides request ID and request logging middleware without adding logging backends or tracing dependencies to `DaylilyCore`:
 
 ```swift
 let app = Application {
-    Get("/hello") {
-        "Daylily ships."
+    Get("/hello") { request in
+        request.daylilyRequestID ?? "missing"
     }
 }
+.middleware(RequestIDMiddleware())
 .middleware(RequestLoggingMiddleware(sink: ConsoleRequestLogSink()))
 ```
 
-`RequestLoggingMiddleware` records method, path, and final status. `InMemoryRequestLogSink` is available for behavior checks and early tests.
+`RequestIDMiddleware` always generates a Daylily-owned `x-daylily-request-id`. Incoming `x-request-id` is treated as external correlation data, not as Daylily's unique request identity. When no incoming `x-request-id` exists, Daylily writes its generated request ID to `x-request-id` for ecosystem compatibility.
+
+`RequestLoggingMiddleware` records method, path, final status, request ID, external correlation ID, duration, and public error reason. `InMemoryRequestLogSink` is available for behavior checks and early tests.
 
 ## Route Metadata
 
@@ -467,6 +470,8 @@ Daylily/
 │   ├── DaylilyCore/
 │   ├── DaylilyJSON/
 │   ├── DaylilyNIO/
+│   ├── DaylilyObservability/
+│   ├── DaylilyOpenAPI/
 │   ├── DaylilyTesting/
 │   └── HelloDaylily/
 └── ai/
@@ -491,9 +496,11 @@ The most important invariants:
 
 Near-term:
 
-1. Observability middleware.
-2. OpenAPI metadata.
-3. Ecosystem modules after core experience stays stable.
+1. Complete HTTP verbs: `PUT`, `PATCH`, `DELETE`.
+2. Add a formal test target.
+3. Decide and implement true `@Body`.
+4. Add beta docs: quickstart, examples, and capability matrix.
+5. Add release hygiene: Linux CI, CHANGELOG, semver tag, and public API registry sync.
 
 ## License
 
