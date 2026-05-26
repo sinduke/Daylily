@@ -35,6 +35,7 @@ Daylily 不是 Vapor 或 Hummingbird 的复制品。它是在探索：如果 AI 
 - Daylily 自有的 `Body` request body 模型。
 - 基于 `ByteChunk` 和 `ByteCount` 的 one-shot body 消费。
 - 真正的 NIO request body streaming bridge，带有有界缓冲和实用 backpressure。
+- 支持 application、group、route 作用域的 runtime middleware。
 - `String`、`Status`、`Response` 的 `ResponseConvertible` 支持。
 - 通过 `request.body.json(...)` 和 `request.json(...)` 异步解码 JSON body。
 - 通过 `JSON(...)` 返回 JSON response。
@@ -46,10 +47,10 @@ Daylily 不是 Vapor 或 Hummingbird 的复制品。它是在探索：如果 AI 
 
 还没有实现：
 
-- Middleware。
 - 类型化参数注入。
 - OpenAPI 生成。
 - 依赖注入。
+- Macro middleware attributes。
 
 ## 快速开始
 
@@ -132,6 +133,42 @@ struct HelloDaylily {
 }
 ```
 
+## Runtime Middleware
+
+Middleware 已支持 application、group、route 三个作用域：
+
+```swift
+struct HeaderMiddleware: Middleware {
+    func handle(_ request: Request, next: Handler) async throws -> Response {
+        var response = try await next.respond(to: request)
+        response.headers["x-daylily"] = "ships"
+        return response
+    }
+}
+
+let app = Application {
+    Group("/api") {
+        Get("/health") {
+            "ok"
+        }
+    }
+    .middleware(HeaderMiddleware())
+
+    Get("/hello") {
+        "Daylily ships."
+    }
+}
+.middleware(HeaderMiddleware())
+```
+
+执行顺序是：
+
+```text
+application -> router dispatch -> group -> route -> handler
+```
+
+Middleware 可以读 `request.body`，但 `Body` 是 one-shot。middleware 消费 body 后再调用 `next`，下游看到的就是已经被消费过的 body。Daylily 不做隐藏的 body replay。
+
 ## Macro API MVP
 
 Daylily 的 macro MVP 已支持这种形态：
@@ -179,7 +216,7 @@ MVP 限制：
 - server type 必须可以通过 `Self()` 默认初始化；
 - handler 可以没有参数，或者只有一个 `Request` 参数；
 - group type 必须可以默认初始化；
-- `@Path`、`@Body`、middleware、DI、OpenAPI 都是后续工作。
+- `@Path`、`@Body`、macro middleware attributes、DI、OpenAPI 都是后续工作。
 
 ## AI-Native 开发
 
@@ -249,10 +286,9 @@ Daylily/
 
 近期：
 
-1. Middleware runtime。
-2. 类型化参数提取。
-3. OpenAPI metadata。
-4. Request context 和生产级 server 控制。
+1. 类型化参数提取。
+2. OpenAPI metadata。
+3. Request context 和生产级 server 控制。
 
 ## License
 

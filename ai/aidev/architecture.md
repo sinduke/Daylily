@@ -59,6 +59,8 @@ DaylilyNIO -> SwiftNIO
 DaylilyCore -> Standard Library only
 ```
 
+Middleware lives in `DaylilyCore`. It is runtime infrastructure, not transport infrastructure.
+
 ## Non-Negotiable Boundaries
 
 `DaylilyCore` must not import:
@@ -126,7 +128,13 @@ DaylilyNIO creates Request on head and streams body chunks
   ↓
 DaylilyCore.Request with streaming Body
   ↓
+Application middleware
+  ↓
 Router
+  ↓
+Group middleware
+  ↓
+Route middleware
   ↓
 Handler
   ↓
@@ -163,6 +171,14 @@ NIO error/close -> BodyError.streamFailed
 
 `DaylilyCore` owns the stream model and exposes transport hooks through `@_spi(Transport)`. Public user APIs still do not expose NIO types.
 
+0009-001 middleware runtime:
+
+```text
+Application middleware -> router dispatch -> group middleware -> route middleware -> handler
+```
+
+Application middleware wraps every request, including missing routes. Group and route middleware run only after a route match, so path parameters are available. Middleware may read `request.body`, but the `Body` remains one-shot and Daylily does not replay it automatically.
+
 ## Router Rules
 
 Current router is simple array-based matching with scoring.
@@ -194,6 +210,7 @@ Current behavior:
 - Unknown errors map to `500 Internal Server Error`.
 - Missing route maps to `404 Not Found`.
 - Body over limit maps to `413 Payload Too Large`.
+- Application middleware can transform error responses produced by router dispatch.
 
 Future:
 
@@ -235,7 +252,7 @@ MVP limits:
 - group types must be default-initializable
 - route handlers must be instance methods
 - route handlers may have zero parameters or one `Request` parameter
-- `@Path`, `@Body`, DI, middleware, and OpenAPI are not part of this MVP
+- `@Path`, `@Body`, DI, macro middleware attributes, and OpenAPI are not part of this MVP
 
 Important rule:
 

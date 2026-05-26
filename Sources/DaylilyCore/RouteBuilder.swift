@@ -8,6 +8,10 @@ public enum RouteBuilder {
         expression
     }
 
+    public static func buildExpression(_ expression: Routes) -> [Route] {
+        expression.resolvedRoutes()
+    }
+
     public static func buildBlock(_ components: [Route]...) -> [Route] {
         components.flatMap { $0 }
     }

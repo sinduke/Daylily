@@ -5,7 +5,7 @@ project:
   license: MIT
   license_file: LICENSE
   swift_tools_version: "6.0"
-  current_phase: "middleware_system"
+  current_phase: "typed_parameter_extraction"
   authoritative_ai_entry:
     - AIDEV.md
     - ai/aidev/start-here.md
@@ -103,6 +103,7 @@ products:
       - router_matching
       - request_response_models
       - body_model
+      - middleware_runtime
       - response_conversion
       - path_parameters
       - basic_errors
@@ -251,10 +252,32 @@ implemented_features:
       - "stream failure throws BodyError.streamFailed"
       - "stream cancellation unblocks readers"
       - "chunked /upload/count smoke"
+  middleware:
+    status: implemented
+    epic: "0009-middleware-system"
+    task: "0009-001-middleware-runtime"
+    public_api:
+      - Middleware
+      - Routes
+      - "Application.middleware(_:)"
+      - "Route.middleware(_:)"
+      - "Routes.middleware(_:)"
+    decisions:
+      protocol_shape: "public protocol Middleware: Sendable { func handle(_ request: Request, next: Handler) async throws -> Response }"
+      ordering: "application -> router dispatch -> group -> route -> handler"
+      missing_route_behavior: "application middleware wraps missing-route responses; group and route middleware require a matched route"
+      same_scope_order: "declaration order"
+      short_circuit: "middleware may return Response without calling next"
+      error_behavior: "thrown errors flow through Application.respond(to:) mappings"
+      body_policy: "middleware may read Body, but Body remains one-shot and there is no automatic replay"
+    limitations:
+      - "macro middleware syntax"
+      - "automatic body replay"
+      - "request context"
+      - "dependency injection"
+      - "production middleware stack"
 
 planned_features:
-  middleware:
-    status: proposed
   typed_parameter_extraction:
     status: proposed
   openapi:
@@ -294,8 +317,10 @@ public_api:
       methods:
         - "public init(@RouteBuilder routes: () -> [Route])"
         - "public init(routes: [Route])"
+        - "public init(routes: Routes)"
+        - "public func middleware<M: Middleware>(_ middleware: M) -> Application"
         - "public func respond(to request: Request) async -> Response"
-      contract: "Always returns a Response; converts ResponseError and unknown errors."
+      contract: "Always returns a Response; runs application middleware around router dispatch; converts ResponseError and unknown errors."
     Route:
       kind: struct
       conforms:
@@ -304,7 +329,24 @@ public_api:
         - "method: HTTPMethod"
         - "path: String"
         - "handler: Handler"
-      contract: "Normalizes paths and stores route handler."
+      methods:
+        - "public func prefixed(with prefix: String) -> Route"
+        - "public func middleware<M: Middleware>(_ middleware: M) -> Route"
+      contract: "Normalizes paths and stores route handler plus route middleware."
+    Routes:
+      kind: struct
+      conforms:
+        - Sendable
+      methods:
+        - "public func middleware<M: Middleware>(_ middleware: M) -> Routes"
+      contract: "Group route collection wrapper accepted by RouteBuilder; resolves group middleware before route middleware."
+    Middleware:
+      kind: protocol
+      conforms:
+        - Sendable
+      methods:
+        - "func handle(_ request: Request, next: Handler) async throws -> Response"
+      contract: "Middleware can inspect Request, call next, transform Response, short-circuit, or throw."
     Request:
       kind: struct
       conforms:
@@ -418,7 +460,7 @@ public_api:
             - "(_ path: String, _ handler: @escaping @Sendable () async throws -> R) -> Route"
             - "(_ path: String, _ handler: @escaping @Sendable (Request) async throws -> R) -> Route"
         Group:
-          signature: "(_ prefix: String, @RouteBuilder routes: () -> [Route]) -> [Route]"
+          signature: "(_ prefix: String, @RouteBuilder routes: () -> [Route]) -> Routes"
   DaylilyJSON:
     JSON:
       kind: struct
@@ -474,6 +516,8 @@ runtime_rules:
   wildcard_prefix: "*"
   current_body_model: "Body one-shot API with NIO true streaming bridge and in-process buffered Body.bytes support"
   future_body_model: "response body streaming and higher-level upload helpers"
+  middleware_order: "application -> router dispatch -> group -> route -> handler"
+  middleware_body_policy: "middleware can read Body, but Body remains one-shot and no automatic replay occurs"
   errors:
     response_error: "status + reason"
     abort: "ResponseError conformer"
@@ -518,6 +562,7 @@ aidev_files:
     - ai/tasks/0004-001-json-body-and-response.md
     - ai/tasks/0008-001-body-model-migration.md
     - ai/tasks/0008-002-nio-true-streaming-bridge.md
+    - ai/tasks/0009-001-middleware-runtime.md
   docs:
     - ai/aidev/project-map.md
     - ai/aidev/architecture.md
@@ -583,8 +628,9 @@ roadmap:
       - "0003-routing-macro-system"
       - "0004-json-system"
       - "0008-body-system"
-    next_recommended:
       - "0009-middleware-system"
+    next_recommended:
+      - "0010-typed-parameter-extraction"
   completed:
     - "0001-001-minimal-http-server"
     - "0002-001-aidev-project-contract"
@@ -597,8 +643,9 @@ roadmap:
     - "0004-001-json-body-and-response"
     - "0008-001-body-model-migration"
     - "0008-002-nio-true-streaming-bridge"
+    - "0009-001-middleware-runtime"
   in_progress: []
   next_recommended:
-    - "0009-001-middleware-runtime"
-  later:
     - "0010-001-typed-parameter-extraction"
+  later:
+    - "0011-001-openapi-metadata"

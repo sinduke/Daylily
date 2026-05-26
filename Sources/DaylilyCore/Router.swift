@@ -10,7 +10,7 @@ public struct Router: Sendable {
             throw Abort(.notFound)
         }
 
-        return try await match.route.handler.respond(
+        return try await match.route.respond(
             to: request.with(parameters: Parameters(match.parameters))
         )
     }

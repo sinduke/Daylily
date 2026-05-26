@@ -43,7 +43,7 @@ Routes are runtime data. Macros generate routes; they do not bypass the route sy
 
 `RouteBuilder` lets users declare multiple routes inside `Application { ... }`.
 
-It supports single routes, groups, conditionals, and arrays of routes.
+It supports single routes, `Routes` group collections, conditionals, and arrays of routes.
 
 ## Group
 
@@ -62,6 +62,46 @@ GET /api/health
 ```
 
 Future `@GROUP` should preserve this mental model.
+
+`Group` returns a `Routes` collection so group middleware can be tracked separately from route middleware.
+
+## Middleware
+
+Middleware wraps request handling:
+
+```swift
+struct HeaderMiddleware: Middleware {
+    func handle(_ request: Request, next: Handler) async throws -> Response {
+        var response = try await next.respond(to: request)
+        response.headers["x-daylily"] = "ships"
+        return response
+    }
+}
+```
+
+Middleware can be attached at application, group, or route scope:
+
+```swift
+Application {
+    Group("/api") {
+        Get("/health") { "ok" }
+    }
+    .middleware(HeaderMiddleware())
+
+    Get("/hello") { "Daylily ships." }
+}
+.middleware(HeaderMiddleware())
+```
+
+Execution order:
+
+```text
+application -> router dispatch -> group -> route -> handler
+```
+
+Middleware may short-circuit by returning a response without calling `next`. It may also throw; thrown errors become responses through `Application.respond(to:)`.
+
+Middleware can read `request.body`, but `Body` is one-shot. If middleware consumes the body and calls `next`, downstream code sees the consumed body. Daylily does not do hidden body replay.
 
 ## Request
 

@@ -35,6 +35,7 @@ Implemented today:
 - Daylily-owned `Body` request body model.
 - One-shot body consumption with `ByteChunk` and `ByteCount`.
 - True NIO request body streaming bridge with bounded buffering and practical backpressure.
+- Runtime middleware with application, group, and route scopes.
 - `ResponseConvertible` for `String`, `Status`, and `Response`.
 - Async JSON body decoding with `request.body.json(...)` and `request.json(...)`.
 - JSON responses with `JSON(...)`.
@@ -46,10 +47,10 @@ Implemented today:
 
 Not implemented yet:
 
-- Middleware.
 - Typed parameter injection.
 - OpenAPI generation.
 - Dependency injection.
+- Macro middleware attributes.
 
 ## Quick Start
 
@@ -132,6 +133,42 @@ struct HelloDaylily {
 }
 ```
 
+## Runtime Middleware
+
+Middleware is available at application, group, and route scope:
+
+```swift
+struct HeaderMiddleware: Middleware {
+    func handle(_ request: Request, next: Handler) async throws -> Response {
+        var response = try await next.respond(to: request)
+        response.headers["x-daylily"] = "ships"
+        return response
+    }
+}
+
+let app = Application {
+    Group("/api") {
+        Get("/health") {
+            "ok"
+        }
+    }
+    .middleware(HeaderMiddleware())
+
+    Get("/hello") {
+        "Daylily ships."
+    }
+}
+.middleware(HeaderMiddleware())
+```
+
+Order is:
+
+```text
+application -> router dispatch -> group -> route -> handler
+```
+
+Middleware can read `request.body`, but `Body` is one-shot. If middleware consumes the body and then calls `next`, downstream code sees the body as already consumed. Daylily does not perform hidden body replay.
+
 ## Macro API MVP
 
 Daylily's macro MVP supports this shape:
@@ -179,7 +216,7 @@ MVP limits:
 - the server type must be default-initializable with `Self()`;
 - handlers may have zero parameters or one `Request` parameter;
 - grouped types must be default-initializable;
-- `@Path`, `@Body`, middleware, DI, and OpenAPI are future work.
+- `@Path`, `@Body`, macro middleware attributes, DI, and OpenAPI are future work.
 
 ## AI-Native Development
 
@@ -249,10 +286,9 @@ The most important invariants:
 
 Near-term:
 
-1. Middleware runtime.
-2. Typed parameter extraction.
-3. OpenAPI metadata.
-4. Request context and production server controls.
+1. Typed parameter extraction.
+2. OpenAPI metadata.
+3. Request context and production server controls.
 
 ## License
 

@@ -8,6 +8,16 @@ enum DaylilyChecks {
         try await pathParameter()
         try await literalRouteBeatsParameterRoute()
         try await groupPrefix()
+        try await middlewareOrder()
+        try await middlewareSameScopeOrder()
+        try await middlewareNestedGroupOrder()
+        try await groupMiddlewareScope()
+        try await applicationMiddlewareMissingRoute()
+        try await middlewareShortCircuit()
+        try await middlewareThrowing()
+        try await middlewarePathParameters()
+        try await middlewareBodyShortCircuit()
+        try await middlewareBodyOneShot()
         try await bodyBytes()
         try await bodyCollect()
         try await bodyCollectLimit()
@@ -85,6 +95,215 @@ enum DaylilyChecks {
 
         try expect(response.status == .ok, "expected 200 OK")
         try expect(response.bodyString == "ok", "expected group route")
+    }
+
+    private static func middlewareOrder() async throws {
+        let log = EventLog()
+        let app = Application {
+            Group("/api") {
+                Get("/users/:id") { request in
+                    await log.append("handler:\(request.parameters.id ?? "missing")")
+                    return "ok"
+                }
+                .middleware(RecordingMiddleware(name: "route", log: log))
+            }
+            .middleware(RecordingMiddleware(name: "group", log: log))
+        }
+        .middleware(RecordingMiddleware(name: "app", log: log))
+
+        let response = await app.respond(to: Request(method: .get, path: "/api/users/42"))
+        let events = await log.snapshot()
+
+        try expect(response.status == .ok, "expected 200 OK")
+        try expect(
+            events == [
+                "app before",
+                "group before",
+                "route before",
+                "handler:42",
+                "route after",
+                "group after",
+                "app after",
+            ],
+            "expected application -> group -> route -> handler middleware order"
+        )
+    }
+
+    private static func middlewareSameScopeOrder() async throws {
+        let log = EventLog()
+        let app = Application {
+            Get("/hello") {
+                await log.append("handler")
+                return "ok"
+            }
+            .middleware(RecordingMiddleware(name: "a", log: log))
+            .middleware(RecordingMiddleware(name: "b", log: log))
+        }
+
+        let response = await app.respond(to: Request(method: .get, path: "/hello"))
+        let events = await log.snapshot()
+
+        try expect(response.status == .ok, "expected 200 OK")
+        try expect(
+            events == [
+                "a before",
+                "b before",
+                "handler",
+                "b after",
+                "a after",
+            ],
+            "expected same-scope middleware declaration order"
+        )
+    }
+
+    private static func middlewareNestedGroupOrder() async throws {
+        let log = EventLog()
+        let app = Application {
+            Group("/outer") {
+                Group("/inner") {
+                    Get("/hello") {
+                        await log.append("handler")
+                        return "ok"
+                    }
+                    .middleware(RecordingMiddleware(name: "route", log: log))
+                }
+                .middleware(RecordingMiddleware(name: "inner", log: log))
+            }
+            .middleware(RecordingMiddleware(name: "outer", log: log))
+        }
+
+        let response = await app.respond(to: Request(method: .get, path: "/outer/inner/hello"))
+        let events = await log.snapshot()
+
+        try expect(response.status == .ok, "expected 200 OK")
+        try expect(
+            events == [
+                "outer before",
+                "inner before",
+                "route before",
+                "handler",
+                "route after",
+                "inner after",
+                "outer after",
+            ],
+            "expected nested group middleware order"
+        )
+    }
+
+    private static func groupMiddlewareScope() async throws {
+        let app = Application {
+            Group("/api") {
+                Get("/health") {
+                    "ok"
+                }
+            }
+            .middleware(HeaderMiddleware(name: "x-scope", value: "group"))
+
+            Get("/public") {
+                "public"
+            }
+        }
+
+        let grouped = await app.respond(to: Request(method: .get, path: "/api/health"))
+        let publicRoute = await app.respond(to: Request(method: .get, path: "/public"))
+
+        try expect(grouped.status == .ok, "expected grouped route 200 OK")
+        try expect(grouped.headers["x-scope"] == "group", "expected group middleware header")
+        try expect(publicRoute.status == .ok, "expected public route 200 OK")
+        try expect(publicRoute.headers["x-scope"] == nil, "expected group middleware to stay scoped")
+    }
+
+    private static func applicationMiddlewareMissingRoute() async throws {
+        let app = Application {
+            Get("/hello") {
+                "ok"
+            }
+        }
+        .middleware(HeaderMiddleware(name: "x-app", value: "seen"))
+
+        let response = await app.respond(to: Request(method: .get, path: "/missing"))
+
+        try expect(response.status == .notFound, "expected 404 Not Found")
+        try expect(response.bodyString == "Not Found", "expected not found body")
+        try expect(response.headers["x-app"] == "seen", "expected application middleware to wrap 404")
+    }
+
+    private static func middlewareShortCircuit() async throws {
+        let log = EventLog()
+        let app = Application {
+            Get("/protected") {
+                await log.append("handler")
+                return "secret"
+            }
+            .middleware(ShortCircuitMiddleware(log: log))
+        }
+
+        let response = await app.respond(to: Request(method: .get, path: "/protected"))
+        let events = await log.snapshot()
+
+        try expect(response.status == .badRequest, "expected short-circuit status")
+        try expect(response.bodyString == "blocked", "expected short-circuit body")
+        try expect(events == ["short-circuit"], "expected short-circuit to skip handler")
+    }
+
+    private static func middlewareThrowing() async throws {
+        let app = Application {
+            Get("/throws") {
+                "unreachable"
+            }
+            .middleware(ThrowingMiddleware())
+        }
+
+        let response = await app.respond(to: Request(method: .get, path: "/throws"))
+
+        try expect(response.status == .badRequest, "expected middleware error status")
+        try expect(response.bodyString == "middleware failed", "expected middleware error body")
+    }
+
+    private static func middlewarePathParameters() async throws {
+        let app = Application {
+            Get("/users/:id") { request in
+                "User \(request.parameters.id ?? "missing")"
+            }
+            .middleware(ParameterHeaderMiddleware())
+        }
+
+        let response = await app.respond(to: Request(method: .get, path: "/users/42"))
+
+        try expect(response.status == .ok, "expected 200 OK")
+        try expect(response.headers["x-user-id"] == "42", "expected middleware to see route parameters")
+    }
+
+    private static func middlewareBodyShortCircuit() async throws {
+        let app = Application {
+            Post("/body") {
+                "unreachable"
+            }
+            .middleware(BodyEchoMiddleware())
+        }
+
+        let response = await app.respond(
+            to: Request(method: .post, path: "/body", body: Array("hello".utf8))
+        )
+
+        try expect(response.status == .ok, "expected body middleware 200 OK")
+        try expect(response.bodyString == "middleware saw hello", "expected middleware to read body")
+    }
+
+    private static func middlewareBodyOneShot() async throws {
+        let app = Application {
+            Post("/body") { request in
+                try await request.body.string(upTo: .kilobytes(1))
+            }
+            .middleware(BodyConsumingMiddleware())
+        }
+
+        let response = await app.respond(
+            to: Request(method: .post, path: "/body", body: Array("once".utf8))
+        )
+
+        try expect(response.status == .internalServerError, "expected consumed body 500 response")
+        try expect(response.bodyString == "Request body already consumed", "expected consumed body reason")
     }
 
     private static func bodyBytes() async throws {
@@ -337,5 +556,77 @@ private struct CheckFailure: Error, CustomStringConvertible {
 
     var description: String {
         message
+    }
+}
+
+private actor EventLog {
+    private var events: [String] = []
+
+    func append(_ event: String) {
+        events.append(event)
+    }
+
+    func snapshot() -> [String] {
+        events
+    }
+}
+
+private struct RecordingMiddleware: Middleware {
+    let name: String
+    let log: EventLog
+
+    func handle(_ request: Request, next: Handler) async throws -> Response {
+        await log.append("\(name) before")
+        let response = try await next.respond(to: request)
+        await log.append("\(name) after")
+        return response
+    }
+}
+
+private struct HeaderMiddleware: Middleware {
+    let name: String
+    let value: String
+
+    func handle(_ request: Request, next: Handler) async throws -> Response {
+        var response = try await next.respond(to: request)
+        response.headers[name] = value
+        return response
+    }
+}
+
+private struct ShortCircuitMiddleware: Middleware {
+    let log: EventLog
+
+    func handle(_ request: Request, next: Handler) async throws -> Response {
+        await log.append("short-circuit")
+        return Response.text("blocked", status: .badRequest)
+    }
+}
+
+private struct ThrowingMiddleware: Middleware {
+    func handle(_ request: Request, next: Handler) async throws -> Response {
+        throw Abort(.badRequest, reason: "middleware failed")
+    }
+}
+
+private struct ParameterHeaderMiddleware: Middleware {
+    func handle(_ request: Request, next: Handler) async throws -> Response {
+        var response = try await next.respond(to: request)
+        response.headers["x-user-id"] = request.parameters.id
+        return response
+    }
+}
+
+private struct BodyEchoMiddleware: Middleware {
+    func handle(_ request: Request, next: Handler) async throws -> Response {
+        let body = try await request.body.string(upTo: .kilobytes(1))
+        return Response.text("middleware saw \(body)")
+    }
+}
+
+private struct BodyConsumingMiddleware: Middleware {
+    func handle(_ request: Request, next: Handler) async throws -> Response {
+        _ = try await request.body.string(upTo: .kilobytes(1))
+        return try await next.respond(to: request)
     }
 }

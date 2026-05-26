@@ -35,7 +35,7 @@ Daylily/
 `DaylilyCore`
 
 - Framework runtime.
-- Owns request, response, body, route, router, handler, status, headers, parameters, errors.
+- Owns request, response, body, route, routes, router, middleware, handler, status, headers, parameters, errors.
 - Must stay independent from NIO and transport-specific APIs.
 
 `DaylilyJSON`
@@ -86,6 +86,7 @@ Daylily/
 
 - Holds `Router`.
 - Entrypoint for in-memory request handling via `respond(to:)`.
+- Stores application middleware.
 - Converts `ResponseError` failures into responses.
 
 `Sources/DaylilyCore/Body.swift`
@@ -110,6 +111,11 @@ Daylily/
 
 - HTTP method enum.
 
+`Sources/DaylilyCore/Middleware.swift`
+
+- Defines the public `Middleware` protocol.
+- Defines internal middleware type erasure and pipeline composition.
+
 `Sources/DaylilyCore/Parameters.swift`
 
 - Path parameter container with dynamic member access.
@@ -124,12 +130,13 @@ Daylily/
 
 `Sources/DaylilyCore/Route.swift`
 
-- Route model.
+- Route and `Routes` models.
 - `Get`, `Post`, `Group` runtime DSL.
+- Stores route middleware and group middleware resolution.
 
 `Sources/DaylilyCore/RouteBuilder.swift`
 
-- Result builder for route lists.
+- Result builder for route lists and `Routes` group collections.
 
 `Sources/DaylilyCore/Router.swift`
 

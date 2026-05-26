@@ -18,6 +18,13 @@ Future macros use uppercase HTTP method names:
 @GROUP("/api")
 ```
 
+Middleware types use normal Swift type names:
+
+```swift
+struct Auth: Middleware { ... }
+struct RequestLogger: Middleware { ... }
+```
+
 ## Handler Shapes
 
 Supported runtime handler forms:
@@ -90,6 +97,8 @@ for try await chunk in request.body.bytes { ... }
 ```
 
 `DaylilyNIO` creates streaming bodies through `@_spi(Transport)` hooks. Keep those hooks transport-only and keep user-facing APIs free of NIO types.
+
+Middleware may read `request.body`, but reading consumes the same one-shot body seen by downstream handlers. Do not add hidden body replay. If replay is needed in the future, it must be explicit and bounded.
 
 Macro future:
 

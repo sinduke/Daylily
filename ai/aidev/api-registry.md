@@ -60,6 +60,8 @@ Parameters:
 public struct Application: Sendable {
     public init(@RouteBuilder routes: () -> [Route])
     public init(routes: [Route])
+    public init(routes: Routes)
+    public func middleware<M: Middleware>(_ middleware: M) -> Application
     public func respond(to request: Request) async -> Response
 }
 ```
@@ -68,6 +70,7 @@ Rules:
 
 - `respond(to:)` catches framework errors and always returns a `Response`.
 - It is the in-memory test surface for runtime behavior.
+- Application middleware wraps every request, including missing routes and error responses produced by router dispatch.
 
 ### Route
 
@@ -92,6 +95,7 @@ public struct Route: Sendable {
     )
 
     public func prefixed(with prefix: String) -> Route
+    public func middleware<M: Middleware>(_ middleware: M) -> Route
 }
 ```
 
@@ -100,6 +104,8 @@ Path rules:
 - Stored paths are normalized to begin with `/`.
 - Empty path becomes `/`.
 - Group prefixes are joined without duplicate slashes.
+- Route middleware runs after application and group middleware.
+- Route middleware preserves declaration order.
 
 ### Route DSL
 
@@ -124,13 +130,46 @@ public func Post<R: ResponseConvertible>(
     _ handler: @escaping @Sendable (Request) async throws -> R
 ) -> Route
 
-public func Group(_ prefix: String, @RouteBuilder routes: () -> [Route]) -> [Route]
+public func Group(_ prefix: String, @RouteBuilder routes: () -> [Route]) -> Routes
 ```
 
 Current verbs:
 
 - `Get`
 - `Post`
+
+### Routes
+
+```swift
+public struct Routes: Sendable {
+    public func middleware<M: Middleware>(_ middleware: M) -> Routes
+}
+```
+
+Rules:
+
+- `Routes` is the current group route collection wrapper.
+- `RouteBuilder` accepts `Routes` expressions.
+- Group middleware is resolved before route middleware.
+- Chained group middleware preserves declaration order.
+
+### Middleware
+
+```swift
+public protocol Middleware: Sendable {
+    func handle(_ request: Request, next: Handler) async throws -> Response
+}
+```
+
+Rules:
+
+- Middleware lives in `DaylilyCore`.
+- Application middleware runs before router dispatch and wraps missing-route responses.
+- Group and route middleware run after route matching, so path parameters are available.
+- Middleware may short-circuit by returning a response without calling `next`.
+- Middleware may throw; errors map through `Application.respond(to:)`.
+- Middleware may read `request.body`, but `Body` remains one-shot.
+- Daylily does not automatically replay consumed request bodies.
 
 Planned verbs:
 

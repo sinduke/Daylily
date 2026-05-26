@@ -110,23 +110,26 @@ Delivered:
 - Bounded buffering and practical NIO `autoRead` backpressure.
 - Chunked upload smoke route.
 
-## Recommended Next Epic
-
 ### 0009 Middleware System
 
-Status: proposed
+Status: implemented
 
-Likely first task:
+Tasks:
 
 - `0009-001-middleware-runtime`
 
-Goal:
+Delivered:
 
-- Add middleware pipeline and group/route scoping.
+- Runtime middleware pipeline.
+- Application, group, and route middleware scopes.
+- Public `Middleware` protocol.
+- `Routes` group collection wrapper.
 - Define ordering, short-circuiting, and error behavior.
-- Build runtime support before macro sugar.
+- Let application middleware wrap missing-route responses.
+- Make body interaction explicit: middleware may read `Body`, but it consumes the one-shot stream.
+- Checks for ordering, same-scope order, group scope, 404 wrapping, short-circuiting, thrown errors, path parameters, and body one-shot behavior.
 
-## Later
+## Recommended Next Epic
 
 ### 0010 Typed Parameter Extraction
 
@@ -141,6 +144,8 @@ Example target:
 ```swift
 func user(@Path id: UUID) async throws -> User
 ```
+
+## Later
 
 ### Future Epics
 

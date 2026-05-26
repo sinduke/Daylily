@@ -6,7 +6,7 @@ This file defines behavior contracts. If source code disagrees, update source or
 
 Input:
 
-- A list of `Route` values.
+- A list of `Route` values or a `Routes` group collection.
 - A `Request` passed to `respond(to:)`.
 
 Output:
@@ -16,6 +16,8 @@ Output:
 Guarantees:
 
 - Matching route handler is called exactly once.
+- Application middleware wraps router dispatch.
+- Application middleware can transform missing-route responses.
 - `ResponseError` is converted to its status and reason.
 - `Abort` and `BodyError` conform to `ResponseError`.
 - Unknown errors become `500 Internal Server Error`.
@@ -24,9 +26,56 @@ Guarantees:
 Extension points:
 
 - error renderer
-- middleware pipeline
 - lifecycle hooks
 - service container
+
+## Middleware Contract
+
+Owner:
+
+- `DaylilyCore`
+
+Implemented by:
+
+- `ai/tasks/0009-001-middleware-runtime.md`
+
+Shape:
+
+```swift
+public protocol Middleware: Sendable {
+    func handle(_ request: Request, next: Handler) async throws -> Response
+}
+```
+
+Ordering:
+
+```text
+Application middleware
+-> Router dispatch
+   -> Group middleware
+   -> Route middleware
+   -> Handler
+```
+
+Guarantees:
+
+- Application middleware wraps every request, including missing routes.
+- Group and route middleware run after route matching so path parameters are available.
+- Middleware at the same scope runs in declaration order.
+- Middleware can short-circuit by returning a `Response` without calling `next`.
+- Middleware can call `next` exactly when it wants downstream processing to continue.
+- Middleware may throw, and errors flow through the existing `Application.respond(to:)` mapping.
+- Middleware can read `request.body`.
+- `request.body` remains one-shot; middleware consumption is visible downstream.
+- Daylily does not provide automatic body replay.
+
+Extension points:
+
+- macro middleware syntax
+- request context
+- dependency injection
+- explicit body replay helper
+- production middleware packages
 
 ## Route Contract
 
@@ -45,6 +94,8 @@ Guarantees:
 - Stored path starts with `/`.
 - Empty path becomes `/`.
 - `prefixed(with:)` joins group prefix and route path without duplicate slashes.
+- Route middleware runs after application and group middleware.
+- Route middleware preserves declaration order.
 
 Extension points:
 
@@ -52,6 +103,30 @@ Extension points:
 - route metadata
 - OpenAPI metadata
 - middleware metadata
+
+## Routes Contract
+
+Input:
+
+- A route group prefix.
+- Child routes from a `RouteBuilder`.
+
+Output:
+
+- A `Routes` group collection accepted by `RouteBuilder`.
+
+Guarantees:
+
+- Group prefixes are applied to child routes.
+- Group middleware is applied before route middleware.
+- Chained group middleware preserves declaration order.
+- Nested group middleware resolves from outer group to inner group to route.
+
+Extension points:
+
+- route collection metadata
+- macro middleware attributes
+- OpenAPI group metadata
 
 ## Handler Contract
 
@@ -331,10 +406,11 @@ Known limitations:
 - Server type must be default-initializable.
 - Group types must be default-initializable.
 - Static route handlers are not supported.
-- `@Path`, `@Body`, middleware, DI, and OpenAPI metadata are not supported yet.
+- `@Path`, `@Body`, macro middleware attributes, DI, and OpenAPI metadata are not supported yet.
 
 Extension points:
 
 - typed parameter extraction
+- macro middleware attributes
 - route metadata
 - better diagnostics

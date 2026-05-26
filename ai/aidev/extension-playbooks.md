@@ -77,6 +77,14 @@ Steps:
 
 ## Add Middleware Runtime
 
+Current state:
+
+- 0009-001 implemented runtime middleware.
+- Public protocol: `Middleware`.
+- Scopes: application, group, route.
+- Order: application -> router dispatch -> group -> route -> handler.
+- No automatic body replay.
+
 Goal shape:
 
 ```swift
@@ -99,10 +107,21 @@ protocol Middleware {
 Steps:
 
 1. Add runtime middleware concept before macros.
-2. Define ordering: global -> group -> route -> handler.
-3. Add checks for order and short-circuiting.
-4. Update route/group contracts.
-5. Only then design `@Use` or macro sugar.
+2. Define ordering: application -> router dispatch -> group -> route -> handler.
+3. Preserve declaration order within a scope.
+4. Allow short-circuiting by returning a response without calling `next`.
+5. Let thrown middleware errors flow through existing `Application.respond(to:)` error mapping.
+6. Add checks for order, short-circuiting, missing-route wrapping, thrown errors, and body consumption.
+7. Update route/group/application contracts.
+8. Only then design `@Use` or macro sugar.
+
+Body rules:
+
+1. Middleware may read `request.body`.
+2. `request.body` remains one-shot.
+3. If middleware consumes the body and calls `next`, downstream code sees the consumed body.
+4. Do not add automatic body replay in the first middleware task.
+5. If replay becomes necessary, add an explicit future helper that buffers under a clear limit and replaces the request body deliberately.
 
 ## Add Streaming Body
 

@@ -19,7 +19,7 @@ struct App {
 }
 ```
 
-Current implemented surfaces are the runtime DSL, the Daylily-owned `Body` model, JSON body/response helpers, and the macro route/group MVP.
+Current implemented surfaces are the runtime DSL, runtime middleware, the Daylily-owned `Body` model, JSON body/response helpers, and the macro route/group MVP.
 
 Runtime DSL:
 
@@ -32,6 +32,14 @@ struct EchoPayload: Codable, Sendable {
 
 struct EchoResponse: Codable, Sendable {
     let echo: String
+}
+
+struct HeaderMiddleware: Middleware {
+    func handle(_ request: Request, next: Handler) async throws -> Response {
+        var response = try await next.respond(to: request)
+        response.headers["x-daylily"] = "ships"
+        return response
+    }
 }
 
 let app = Application {
@@ -51,10 +59,20 @@ let app = Application {
     Post("/echo") { request in
         try await request.body.string(upTo: .kilobytes(64))
     }
+    .middleware(HeaderMiddleware())
 }
+.middleware(HeaderMiddleware())
 
 try await app.run()
 ```
+
+Middleware order is:
+
+```text
+application -> router dispatch -> group -> route -> handler
+```
+
+Middleware may read `request.body`, but `Body` is one-shot. There is no hidden body replay.
 
 Macro route/group MVP:
 
@@ -91,6 +109,7 @@ Implemented:
 - Swift package.
 - Core runtime.
 - Basic route DSL: `Get`, `Post`, `Group`.
+- Runtime middleware at application, group, and route scope.
 - Macro route/group MVP: `@DaylilyServer`, `@GET`, `@POST`, `@GROUP`.
 - Daylily-owned `Body` model with one-shot consumption.
 - `ByteChunk`, `BodyBytes`, `ByteCount`, `BodyError`, and `ResponseError`.
@@ -106,10 +125,10 @@ Implemented:
 
 Not implemented:
 
-- Middleware.
 - Typed parameter injection.
 - OpenAPI.
 - Dependency injection.
+- Macro middleware attributes.
 - Real test target.
 
 ## Read Order
@@ -183,6 +202,5 @@ Do not start with:
 Current strategic order:
 
 1. Keep AIDEV self-contained.
-2. Add middleware.
-3. Add typed parameter extraction.
-4. Add OpenAPI metadata.
+2. Add typed parameter extraction.
+3. Add OpenAPI metadata.

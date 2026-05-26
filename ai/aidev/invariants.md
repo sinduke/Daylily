@@ -28,6 +28,7 @@ These rules define Daylily's shape. Do not break them without an ADR.
 5. `Body` consumption is one-shot.
 6. `String`, `Status`, and `Response` remain simple return values.
 7. New return types should conform to `ResponseConvertible`.
+8. Middleware must not add hidden request body replay.
 
 ## Routing
 
@@ -36,6 +37,7 @@ These rules define Daylily's shape. Do not break them without an ADR.
 3. Literal routes beat parameter routes.
 4. Parameter routes beat wildcard routes.
 5. Group prefixing must not create duplicate slashes.
+6. Group middleware must run before route middleware.
 
 ## AIDEV
 
