@@ -1,6 +1,11 @@
-# 0006 Group Macro MVP
+# 0003-002 Group Macro MVP
 
 Status: implemented
+Epic: 0003-routing-macro-system
+
+Steps:
+
+- [x] 0003-002.1 Add group macro MVP.
 
 Goal:
 

@@ -125,8 +125,8 @@ Rules:
 
 Current state:
 
-- 0008A introduced the Daylily-owned `Body` model.
-- 0008B implemented true NIO chunk feeding, bounded buffering, cancellation, and practical backpressure.
+- 0008-001 introduced the Daylily-owned `Body` model.
+- 0008-002 implemented true NIO chunk feeding, bounded buffering, cancellation, and practical backpressure.
 
 Extension steps:
 

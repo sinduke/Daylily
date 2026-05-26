@@ -126,7 +126,13 @@ Read these before planning or modifying:
 8. `ai/aidev/task-protocol.md`
 9. `ai/aidev/registry.yml`
 
-For an implementation task, also read the relevant task file in `ai/tasks/`.
+For implementation work, also read the relevant epic in `ai/epics/` and task file in `ai/tasks/`.
+
+Current work hierarchy:
+
+- Epics are themes and live in `ai/epics/`.
+- Tasks are the smallest commit/push unit and live in `ai/tasks/`.
+- Steps live inside task files as checklists and must not be committed or pushed independently.
 
 ## Source Reading Policy
 

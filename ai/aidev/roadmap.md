@@ -1,10 +1,25 @@
 # Roadmap
 
-## Completed
+Daylily now uses an Epic / Task / Step planning model.
 
-### 0001 Minimal HTTP Server
+```text
+Epic -> Task -> Step
+```
+
+- Epics live in `ai/epics/`.
+- Tasks live in `ai/tasks/`.
+- Steps live inside task files as checklists.
+- Tasks are the smallest commit/push unit.
+
+## Completed Epics
+
+### 0001 Runtime Foundation
 
 Status: implemented
+
+Tasks:
+
+- `0001-001-minimal-http-server`
 
 Delivered:
 
@@ -18,158 +33,116 @@ Delivered:
 - Path parameter matching.
 - 404 behavior.
 
-## AIDEV Foundation
-
-### 0002 AIDEV Project Contract
+### 0002 AIDEV System
 
 Status: implemented
 
-Goal:
+Tasks:
 
-- Create the project map and AI development rules before adding macro complexity.
-- Define architecture boundaries.
-- Record current public APIs and parameter conventions.
-- Define validation commands and task workflow.
+- `0002-001-aidev-project-contract`
+- `0002-002-aidev-self-contained-spec`
+- `0002-003-bilingual-readme-ai-native`
+- `0002-004-work-model-reorganization`
 
-### 0003 AIDEV Self-Contained Spec
+Delivered:
 
-Status: implemented
+- Project map and architecture boundaries.
+- Self-contained AI handoff docs.
+- Workflow, task protocol, extension playbooks, and registry.
+- Epic / Task / Step work model.
+- English and Simplified Chinese README files.
+- AI-native development model documentation.
 
-Goal:
-
-- Make AIDEV sufficient for AI handoff without source spelunking.
-- Add start-here, concepts, runtime contracts, invariants, playbooks, task protocol, registry expansion, and standard agent prompt.
-
-### 0004 Bilingual README and AI-Native Introduction
-
-Status: implemented
-
-Goal:
-
-- Add a public-facing English README.
-- Add a Simplified Chinese README.
-- Explain the AI-native development model and how AIDEV helps AI use, upgrade, and extend Daylily.
-
-## Macro Foundation
-
-### 0005 Macro Route MVP
+### 0003 Routing Macro System
 
 Status: implemented
 
-Goal:
+Tasks:
 
-Support:
+- `0003-001-macro-route-mvp`
+- `0003-002-group-macro-mvp`
 
-```swift
-@main
-@DaylilyServer
-struct App {
-    @GET("/hello")
-    func hello() -> String {
-        "Daylily ships."
-    }
+Delivered:
 
-    @GET("/users/:id")
-    func user(req: Request) -> String {
-        "User \(req.parameters.id ?? "unknown")"
-    }
-}
-```
+- `@DaylilyServer`
+- `@GET`
+- `@POST`
+- `@GROUP`
+- Macro lowering into runtime route DSL.
 
-Non-goals:
-
-- `@Path`
-- `@Body`
-- `@GROUP` (completed separately in 0006)
-- OpenAPI generation
-- DI
-
-The macro should lower into the current runtime route DSL.
-
-### 0006 Group Macro MVP
+### 0004 JSON System
 
 Status: implemented
 
-Support:
+Tasks:
 
-```swift
-@GROUP("/api")
-struct API {
-    @GET("/health")
-    func health() -> String { "ok" }
-}
-```
-
-### 0007 JSON Body and Response
-
-Status: implemented
+- `0004-001-json-body-and-response`
 
 Delivered:
 
 - `DaylilyJSON` module.
-- `request.json(Type.self)` for buffered JSON body decoding.
+- `request.body.json(Type.self, upTo:)`.
+- `request.json(Type.self)` convenience sugar.
 - `JSON(value)` response wrapper.
 - `content-type: application/json` response header.
-- Example JSON routes in `HelloDaylily`.
-- Behavior checks for JSON response, JSON body, and invalid JSON.
+- Example JSON routes and behavior checks.
 
-## Recommended Next Feature
-
-### 0008A Body Model Migration
+### 0008 Body System
 
 Status: implemented
 
-Migrate public/runtime request body APIs to a Daylily-owned `Body` model.
+Tasks:
 
-Key direction:
+- `0008-001-body-model-migration`
+- `0008-002-nio-true-streaming-bridge`
 
-- `Request.body: Body`
-- `Body` is uniformly one-shot.
-- `Body.bytes` yields `ByteChunk`.
-- `ByteChunk` exposes only `bytes` and `count` in the first version.
-- `ByteCount` supports bytes, kilobytes, megabytes, and gigabytes.
-- JSON body decoding becomes async.
-- `request.json(...)` remains convenience sugar with a default 1 MB limit.
-- Body limit failures map to `413 Payload Too Large`.
-- True NIO streaming is implemented by 0008B.
-- Checks cover one-shot behavior, copied body one-shot behavior, limits, UTF-8 errors, JSON migration, and 413 mapping.
+Delivered:
 
-Task:
+- `Request.body: Body`.
+- One-shot body consumption.
+- `BodyBytes` with `ByteChunk`.
+- `ByteCount` units for bytes, kilobytes, megabytes, and gigabytes.
+- Async JSON body decoding.
+- 413 `Payload Too Large` body limit mapping.
+- NIO true streaming body bridge.
+- Bounded buffering and practical NIO `autoRead` backpressure.
+- Chunked upload smoke route.
 
-- `ai/tasks/0008A-body-model-migration.md`
+## Recommended Next Epic
 
-### 0008B NIO True Streaming Bridge
-
-Status: implemented
-
-Bridge NIO HTTP request chunks into Daylily `Body` without exposing NIO types.
-
-Key direction:
-
-- Create `Request` after receiving request head.
-- Feed NIO body chunks into `BodyBytes`.
-- Finish stream on request end.
-- Fail stream on channel/protocol errors.
-- Implemented bounded buffering and practical backpressure with Daylily-owned stream storage plus NIO `autoRead` control.
-- Preserve the public API created in 0008A.
-- Added in-process stream checks and chunked upload smoke coverage.
-
-Task:
-
-- `ai/tasks/0008B-nio-true-streaming-bridge.md`
-
-### 0009 Middleware Runtime
+### 0009 Middleware System
 
 Status: proposed
 
-Add middleware pipeline and group/route scoping.
+Likely first task:
+
+- `0009-001-middleware-runtime`
+
+Goal:
+
+- Add middleware pipeline and group/route scoping.
+- Define ordering, short-circuiting, and error behavior.
+- Build runtime support before macro sugar.
+
+## Later
 
 ### 0010 Typed Parameter Extraction
 
 Status: proposed
 
-Support:
+Likely first task:
+
+- `0010-001-typed-parameter-extraction`
+
+Example target:
 
 ```swift
 func user(@Path id: UUID) async throws -> User
 ```
+
+### Future Epics
+
+- OpenAPI metadata.
+- Dependency injection.
+- Request context.
+- Production server controls.

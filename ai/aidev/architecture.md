@@ -122,9 +122,9 @@ NIO Channel
   ↓
 HTTPServerRequestPart.head/body/end
   ↓
-DaylilyNIO accumulates body bytes for 0008A
+DaylilyNIO creates Request on head and streams body chunks
   ↓
-DaylilyCore.Request with Body.bytes(...)
+DaylilyCore.Request with streaming Body
   ↓
 Router
   ↓
@@ -141,7 +141,7 @@ NIO HTTP response parts
 
 Current body handling uses the Daylily `Body` abstraction. In-process requests may still use `Body.bytes(...)`, while `DaylilyNIO` creates a streaming `Body` as soon as it receives the request head.
 
-0008A body model:
+0008-001 body model:
 
 ```text
 Request.body -> Body
@@ -152,7 +152,7 @@ collect/string/json helpers require limits
 
 `Body` is one-shot and backed by shared storage, so copying `Body` does not allow a second read.
 
-0008B NIO streaming bridge:
+0008-002 NIO streaming bridge:
 
 ```text
 NIO head -> Request(body: streaming Body) -> route handler starts

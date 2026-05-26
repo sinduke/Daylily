@@ -1,6 +1,11 @@
-# 0007 JSON Body and Response
+# 0004-001 JSON Body and Response
 
 Status: implemented
+Epic: 0004-json-system
+
+Steps:
+
+- [x] 0004-001.1 Add JSON body decoding and response helpers.
 
 ## Goal
 

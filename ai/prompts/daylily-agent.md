@@ -41,11 +41,11 @@ If you start the server for smoke testing, stop it before finishing.
 ## Preferred Work Style
 
 1. Divergence: discuss the problem space in conversation; do not write task docs or code.
-2. Convergence: create or update the task file in `ai/tasks/` after the direction is chosen.
-3. Build: implement the smallest runtime-safe change according to the task.
-4. Review: audit code, API shape, AIDEV consistency, tests, and regressions.
+2. Convergence: identify the epic, create or update the task file in `ai/tasks/`, and keep sub-work as task-local steps.
+3. Build: implement the active task or step.
+4. Review: audit the step or task for code, API shape, AIDEV consistency, tests, and regressions.
 5. Fix: address review findings and re-run validation.
-6. Finish: update docs and task status, then commit and push.
+6. Finish: update docs and task status, then commit and push only when the full task is complete.
 
 ## Current Strategic Direction
 
@@ -78,6 +78,6 @@ let input = try await request.json(CreateUser.self)
 return JSON(User(...))
 ```
 
-0008A body model migration is implemented. `Request.body` is `Body`, body consumption is one-shot, and JSON body decoding is async.
+0008-001 body model migration is implemented. `Request.body` is `Body`, body consumption is one-shot, and JSON body decoding is async.
 
-0008B NIO true streaming bridge is implemented. `DaylilyNIO` creates a streaming `Body` after request head, feeds body chunks into `BodyBytes`, finishes on request end, fails on channel/protocol errors, and uses bounded buffering plus NIO `autoRead` for practical backpressure. It must not expose NIO types through public user APIs.
+0008-002 NIO true streaming bridge is implemented. `DaylilyNIO` creates a streaming `Body` after request head, feeds body chunks into `BodyBytes`, finishes on request end, fails on channel/protocol errors, and uses bounded buffering plus NIO `autoRead` for practical backpressure. It must not expose NIO types through public user APIs.

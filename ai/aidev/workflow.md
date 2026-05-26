@@ -23,19 +23,21 @@ Rules:
 
 Purpose:
 
-- Turn the chosen direction into a written task.
+- Turn the chosen direction into a written epic/task/step shape.
 
 Rules:
 
+- Create or update the epic file in `ai/epics/` if the theme does not exist.
 - Create or update the task file in `ai/tasks/`.
-- Define goal, scope, non-goals, architecture impact, public API impact, AIDEV updates, validation, and open questions.
+- Define goal, scope, non-goals, steps, architecture impact, public API impact, AIDEV updates, validation, and open questions.
+- Keep sub-work as task-local steps, not `A/B/C` task files.
 - Update roadmap or registry only when the project state actually changes.
 
 ### Build Mode
 
 Purpose:
 
-- Execute the converged task.
+- Execute the converged task or one of its steps.
 
 Rules:
 
@@ -43,18 +45,21 @@ Rules:
 - Keep edits scoped.
 - Prefer runtime capability before macro syntax.
 - Add or update checks with the implementation.
+- If executing a step, update only that step's checklist/status; do not treat the step as a commit unit.
 
 ### Review Mode
 
 Purpose:
 
-- Audit the work before declaring it done.
+- Audit a step or task before declaring it done.
 
 Rules:
 
 - Review code, API shape, AIDEV consistency, tests, and likely regressions.
 - Run required validation.
 - Treat findings as blockers if they affect correctness, public API, or documented invariants.
+- Step review can close a step, but cannot trigger commit or push.
+- Task review can close a full task after all required steps are complete.
 
 ### Fix Mode
 
@@ -72,13 +77,44 @@ Rules:
 
 Purpose:
 
-- Close the task cleanly.
+- Close a task cleanly.
 
 Rules:
 
 - Update docs and task status after implementation and review are complete.
-- Commit and push the finished work.
+- Commit and push only at the task level.
+- Do not commit or push after completing only a step or sub-step.
 - Branch strategy is intentionally simple for now; use `main` until the project introduces a more detailed branching policy.
+
+## Work Unit Hierarchy
+
+Daylily work uses three levels:
+
+```text
+Epic -> Task -> Step
+```
+
+Epic:
+
+- Theme or product area.
+- Stored in `ai/epics/`.
+- Example: `0008-body-system.md`.
+- Not a direct implementation unit.
+
+Task:
+
+- Smallest commit/push unit.
+- Stored in `ai/tasks/`.
+- File name format: `NNNN-XXX-short-kebab-name.md`.
+- Example: `0008-002-nio-true-streaming-bridge.md`.
+
+Step:
+
+- Temporary execution unit inside a task.
+- Stored as a checklist inside the task file.
+- Example: `0008-002.1 Feed NIO chunks`.
+- May be built, reviewed, and fixed independently.
+- Must not be committed or pushed independently.
 
 ## Standard AI Loop
 
@@ -97,7 +133,7 @@ During implementation:
 1. Keep edits scoped.
 2. Prefer runtime capability before macro syntax.
 3. Do not introduce transport details into `DaylilyCore`.
-4. Update AIDEV docs when public API or architecture changes.
+4. Update AIDEV docs when public API, architecture, or workflow changes.
 
 After implementation:
 
@@ -105,7 +141,8 @@ After implementation:
 2. Run `swift run HelloDaylily --check`.
 3. If server behavior changed, smoke test with `swift run` and `curl`.
 4. Stop any local server started for verification.
-5. Record task status in `ai/tasks/`.
+5. Record task and step status in `ai/tasks/`.
+6. Commit and push only if a full task is complete and reviewed.
 
 ## Source Reading Policy
 
@@ -175,7 +212,19 @@ swift build
 swift run HelloDaylily --check
 ```
 
-## Task Files
+## Epic and Task Files
+
+Epics live in:
+
+```text
+ai/epics/
+```
+
+Suggested epic file name:
+
+```text
+0009-middleware-system.md
+```
 
 Tasks live in:
 
@@ -186,15 +235,16 @@ ai/tasks/
 Suggested file name:
 
 ```text
-0009-middleware-runtime.md
+0009-001-middleware-runtime.md
 ```
 
 Suggested structure:
 
 ```md
-# 0002 Task Name
+# 0009-001 Task Name
 
 Status: proposed | in-progress | implemented | blocked
+Epic: 0009-middleware-system
 
 Goal:
 
@@ -207,6 +257,11 @@ Scope:
 Non-goals:
 
 - ...
+
+Steps:
+
+- [ ] 0009-001.1 ...
+- [ ] 0009-001.2 ...
 
 Public API impact:
 

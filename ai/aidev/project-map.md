@@ -17,6 +17,7 @@ Daylily/
 │   ├── DaylilyNIO/
 │   └── HelloDaylily/
 └── ai/
+    ├── epics/
     ├── aidev/
     ├── prompts/
     └── tasks/
@@ -90,8 +91,8 @@ Daylily/
 `Sources/DaylilyCore/Body.swift`
 
 - Defines `Body`, `BodyBytes`, `ByteChunk`, `ByteCount`, and `BodyError`.
-- Implements the 0008A one-shot body model.
-- Buffered bodies currently yield one `ByteChunk`.
+- Implements the 0008-001 one-shot body model.
+- Buffered bodies yield one `ByteChunk`; streaming bodies yield transport-fed chunks.
 
 `Sources/DaylilyCore/Errors.swift`
 
@@ -175,6 +176,15 @@ Daylily/
 `ai/tasks/`
 
 - Task notes and implementation records.
+- File names use `NNNN-XXX-short-kebab-name.md`.
+- Tasks are the smallest commit/push unit.
+- Steps are tracked inside task files, not as separate task files.
+
+`ai/epics/`
+
+- Theme-level planning containers.
+- File names use `NNNN-short-kebab-name.md`.
+- Epics are not direct implementation units.
 
 `ai/aidev/`
 

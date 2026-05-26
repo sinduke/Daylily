@@ -1,6 +1,11 @@
-# 0003 AIDEV Self-Contained Spec
+# 0002-002 AIDEV Self-Contained Spec
 
 Status: implemented
+Epic: 0002-aidev-system
+
+Steps:
+
+- [x] 0002-002.1 Expand AIDEV into self-contained spec.
 
 Goal:
 

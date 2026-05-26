@@ -1,6 +1,11 @@
-# 0001 Minimal HTTP Server
+# 0001-001 Minimal HTTP Server
 
 Status: implemented
+Epic: 0001-runtime-foundation
+
+Steps:
+
+- [x] 0001-001.1 Build minimal runtime, server, and checks.
 
 Goal:
 

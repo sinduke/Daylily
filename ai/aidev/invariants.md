@@ -44,3 +44,5 @@ These rules define Daylily's shape. Do not break them without an ADR.
 3. If implementation and AIDEV disagree, the task must reconcile the mismatch.
 4. New modules, public APIs, commands, or workflows must be reflected in AIDEV.
 5. `registry.yml` should remain machine-readable and reasonably complete.
+6. Tasks are the smallest commit/push unit.
+7. Steps are reviewable but must not be committed or pushed independently.

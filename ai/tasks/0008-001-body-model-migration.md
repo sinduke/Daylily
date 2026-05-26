@@ -1,6 +1,11 @@
-# 0008A Body Model Migration
+# 0008-001 Body Model Migration
 
 Status: implemented
+Epic: 0008-body-system
+
+Steps:
+
+- [x] 0008-001.1 Migrate public body model.
 
 ## Goal
 
@@ -56,9 +61,9 @@ This task defines the public/runtime body API. It does not claim true transport-
 
 `DaylilyNIO`:
 
-- For 0008A, could continue buffering the full body.
-- For 0008A, had to create `Request.body` as `Body.bytes(...)`.
-- 0008B later replaced this transport buffering with true chunk feeding.
+- For 0008-001, could continue buffering the full body.
+- For 0008-001, had to create `Request.body` as `Body.bytes(...)`.
+- 0008-002 later replaced this transport buffering with true chunk feeding.
 
 `HelloDaylily`:
 
@@ -235,7 +240,7 @@ public struct Body: Sendable {
 }
 ```
 
-0008A may implement buffered `Body` first:
+0008-001 may implement buffered `Body` first:
 
 ```text
 Body.bytes([UInt8]) -> BodyBytes yields one ByteChunk
@@ -291,6 +296,6 @@ Checks to add:
 
 ## Notes
 
-- 0008A is the API and runtime body model migration.
-- 0008A intentionally does not claim true transport-level streaming.
-- 0008B implemented the NIO true streaming bridge and backpressure work.
+- 0008-001 is the API and runtime body model migration.
+- 0008-001 intentionally does not claim true transport-level streaming.
+- 0008-002 implemented the NIO true streaming bridge and backpressure work.

@@ -194,6 +194,8 @@ Daylily 的设计目标之一，是让 AI 可以第一时间变得有用。
 - [ai/aidev/runtime-contracts.md](ai/aidev/runtime-contracts.md)：组件输入、输出、保证和扩展点。
 - [ai/aidev/api-registry.md](ai/aidev/api-registry.md)：当前 public API 表。
 - [ai/aidev/extension-playbooks.md](ai/aidev/extension-playbooks.md)：新增 HTTP verb、JSON、middleware、streaming body、macro、transport 和 check 的操作手册。
+- [ai/epics](ai/epics)：主题级规划容器。
+- [ai/tasks](ai/tasks)：task 级执行记录；task 是最小 commit/push 单位。
 - [ai/aidev/registry.yml](ai/aidev/registry.yml)：机器可读项目注册表。
 - [ai/prompts/daylily-agent.md](ai/prompts/daylily-agent.md)：给未来 AI agent 的标准提示词。
 
@@ -226,6 +228,7 @@ Daylily/
 │   ├── DaylilyNIO/
 │   └── HelloDaylily/
 └── ai/
+    ├── epics/
     ├── aidev/
     ├── prompts/
     └── tasks/

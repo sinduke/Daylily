@@ -194,6 +194,8 @@ Instead of asking AI to guess the architecture from scattered source files, the 
 - [ai/aidev/runtime-contracts.md](ai/aidev/runtime-contracts.md): component inputs, outputs, guarantees, and extension points.
 - [ai/aidev/api-registry.md](ai/aidev/api-registry.md): current public API surface.
 - [ai/aidev/extension-playbooks.md](ai/aidev/extension-playbooks.md): recipes for adding verbs, JSON, middleware, streaming body, macros, transports, and checks.
+- [ai/epics](ai/epics): theme-level planning containers.
+- [ai/tasks](ai/tasks): task-level execution records; tasks are the smallest commit/push unit.
 - [ai/aidev/registry.yml](ai/aidev/registry.yml): machine-readable project registry.
 - [ai/prompts/daylily-agent.md](ai/prompts/daylily-agent.md): reusable prompt for future AI agents.
 
@@ -226,6 +228,7 @@ Daylily/
 │   ├── DaylilyNIO/
 │   └── HelloDaylily/
 └── ai/
+    ├── epics/
     ├── aidev/
     ├── prompts/
     └── tasks/

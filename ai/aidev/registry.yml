@@ -5,7 +5,7 @@ project:
   license: MIT
   license_file: LICENSE
   swift_tools_version: "6.0"
-  current_phase: "nio_true_streaming_bridge"
+  current_phase: "middleware_system"
   authoritative_ai_entry:
     - AIDEV.md
     - ai/aidev/start-here.md
@@ -13,6 +13,24 @@ project:
   check_command: "swift run HelloDaylily --check"
   build_command: "swift build"
   ci_workflow: ".github/workflows/ci.yml"
+
+work_model:
+  hierarchy:
+    - epic
+    - task
+    - step
+  epic_directory: "ai/epics"
+  task_directory: "ai/tasks"
+  epic_file_format: "NNNN-short-kebab-name.md"
+  task_file_format: "NNNN-XXX-short-kebab-name.md"
+  step_format: "NNNN-XXX.n"
+  commit_unit: task
+  rules:
+    - "Epics are planning containers, not direct implementation units."
+    - "Tasks are the smallest commit/push unit."
+    - "Steps live inside task files as checklists."
+    - "Step completion may be reviewed and fixed but must not be committed or pushed independently."
+    - "Do not create A/B/C task files for sub-steps."
 
 dependencies:
   swift-nio:
@@ -156,7 +174,7 @@ implemented_features:
       - README.zh-CN.md
   macro_route_mvp:
     status: implemented
-    task: "0005-macro-route-mvp"
+    task: "0003-001-macro-route-mvp"
     public_macros:
       - "@DaylilyServer"
       - "@GET"
@@ -167,7 +185,7 @@ implemented_features:
       - "handlers may have zero parameters or one Request parameter"
   group_macro:
     status: implemented
-    task: "0006-group-macro-mvp"
+    task: "0003-002-group-macro-mvp"
     public_macros:
       - "@GROUP"
     limitations:
@@ -175,7 +193,7 @@ implemented_features:
       - "group handlers follow route macro MVP handler limits"
   json_body_and_response:
     status: implemented
-    task: "0007-json-body-and-response"
+    task: "0004-001-json-body-and-response"
     module: DaylilyJSON
     public_api:
       - "Body.json(_:upTo:) for standard async JSON body decoding"
@@ -186,7 +204,7 @@ implemented_features:
       - "all Encodable types do not automatically conform to ResponseConvertible"
   body_model_migration:
     status: implemented
-    task: "0008A-body-model-migration"
+    task: "0008-001-body-model-migration"
     public_api:
       - Body
       - BodyBytes
@@ -213,10 +231,10 @@ implemented_features:
       - "transport stream construction is SPI, not normal user API"
   nio_true_streaming_bridge:
     status: implemented
-    task: "0008B-nio-true-streaming-bridge"
-    file: "ai/tasks/0008B-nio-true-streaming-bridge.md"
+    task: "0008-002-nio-true-streaming-bridge"
+    file: "ai/tasks/0008-002-nio-true-streaming-bridge.md"
     depends_on:
-      - "0008A-body-model-migration"
+      - "0008-001-body-model-migration"
     decisions:
       - "NIO request head creates Request with streaming Body"
       - "route handler starts before the full body is buffered"
@@ -473,11 +491,31 @@ invariants:
   - "swift run starts the server."
   - "swift run HelloDaylily --check passes."
   - "Public API changes update AIDEV."
+  - "Tasks are the smallest commit/push unit."
+  - "Steps are reviewable but are not committed or pushed independently."
 
 aidev_files:
   entry:
     - AIDEV.md
     - ai/aidev/start-here.md
+  epics:
+    - ai/epics/0001-runtime-foundation.md
+    - ai/epics/0002-aidev-system.md
+    - ai/epics/0003-routing-macro-system.md
+    - ai/epics/0004-json-system.md
+    - ai/epics/0008-body-system.md
+    - ai/epics/0009-middleware-system.md
+  tasks:
+    - ai/tasks/0001-001-minimal-http-server.md
+    - ai/tasks/0002-001-aidev-project-contract.md
+    - ai/tasks/0002-002-aidev-self-contained-spec.md
+    - ai/tasks/0002-003-bilingual-readme-ai-native.md
+    - ai/tasks/0002-004-work-model-reorganization.md
+    - ai/tasks/0003-001-macro-route-mvp.md
+    - ai/tasks/0003-002-group-macro-mvp.md
+    - ai/tasks/0004-001-json-body-and-response.md
+    - ai/tasks/0008-001-body-model-migration.md
+    - ai/tasks/0008-002-nio-true-streaming-bridge.md
   docs:
     - ai/aidev/project-map.md
     - ai/aidev/architecture.md
@@ -534,17 +572,29 @@ verification:
     cleanup: "stop the HelloDaylily process"
 
 roadmap:
+  current_task:
+  epics:
+    completed:
+      - "0001-runtime-foundation"
+      - "0002-aidev-system"
+      - "0003-routing-macro-system"
+      - "0004-json-system"
+      - "0008-body-system"
+    next_recommended:
+      - "0009-middleware-system"
   completed:
-    - "0001-minimal-http-server"
-    - "0002-aidev-project-contract"
-    - "0003-aidev-self-contained-spec"
-    - "0004-bilingual-readme-ai-native"
-    - "0005-macro-route-mvp"
-    - "0006-group-macro-mvp"
-    - "0007-json-body-and-response"
-    - "0008A-body-model-migration"
-    - "0008B-nio-true-streaming-bridge"
+    - "0001-001-minimal-http-server"
+    - "0002-001-aidev-project-contract"
+    - "0002-002-aidev-self-contained-spec"
+    - "0002-003-bilingual-readme-ai-native"
+    - "0002-004-work-model-reorganization"
+    - "0003-001-macro-route-mvp"
+    - "0003-002-group-macro-mvp"
+    - "0004-001-json-body-and-response"
+    - "0008-001-body-model-migration"
+    - "0008-002-nio-true-streaming-bridge"
+  in_progress: []
   next_recommended:
-    - "0009-middleware-runtime"
+    - "0009-001-middleware-runtime"
   later:
-    - "0010-typed-parameter-extraction"
+    - "0010-001-typed-parameter-extraction"

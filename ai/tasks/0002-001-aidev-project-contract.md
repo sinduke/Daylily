@@ -1,6 +1,11 @@
-# 0002 AIDEV Project Contract
+# 0002-001 AIDEV Project Contract
 
 Status: implemented
+Epic: 0002-aidev-system
+
+Steps:
+
+- [x] 0002-001.1 Create AIDEV project contract.
 
 Goal:
 

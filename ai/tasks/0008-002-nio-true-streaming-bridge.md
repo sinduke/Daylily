@@ -1,12 +1,17 @@
-# 0008B NIO True Streaming Bridge
+# 0008-002 NIO True Streaming Bridge
 
 Status: implemented
+Epic: 0008-body-system
+
+Steps:
+
+- [x] 0008-002.1 Implement NIO streaming body bridge.
 
 ## Goal
 
 Replace the temporary buffered NIO request body bridge with a true streaming bridge from NIO HTTP request chunks into Daylily `Body`.
 
-This task depends on 0008A.
+This task depends on 0008-001.
 
 ## Scope
 
@@ -34,7 +39,7 @@ This task depends on 0008A.
 
 ## Dependency
 
-0008A must exist first:
+0008-001 must exist first:
 
 - `Request.body: Body`
 - `BodyBytes: AsyncSequence<ByteChunk>`
@@ -43,9 +48,9 @@ This task depends on 0008A.
 - `ByteCount`
 - async JSON body helpers
 
-0008B should not redesign those public APIs unless review finds a serious flaw.
+0008-002 should not redesign those public APIs unless review finds a serious flaw.
 
-0008B was implemented without changing normal user-facing body APIs. The only new construction/writer surface is transport SPI:
+0008-002 was implemented without changing normal user-facing body APIs. The only new construction/writer surface is transport SPI:
 
 ```swift
 @_spi(Transport) Body.stream(bufferLimit:)
@@ -90,11 +95,11 @@ ChannelHandlerContext
 
 ## Public API Impact
 
-Ideally none beyond 0008A.
+Ideally none beyond 0008-001.
 
-0008B should make the existing `Body` model truly streamed when the transport supports streaming.
+0008-002 should make the existing `Body` model truly streamed when the transport supports streaming.
 
-If implementation reveals missing hooks, update 0008A/0008B docs before changing public API.
+If implementation reveals missing hooks, update 0008-001/0008-002 docs before changing public API.
 
 Implemented hook:
 
@@ -147,7 +152,7 @@ Implemented behavior:
 
 ## Error Mapping
 
-Use 0008A `BodyError` mapping:
+Use 0008-001 `BodyError` mapping:
 
 ```text
 BodyError.streamFailed -> 400 Bad Request, "Request body stream failed"
@@ -210,7 +215,7 @@ Completed validation:
 
 ## Notes
 
-- 0008B is the transport-hard part.
-- 0008B started after 0008A was implemented and reviewed through build/check/smoke.
+- 0008-002 is the transport-hard part.
+- 0008-002 started after 0008-001 was implemented and reviewed through build/check/smoke.
 - Backpressure is implemented with bounded `BodyStreamStorage` buffering plus NIO `autoRead` pause/resume.
 - Response body streaming, multipart, upload-to-file helpers, and richer server configuration remain future work.

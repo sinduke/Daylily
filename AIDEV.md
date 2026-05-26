@@ -39,6 +39,12 @@ Daylily 的开发方式：
 - [Registry YAML](ai/aidev/registry.yml): 机器可读的项目索引。
 - [Agent Prompt](ai/prompts/daylily-agent.md): 给接手 AI 的标准提示词。
 
+任务组织：
+
+- `ai/epics/` 存放主题级 Epic。
+- `ai/tasks/` 存放可提交 Task，文件名使用 `NNNN-XXX-short-name.md`。
+- Task 内部的 step 只作为 checklist，不单独提交或推送。
+
 ## 当前验证命令
 
 在项目根目录执行：
@@ -73,4 +79,5 @@ curl -X POST -H 'content-type: application/json' --data '{"message":"hi"}' http:
 - 如果新增、删除、重命名 public 类型或函数，更新 `ai/aidev/api-registry.md` 和 `ai/aidev/registry.yml`。
 - 如果改变模块边界，更新 `ai/aidev/project-map.md` 和 `ai/aidev/architecture.md`。
 - 如果引入新命令或验证方式，更新 `README.md`、`AIDEV.md` 和相关 task。
+- 如果调整计划或工作流程，更新 `ai/epics/`、`ai/tasks/`、`workflow.md`、`task-protocol.md` 和 `registry.yml`。
 - 如果 AIDEV 与源码不一致，优先修正 AIDEV 或明确记录源码偏差，不能让 AI 依赖隐含知识继续推进。

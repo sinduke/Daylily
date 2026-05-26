@@ -167,4 +167,6 @@ When adding public API:
 1. Update `ai/aidev/api-registry.md`.
 2. Update `ai/aidev/registry.yml`.
 3. Update README if it changes user-facing usage.
-4. Add or update a task in `ai/tasks/`.
+4. Add or update an epic in `ai/epics/` when the theme is new.
+5. Add or update a task in `ai/tasks/`.
+6. Keep sub-work as task-local steps; do not create `A/B/C` task files for steps.

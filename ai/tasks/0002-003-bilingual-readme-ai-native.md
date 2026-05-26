@@ -1,6 +1,11 @@
-# 0004 Bilingual README and AI-Native Introduction
+# 0002-003 Bilingual README and AI-Native Introduction
 
 Status: implemented
+Epic: 0002-aidev-system
+
+Steps:
+
+- [x] 0002-003.1 Add bilingual README and AI-native introduction.
 
 Goal:
 
