@@ -135,15 +135,54 @@ Delivered:
 - Require an explicit `ByteCount` limit.
 - Avoid automatic body replay and hidden middleware buffering.
 
-## Recommended Next Epic
+## Core Experience Phase
 
-### 0010 Typed Parameter Extraction
+Goal:
 
-Status: proposed
+- Move Daylily from "can run" to "has its own style."
+- Prioritize the feel of writing and testing Daylily apps before ecosystem expansion.
 
-Likely first task:
+Principles:
 
-- `0010-001-typed-parameter-extraction`
+- Do not start Fluent, Redis, Jobs, or broad ecosystem packages yet.
+- Build typed handler inputs first.
+- Add testing support early so AI and humans can verify new behavior cleanly.
+- Add lifecycle before database pools, workers, and production integrations.
+
+Recommended sequence:
+
+```text
+0010 Typed Handler Inputs
+0011 DaylilyTesting
+0012 Lifecycle / Server Controls
+0013 Observability Middleware
+0014 OpenAPI Metadata
+```
+
+Practical interleave:
+
+```text
+0010-001 Typed path extraction runtime (delivered)
+0010-002 @Path macro MVP
+0011-001 DaylilyTesting minimal TestClient
+0010-003 @Body JSON
+0010-004 @Query / @Header
+0012 Lifecycle
+```
+
+## Current Epic
+
+### 0010 Typed Handler Inputs
+
+Status: in-progress
+
+Delivered:
+
+- `0010-001-typed-path-extraction-runtime`
+
+Next task:
+
+- `0010-002-path-macro-mvp`
 
 Example target:
 
@@ -153,7 +192,7 @@ func user(@Path id: UUID) async throws -> User
 
 ### Future Epics
 
-- OpenAPI metadata.
-- Dependency injection.
-- Request context.
-- Production server controls.
+- `0011` DaylilyTesting.
+- `0012` Lifecycle and production server controls.
+- `0013` Observability middleware.
+- `0014` OpenAPI metadata.

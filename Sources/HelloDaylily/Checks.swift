@@ -6,6 +6,11 @@ enum DaylilyChecks {
     static func run() async throws {
         try await exactRoute()
         try await pathParameter()
+        try await typedPathParameterInt()
+        try await typedPathParameterScalars()
+        try await typedPathParameterMissing()
+        try await typedPathParameterInvalid()
+        try await optionalTypedPathParameter()
         try await literalRouteBeatsParameterRoute()
         try await groupPrefix()
         try await middlewareOrder()
@@ -68,6 +73,83 @@ enum DaylilyChecks {
 
         try expect(response.status == .ok, "expected 200 OK")
         try expect(response.bodyString == "User 42", "expected path parameter")
+    }
+
+    private static func typedPathParameterInt() async throws {
+        let app = Application {
+            Get("/users/:id") { request in
+                let id = try request.parameters.require("id", as: Int.self)
+                return "User \(id + 1)"
+            }
+        }
+
+        let response = await app.respond(to: Request(method: .get, path: "/users/41"))
+
+        try expect(response.status == .ok, "expected typed path parameter 200 OK")
+        try expect(response.bodyString == "User 42", "expected typed int path parameter")
+    }
+
+    private static func typedPathParameterScalars() async throws {
+        let app = Application {
+            Get("/typed/:name/:enabled/:score") { request in
+                let name = try request.parameters.require("name", as: String.self)
+                let enabled = try request.parameters.require("enabled", as: Bool.self)
+                let score = try request.parameters.require("score", as: Double.self)
+                return "\(name):\(enabled):\(score)"
+            }
+        }
+
+        let response = await app.respond(to: Request(method: .get, path: "/typed/daylily/true/4.5"))
+
+        try expect(response.status == .ok, "expected typed scalar path parameters 200 OK")
+        try expect(response.bodyString == "daylily:true:4.5", "expected typed scalar path parameters")
+    }
+
+    private static func typedPathParameterMissing() async throws {
+        let app = Application {
+            Get("/manual") { request in
+                let id = try request.parameters.require("id", as: Int.self)
+                return "User \(id)"
+            }
+        }
+
+        let response = await app.respond(to: Request(method: .get, path: "/manual"))
+
+        try expect(response.status == .badRequest, "expected missing typed path parameter 400")
+        try expect(response.bodyString == "Missing path parameter: id", "expected missing path parameter reason")
+    }
+
+    private static func typedPathParameterInvalid() async throws {
+        let app = Application {
+            Get("/users/:id") { request in
+                let id = try request.parameters.require("id", as: Int.self)
+                return "User \(id)"
+            }
+        }
+
+        let response = await app.respond(to: Request(method: .get, path: "/users/not-int"))
+
+        try expect(response.status == .badRequest, "expected invalid typed path parameter 400")
+        try expect(
+            response.bodyString == "Invalid path parameter id: expected Int",
+            "expected invalid path parameter reason"
+        )
+    }
+
+    private static func optionalTypedPathParameter() async throws {
+        let missing = try Parameters().get("id", as: Int.self)
+        try expect(missing == nil, "expected missing optional typed parameter to be nil")
+
+        do {
+            _ = try Parameters(["id": "nope"]).get("id", as: Int.self)
+            try expect(false, "expected invalid optional typed parameter error")
+        } catch let error as ParameterError {
+            try expect(error.status == .badRequest, "expected invalid optional parameter 400")
+            try expect(
+                error.reason == "Invalid path parameter id: expected Int",
+                "expected invalid optional parameter reason"
+            )
+        }
     }
 
     private static func literalRouteBeatsParameterRoute() async throws {

@@ -5,7 +5,7 @@ project:
   license: MIT
   license_file: LICENSE
   swift_tools_version: "6.0"
-  current_phase: "typed_parameter_extraction"
+  current_phase: "path_macro_mvp"
   authoritative_ai_entry:
     - AIDEV.md
     - ai/aidev/start-here.md
@@ -159,6 +159,26 @@ implemented_features:
     status: implemented
     syntax: ":name"
     type: String
+  typed_path_extraction_runtime:
+    status: implemented
+    epic: "0010-typed-handler-inputs"
+    task: "0010-001-typed-path-extraction-runtime"
+    module: DaylilyCore
+    public_api:
+      - ParameterDecodable
+      - ParameterError
+      - "Parameters.require(_:as:)"
+      - "Parameters.get(_:as:)"
+    supported_types:
+      - String
+      - Int
+      - Double
+      - Bool
+    decisions:
+      - "untyped lookup remains optional String"
+      - "missing required path parameter maps to 400 Bad Request"
+      - "invalid typed path parameter maps to 400 Bad Request"
+      - "UUID is deferred to avoid a Foundation dependency in DaylilyCore"
   nio_http_server:
     status: implemented
     protocol: HTTP/1.1
@@ -301,8 +321,12 @@ implemented_features:
       - "streaming replay"
 
 planned_features:
-  typed_parameter_extraction:
-    status: proposed
+  typed_handler_inputs:
+    status: in-progress
+    epic: "0010-typed-handler-inputs"
+    completed:
+      - "0010-001-typed-path-extraction-runtime"
+    next_task: "0010-002-path-macro-mvp"
   openapi:
     status: future
   dependency_injection:
@@ -387,6 +411,40 @@ public_api:
         - "public func with(body: Body) -> Request"
         - "public func withBufferedBody<R: Sendable>(upTo limit: ByteCount, _ operation: @Sendable (Request, [UInt8]) async throws -> R) async throws -> R"
       contract: "DaylilyNIO creates streaming Body values through transport SPI; in-process callers may use Body.bytes(...); explicit body buffering uses withBufferedBody(upTo:_:)."
+    Parameters:
+      kind: struct
+      conforms:
+        - Equatable
+        - Sendable
+      methods:
+        - "public init(_ storage: [String: String] = [:])"
+        - "public subscript(_ name: String) -> String? { get }"
+        - "public subscript(dynamicMember name: String) -> String? { get }"
+        - "public func require<Value: ParameterDecodable>(_ name: String, as type: Value.Type = Value.self) throws -> Value"
+        - "public func get<Value: ParameterDecodable>(_ name: String, as type: Value.Type = Value.self) throws -> Value?"
+      contract: "Untyped path lookup returns optional String; typed lookup throws ParameterError for missing required or invalid values."
+    ParameterDecodable:
+      kind: protocol
+      conforms:
+        - Sendable
+      methods:
+        - "static var parameterTypeDescription: String { get }"
+        - "static func decodeParameter(_ value: String) -> Self?"
+      built_in_conformers:
+        - String
+        - Int
+        - Double
+        - Bool
+    ParameterError:
+      kind: enum
+      conforms:
+        - ResponseError
+      cases:
+        - "missing(name: String)"
+        - "invalid(name: String, expected: String)"
+      mappings:
+        missing: "400 Missing path parameter: <name>"
+        invalid: "400 Invalid path parameter <name>: expected <type>"
     Body:
       kind: struct
       conforms:
@@ -437,6 +495,7 @@ public_api:
       conformers:
         - Abort
         - BodyError
+        - ParameterError
     BodyError:
       kind: enum
       conforms:
@@ -538,6 +597,7 @@ runtime_rules:
     - parameter
     - wildcard
   path_parameter_prefix: ":"
+  typed_path_parameter_policy: "Parameters.require(_:as:) and Parameters.get(_:as:) use ParameterDecodable; missing required and invalid values map to 400; UUID is deferred."
   wildcard_prefix: "*"
   current_body_model: "Body one-shot API with NIO true streaming bridge and in-process buffered Body.bytes support"
   future_body_model: "response body streaming and higher-level upload helpers"
@@ -548,6 +608,7 @@ runtime_rules:
     response_error: "status + reason"
     abort: "ResponseError conformer"
     body_error: "ResponseError conformer"
+    parameter_error: "ResponseError conformer"
     unknown: "500 Internal Server Error"
     missing_route: "404 Not Found"
 
@@ -576,6 +637,11 @@ aidev_files:
     - ai/epics/0004-json-system.md
     - ai/epics/0008-body-system.md
     - ai/epics/0009-middleware-system.md
+    - ai/epics/0010-typed-handler-inputs.md
+    - ai/epics/0011-daylily-testing.md
+    - ai/epics/0012-lifecycle-server-controls.md
+    - ai/epics/0013-observability-middleware.md
+    - ai/epics/0014-openapi-metadata.md
   tasks:
     - ai/tasks/0001-001-minimal-http-server.md
     - ai/tasks/0002-001-aidev-project-contract.md
@@ -590,6 +656,7 @@ aidev_files:
     - ai/tasks/0008-002-nio-true-streaming-bridge.md
     - ai/tasks/0009-001-middleware-runtime.md
     - ai/tasks/0009-002-explicit-buffered-body-helper.md
+    - ai/tasks/0010-001-typed-path-extraction-runtime.md
   docs:
     - ai/aidev/project-map.md
     - ai/aidev/architecture.md
@@ -608,6 +675,7 @@ aidev_files:
 
 extension_playbooks:
   - add_http_verb
+  - add_typed_path_extraction
   - extend_json_body_decoding
   - extend_json_responses
   - add_middleware_runtime
@@ -658,7 +726,11 @@ roadmap:
       - "0008-body-system"
       - "0009-middleware-system"
     next_recommended:
-      - "0010-typed-parameter-extraction"
+      - "0010-typed-handler-inputs"
+      - "0011-daylily-testing"
+      - "0012-lifecycle-server-controls"
+      - "0013-observability-middleware"
+      - "0014-openapi-metadata"
   completed:
     - "0001-001-minimal-http-server"
     - "0002-001-aidev-project-contract"
@@ -673,8 +745,14 @@ roadmap:
     - "0008-002-nio-true-streaming-bridge"
     - "0009-001-middleware-runtime"
     - "0009-002-explicit-buffered-body-helper"
+    - "0010-001-typed-path-extraction-runtime"
   in_progress: []
   next_recommended:
-    - "0010-001-typed-parameter-extraction"
+    - "0010-002-path-macro-mvp"
   later:
-    - "0011-001-openapi-metadata"
+    - "0011-001-minimal-test-client"
+    - "0010-003-body-json-macro-runtime-bridge"
+    - "0010-004-query-and-header-inputs"
+    - "0012-001-application-lifecycle-mvp"
+    - "0013-001-request-logging-middleware"
+    - "0014-001-route-metadata-runtime"

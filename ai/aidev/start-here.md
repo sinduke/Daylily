@@ -48,7 +48,8 @@ let app = Application {
     }
 
     Get("/users/:id") { request in
-        "User \(request.parameters.id ?? "unknown")"
+        let id = try request.parameters.require("id", as: Int.self)
+        return "User \(id)"
     }
 
     Post("/json/echo") { request in
@@ -111,6 +112,7 @@ Implemented:
 - Basic route DSL: `Get`, `Post`, `Group`.
 - Runtime middleware at application, group, and route scope.
 - Macro route/group MVP: `@DaylilyServer`, `@GET`, `@POST`, `@GROUP`.
+- Runtime typed path parameter extraction.
 - Daylily-owned `Body` model with one-shot consumption.
 - Explicit `request.withBufferedBody(upTo:_:)` helper for bounded body buffering and replacement.
 - `ByteChunk`, `BodyBytes`, `ByteCount`, `BodyError`, and `ResponseError`.
@@ -126,7 +128,7 @@ Implemented:
 
 Not implemented:
 
-- Typed parameter injection.
+- Macro typed parameter injection (`@Path`, `@Body`, etc.).
 - OpenAPI.
 - Dependency injection.
 - Macro middleware attributes.
@@ -203,5 +205,5 @@ Do not start with:
 Current strategic order:
 
 1. Keep AIDEV self-contained.
-2. Add typed parameter extraction.
-3. Add OpenAPI metadata.
+2. Add `@Path` macro MVP on top of runtime typed path extraction.
+3. Add `DaylilyTesting` minimal test client.

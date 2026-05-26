@@ -460,6 +460,8 @@ public struct Parameters: Equatable, Sendable {
     public init(_ storage: [String: String] = [:])
     public subscript(_ name: String) -> String? { get }
     public subscript(dynamicMember name: String) -> String? { get }
+    public func require<Value: ParameterDecodable>(_ name: String, as type: Value.Type = Value.self) throws -> Value
+    public func get<Value: ParameterDecodable>(_ name: String, as type: Value.Type = Value.self) throws -> Value?
 }
 ```
 
@@ -468,7 +470,47 @@ Usage:
 ```swift
 request.parameters["id"]
 request.parameters.id
+let id = try request.parameters.require("id", as: Int.self)
+let maybePage = try request.parameters.get("page", as: Int.self)
 ```
+
+Rules:
+
+- Untyped lookup remains optional `String`.
+- `require(_:as:)` throws `ParameterError.missing` when the key is absent.
+- `require(_:as:)` and `get(_:as:)` throw `ParameterError.invalid` when conversion fails.
+- First built-in conformers: `String`, `Int`, `Double`, `Bool`.
+- `UUID` is not supported in `DaylilyCore` yet.
+
+### ParameterDecodable
+
+```swift
+public protocol ParameterDecodable: Sendable {
+    static var parameterTypeDescription: String { get }
+    static func decodeParameter(_ value: String) -> Self?
+}
+```
+
+Current conformers:
+
+- `String`
+- `Int`
+- `Double`
+- `Bool`
+
+### ParameterError
+
+```swift
+public enum ParameterError: ResponseError {
+    case missing(name: String)
+    case invalid(name: String, expected: String)
+}
+```
+
+Mappings:
+
+- `.missing`: `400 Bad Request`, `Missing path parameter: <name>`
+- `.invalid`: `400 Bad Request`, `Invalid path parameter <name>: expected <type>`
 
 ### ResponseError
 
@@ -483,6 +525,7 @@ Current conformers:
 
 - `Abort`
 - `BodyError`
+- `ParameterError`
 
 `Application.respond(to:)` converts `ResponseError` values into text responses using `status` and `reason`.
 

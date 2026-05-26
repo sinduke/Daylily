@@ -190,7 +190,30 @@ Get("/users/:id") { request in
 }
 ```
 
-Parameters are strings today. Typed extraction is future work.
+Untyped parameters are strings:
+
+```swift
+request.parameters.id
+request.parameters["id"]
+```
+
+Runtime typed extraction is available:
+
+```swift
+let id = try request.parameters.require("id", as: Int.self)
+let optionalPage = try request.parameters.get("page", as: Int.self)
+```
+
+First supported types:
+
+- `String`
+- `Int`
+- `Double`
+- `Bool`
+
+Missing or invalid typed path parameters throw `ParameterError` and render as `400 Bad Request`.
+
+`UUID` support is deferred because it requires a Foundation decision for `DaylilyCore` or an extension module.
 
 ## Handler
 

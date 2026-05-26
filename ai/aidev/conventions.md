@@ -63,11 +63,24 @@ Access:
 ```swift
 request.parameters.id
 request.parameters["id"]
+try request.parameters.require("id", as: Int.self)
+try request.parameters.get("page", as: Int.self)
 ```
 
-Current parameter values are `String`.
+Untyped parameter values are `String`.
 
-Future typed extraction:
+Typed runtime extraction currently supports:
+
+- `String`
+- `Int`
+- `Double`
+- `Bool`
+
+Missing or invalid typed path parameters map to `400 Bad Request`.
+
+`UUID` is not supported in `DaylilyCore` yet because Foundation support needs a separate design decision.
+
+Future macro typed injection:
 
 ```swift
 @GET("/users/:id")

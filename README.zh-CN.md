@@ -31,6 +31,7 @@ Daylily 不是 Vapor 或 Hummingbird 的复制品。它是在探索：如果 AI 
 - `Application` runtime。
 - 声明式路由 DSL：`Get`、`Post`、`Group`。
 - `:name` 形式的路径参数。
+- 运行时类型化路径参数提取。
 - `Request`、`Response`、`Status`、`Headers`、`Parameters`。
 - Daylily 自有的 `Body` request body 模型。
 - 基于 `ByteChunk` 和 `ByteCount` 的 one-shot body 消费。
@@ -48,7 +49,7 @@ Daylily 不是 Vapor 或 Hummingbird 的复制品。它是在探索：如果 AI 
 
 还没有实现：
 
-- 类型化参数注入。
+- 宏级类型化参数注入（`@Path`、`@Body` 等）。
 - OpenAPI 生成。
 - 依赖注入。
 - Macro middleware attributes。
@@ -112,7 +113,8 @@ struct HelloDaylily {
             }
 
             Get("/users/:id") { request in
-                "User \(request.parameters.id ?? "unknown")"
+                let id = try request.parameters.require("id", as: Int.self)
+                return "User \(id)"
             }
 
             Get("/json/health") {
@@ -302,9 +304,9 @@ Daylily/
 
 近期：
 
-1. 类型化参数提取。
-2. OpenAPI metadata。
-3. Request context 和生产级 server 控制。
+1. 基于运行时类型化路径参数提取实现 `@Path` macro MVP。
+2. `DaylilyTesting` 最小 TestClient。
+3. 先做 lifecycle 和生产级 server 控制，再扩生态模块。
 
 ## License
 

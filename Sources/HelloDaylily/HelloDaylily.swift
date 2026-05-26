@@ -22,7 +22,8 @@ struct HelloDaylily {
             }
 
             Get("/users/:id") { request in
-                "User \(request.parameters.id ?? "unknown")"
+                let id = try request.parameters.require("id", as: Int.self)
+                return "User \(id)"
             }
 
             Get("/json/health") {

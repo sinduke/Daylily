@@ -31,6 +31,7 @@ Implemented today:
 - `Application` runtime.
 - Declarative route DSL: `Get`, `Post`, `Group`.
 - Path parameters with `:name` syntax.
+- Runtime typed path parameter extraction.
 - `Request`, `Response`, `Status`, `Headers`, `Parameters`.
 - Daylily-owned `Body` request body model.
 - One-shot body consumption with `ByteChunk` and `ByteCount`.
@@ -48,7 +49,7 @@ Implemented today:
 
 Not implemented yet:
 
-- Typed parameter injection.
+- Macro typed parameter injection (`@Path`, `@Body`, etc.).
 - OpenAPI generation.
 - Dependency injection.
 - Macro middleware attributes.
@@ -112,7 +113,8 @@ struct HelloDaylily {
             }
 
             Get("/users/:id") { request in
-                "User \(request.parameters.id ?? "unknown")"
+                let id = try request.parameters.require("id", as: Int.self)
+                return "User \(id)"
             }
 
             Get("/json/health") {
@@ -302,9 +304,9 @@ The most important invariants:
 
 Near-term:
 
-1. Typed parameter extraction.
-2. OpenAPI metadata.
-3. Request context and production server controls.
+1. `@Path` macro MVP on top of runtime typed path extraction.
+2. `DaylilyTesting` minimal test client.
+3. Lifecycle and production server controls before ecosystem modules.
 
 ## License
 

@@ -340,6 +340,13 @@ Guarantees:
 - Supports string lookup.
 - Supports dynamic member lookup.
 - Missing parameter returns `nil`.
+- Supports typed required extraction through `require(_:as:)`.
+- Supports typed optional extraction through `get(_:as:)`.
+- `String`, `Int`, `Double`, and `Bool` are built-in `ParameterDecodable` types.
+- Missing required path parameters throw `ParameterError.missing`.
+- Invalid typed path parameters throw `ParameterError.invalid`.
+- `ParameterError` maps to `400 Bad Request`.
+- `UUID` is not supported in `DaylilyCore` yet.
 
 Extension points:
 
@@ -416,7 +423,7 @@ Known limitations:
 
 Extension points:
 
-- typed parameter extraction
+- macro typed parameter injection
 - macro middleware attributes
 - route metadata
 - better diagnostics

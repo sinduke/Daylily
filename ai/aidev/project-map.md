@@ -119,6 +119,8 @@ Daylily/
 `Sources/DaylilyCore/Parameters.swift`
 
 - Path parameter container with dynamic member access.
+- Typed path extraction through `ParameterDecodable`.
+- `ParameterError` response mapping for missing and invalid typed parameters.
 
 `Sources/DaylilyCore/Request.swift`
 

@@ -17,6 +17,30 @@ Steps:
 
 Do not touch NIO transport unless the method cannot be parsed.
 
+## Add Typed Path Extraction
+
+Current shape:
+
+```swift
+let id = try request.parameters.require("id", as: Int.self)
+let maybePage = try request.parameters.get("page", as: Int.self)
+```
+
+Rules:
+
+1. Keep runtime extraction in `DaylilyCore`.
+2. Add macro sugar only after runtime behavior exists.
+3. Missing or invalid values must map to `400 Bad Request`.
+4. Error reasons must name the parameter and expected type.
+5. Do not add Foundation-backed types such as `UUID` without a deliberate design decision.
+6. Keep query/header/body extraction out of the first typed path task.
+
+To add a new standard-library parameter type:
+
+1. Conform the type to `ParameterDecodable`.
+2. Add checks for success and invalid input.
+3. Update `api-registry.md` and `registry.yml`.
+
 ## Extend JSON Body Decoding
 
 Current shape:
