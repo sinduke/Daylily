@@ -248,6 +248,44 @@ Non-goals:
 - Macro metadata lowering.
 - Documentation UI.
 
+## OpenAPI Document Contract
+
+Owner:
+
+- `DaylilyOpenAPI`
+
+Implemented by:
+
+- `ai/tasks/0014-002-openapi-schema-mvp.md`
+
+Shape:
+
+```swift
+let document = app.openAPI(title: "Daylily Demo", version: "0.1.0")
+```
+
+Guarantees:
+
+- `Application.openAPI(title:version:)` reads `Application.describeRoutes()`.
+- The generated document uses OpenAPI `3.1.0` by default.
+- Daylily route paths such as `/users/:id` become OpenAPI paths such as `/users/{id}`.
+- Route summary, description, operation ID, and tags map to operation metadata.
+- Path, query, and header metadata map to OpenAPI parameters.
+- Path parameters are always required in the generated document.
+- Request body metadata maps to OpenAPI request body content.
+- Response metadata maps to OpenAPI responses.
+- Routes without response metadata get a default `200 OK` response.
+- Known scalar Swift type names map to simple OpenAPI schemas.
+- Unknown Swift type names map to object schemas with `x-swift-type`.
+
+Non-goals:
+
+- Deep schema derivation from Swift declarations.
+- Validation rules.
+- Security schemes.
+- Documentation UI.
+- Client SDK generation.
+
 ## Routes Contract
 
 Input:

@@ -40,6 +40,7 @@ Implemented today:
 - Runtime middleware with application, group, and route scopes.
 - `DaylilyObservability` request logging middleware.
 - Route metadata runtime for future OpenAPI generation.
+- `DaylilyOpenAPI` minimal OpenAPI document generation from route metadata.
 - Application lifecycle hooks: `configure`, `boot`, `started`, `shutdown`, `cleanup`.
 - Default SIGINT/SIGTERM graceful server shutdown.
 - Explicit `ServerConfiguration` for host, port, backlog, address reuse, read batching, and shutdown signals.
@@ -60,7 +61,7 @@ Implemented today:
 Not implemented yet:
 
 - Macro typed input injection beyond `@Path`, `@Query`, `@Header`, and `@JSONBody` (true `@Body` spelling, optional values, etc.).
-- OpenAPI generation.
+- Full OpenAPI schema derivation from Swift types.
 - Dependency injection.
 - Macro middleware attributes.
 
@@ -284,10 +285,18 @@ let app = Application {
     )
 }
 
-let routes = app.describeRoutes()
+let document = app.openAPI(title: "Daylily Demo", version: "0.1.0")
 ```
 
-This is metadata only. Full OpenAPI document generation is still a later task.
+`DaylilyOpenAPI` maps route metadata into a minimal OpenAPI document. It converts Daylily path parameters such as `/users/:id` into OpenAPI paths such as `/users/{id}`.
+
+The document is `Codable`, so it can use the existing `JSON(...)` response wrapper:
+
+```swift
+let response = JSON(document)
+```
+
+This is still an MVP. Deep schema derivation from Swift types is intentionally deferred.
 
 ## DaylilyTesting
 

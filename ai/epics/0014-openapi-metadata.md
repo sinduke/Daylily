@@ -16,7 +16,7 @@ Target direction:
 Recommended tasks:
 
 - `0014-001-route-metadata-runtime` (implemented)
-- `0014-002-openapi-schema-mvp`
+- `0014-002-openapi-schema-mvp` (implemented)
 - `0014-003-macro-metadata-bridge`
 
 Design notes:
@@ -25,6 +25,7 @@ Design notes:
 - Avoid inventing metadata that macros cannot lower into runtime data.
 - Typed handler inputs should inform path/body/query/header metadata.
 - `0014-001` delivered runtime `RouteMetadata`, `Route.describe(...)`, and `Application.describeRoutes()`.
+- `0014-002` delivered `DaylilyOpenAPI` and minimal OpenAPI document generation from route metadata.
 
 Non-goals for the first task:
 

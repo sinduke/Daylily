@@ -19,7 +19,7 @@ struct App {
 }
 ```
 
-Current implemented surfaces are the runtime DSL, runtime route metadata, runtime middleware, `DaylilyObservability` request logging middleware, application lifecycle hooks, the Daylily-owned `Body` model, explicit buffered body replacement, JSON body/response helpers, the macro route/group MVP, macro `@Path`, `@Query`, `@Header`, and `@JSONBody` typed input injection, and `DaylilyTesting` in-memory request/response helpers.
+Current implemented surfaces are the runtime DSL, runtime route metadata, minimal `DaylilyOpenAPI` document generation, runtime middleware, `DaylilyObservability` request logging middleware, application lifecycle hooks, the Daylily-owned `Body` model, explicit buffered body replacement, JSON body/response helpers, the macro route/group MVP, macro `@Path`, `@Query`, `@Header`, and `@JSONBody` typed input injection, and `DaylilyTesting` in-memory request/response helpers.
 
 Runtime DSL:
 
@@ -124,9 +124,10 @@ Route metadata is runtime-owned:
 
 ```swift
 let descriptions = app.describeRoutes()
+let document = app.openAPI(title: "Daylily Demo", version: "0.1.0")
 ```
 
-`Route.describe(...)` stores summary, description, tags, operation ID, path/query/header inputs, request body metadata, and response metadata. It is metadata only; full OpenAPI document generation is a later task.
+`Route.describe(...)` stores summary, description, tags, operation ID, path/query/header inputs, request body metadata, and response metadata. `DaylilyOpenAPI` maps that metadata into a minimal OpenAPI document. Deep schema derivation from Swift types is still deferred.
 
 Macro route/group MVP:
 
@@ -209,6 +210,7 @@ Implemented:
 - Core runtime.
 - Basic route DSL: `Get`, `Post`, `Group`.
 - Runtime route metadata and `Application.describeRoutes()`.
+- Minimal OpenAPI document generation through `Application.openAPI(title:version:)`.
 - Runtime middleware at application, group, and route scope.
 - `DaylilyObservability` request logging middleware.
 - Application lifecycle hooks: `configure`, `boot`, `started`, `shutdown`, `cleanup`.
@@ -311,6 +313,5 @@ Do not start with:
 Current strategic order:
 
 1. Keep AIDEV self-contained.
-2. Add the OpenAPI schema/document MVP.
-3. Add macro metadata lowering.
-4. Return to request id, timing, and observability hooks.
+2. Add macro metadata lowering.
+3. Return to request id, timing, and observability hooks.

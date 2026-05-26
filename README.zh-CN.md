@@ -40,6 +40,7 @@ Daylily 不是 Vapor 或 Hummingbird 的复制品。它是在探索：如果 AI 
 - 支持 application、group、route 作用域的 runtime middleware。
 - `DaylilyObservability` request logging middleware。
 - 面向未来 OpenAPI generation 的 route metadata runtime。
+- `DaylilyOpenAPI`，可以从 route metadata 生成最小 OpenAPI document。
 - Application lifecycle hooks：`configure`、`boot`、`started`、`shutdown`、`cleanup`。
 - 默认 SIGINT/SIGTERM graceful server shutdown。
 - 显式 `ServerConfiguration`，用于 host、port、backlog、address reuse、read batching 和 shutdown signals。
@@ -60,7 +61,7 @@ Daylily 不是 Vapor 或 Hummingbird 的复制品。它是在探索：如果 AI 
 还没有实现：
 
 - `@Path`、`@Query`、`@Header`、`@JSONBody` 之外的宏级类型化输入注入（真正的 `@Body` 写法、optional values 等）。
-- OpenAPI 生成。
+- 从 Swift 类型深度推导完整 OpenAPI schema。
 - 依赖注入。
 - Macro middleware attributes。
 
@@ -284,10 +285,18 @@ let app = Application {
     )
 }
 
-let routes = app.describeRoutes()
+let document = app.openAPI(title: "Daylily Demo", version: "0.1.0")
 ```
 
-这一步只提供 metadata。完整 OpenAPI document generation 仍然是后续任务。
+`DaylilyOpenAPI` 会把 route metadata 映射成一个最小 OpenAPI document。它会把 Daylily 的 `/users/:id` 转成 OpenAPI 的 `/users/{id}`。
+
+这个 document 是 `Codable`，所以可以使用已有的 `JSON(...)` response wrapper：
+
+```swift
+let response = JSON(document)
+```
+
+这仍然是 MVP。Swift 类型的深度 schema 推导会放到后续任务。
 
 ## DaylilyTesting
 

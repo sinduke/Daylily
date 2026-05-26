@@ -11,6 +11,7 @@ This file tracks the current public API surface. Update it whenever public names
 @_exported import DaylilyJSON
 @_exported import DaylilyNIO
 @_exported import DaylilyObservability
+@_exported import DaylilyOpenAPI
 ```
 
 ### Macros
@@ -127,6 +128,47 @@ Rules:
 - Thrown `ResponseError` values record `error.status` and then rethrow.
 - Unknown thrown errors record `500 Internal Server Error` and then rethrow.
 - The module must not require a logging backend, tracing SDK, or transport dependency.
+
+## Module DaylilyOpenAPI
+
+### OpenAPI Document API
+
+```swift
+public struct OpenAPIDocument: Codable, Equatable, Sendable
+public struct OpenAPIInfo: Codable, Equatable, Sendable
+public struct OpenAPIOperation: Codable, Equatable, Sendable
+public struct OpenAPIParameter: Codable, Equatable, Sendable
+public struct OpenAPIRequestBody: Codable, Equatable, Sendable
+public struct OpenAPIResponse: Codable, Equatable, Sendable
+public struct OpenAPIMediaType: Codable, Equatable, Sendable
+public struct OpenAPISchema: Codable, Equatable, Sendable
+
+public struct OpenAPIBuilder: Sendable {
+    public init()
+
+    public func document(
+        for routes: [RouteDescription],
+        title: String,
+        version: String,
+        openapi: String = "3.1.0"
+    ) -> OpenAPIDocument
+}
+
+public extension Application {
+    func openAPI(title: String, version: String, openapi: String = "3.1.0") -> OpenAPIDocument
+}
+```
+
+Rules:
+
+- `DaylilyOpenAPI` depends on `DaylilyCore`.
+- `Application.openAPI(title:version:)` reads `Application.describeRoutes()`.
+- Daylily route paths such as `/users/:id` map to OpenAPI paths such as `/users/{id}`.
+- Path/query/header metadata maps to OpenAPI parameters.
+- JSON body metadata maps to OpenAPI request body content.
+- Response metadata maps to OpenAPI responses.
+- Unknown Swift type names map to object schemas with `x-swift-type`.
+- Deep schema derivation is deferred.
 
 ## Module DaylilyTesting
 

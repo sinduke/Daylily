@@ -173,7 +173,8 @@ Practical interleave:
 0012-003 Server configuration (delivered)
 0013-001 Request logging middleware (delivered)
 0014-001 Route metadata runtime (delivered)
-0014-002 OpenAPI schema MVP
+0014-002 OpenAPI schema MVP (delivered)
+0014-003 Macro metadata bridge
 ```
 
 ## Recently Completed Epic
@@ -229,7 +230,7 @@ let app = Application {
 
 Next task:
 
-- `0014-002-openapi-schema-mvp`
+- `0014-003-macro-metadata-bridge`
 
 ### 0013 Observability Middleware
 
@@ -260,6 +261,7 @@ Status: in-progress
 Delivered:
 
 - `0014-001-route-metadata-runtime`
+- `0014-002-openapi-schema-mvp`
 
 Delivered shape:
 
@@ -274,11 +276,12 @@ Get("/users/:id") {
 )
 
 let descriptions = app.describeRoutes()
+let document = app.openAPI(title: "Daylily Demo", version: "0.1.0")
 ```
 
 Next task:
 
-- `0014-002-openapi-schema-mvp`
+- `0014-003-macro-metadata-bridge`
 
 ### Future Epics
 

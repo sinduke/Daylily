@@ -11,6 +11,7 @@ enum DaylilyChecks {
         try serverConfiguration()
         try routeMetadata()
         try groupedRouteMetadata()
+        try openAPIDocument()
         try await testClientGet()
         try await testClientPostBody()
         try await testClientRespondToRequest()
@@ -234,6 +235,102 @@ enum DaylilyChecks {
             routes == [RouteDescription(method: .get, path: "/api/users/:id", metadata: expectedMetadata)],
             "expected grouped route metadata to survive prefix and middleware"
         )
+    }
+
+    private static func openAPIDocument() throws {
+        let app = Application {
+            Get("/users/:id") {
+                "ok"
+            }
+            .describe(
+                summary: "Show user",
+                tags: ["Users"],
+                inputs: [
+                    .path("id", type: "Int"),
+                    .query("includePosts", type: "Bool", required: false),
+                ],
+                responses: [
+                    .response(.ok, contentType: "application/json", type: "UserResponse"),
+                ]
+            )
+
+            Post("/users") {
+                Status.created
+            }
+            .describe(
+                summary: "Create user",
+                tags: ["Users"],
+                requestBody: .json("CreateUserInput"),
+                responses: [
+                    .response(.created, contentType: "application/json", type: "UserResponse"),
+                ]
+            )
+
+            Get("/ping") {
+                "pong"
+            }
+        }
+
+        let document = app.openAPI(title: "Daylily Demo", version: "0.1.0")
+        let showUser = document.paths["/users/{id}"]?["get"]
+        let createUser = document.paths["/users"]?["post"]
+        let ping = document.paths["/ping"]?["get"]
+
+        try expect(document.openapi == "3.1.0", "expected default OpenAPI version")
+        try expect(document.info == OpenAPIInfo(title: "Daylily Demo", version: "0.1.0"), "expected OpenAPI info")
+        try expect(showUser?.summary == "Show user", "expected OpenAPI operation summary")
+        try expect(showUser?.tags == ["Users"], "expected OpenAPI operation tags")
+        try expect(
+            showUser?.parameters == [
+                OpenAPIParameter(
+                    name: "id",
+                    location: "path",
+                    required: true,
+                    schema: OpenAPISchema(type: "integer", format: "int64")
+                ),
+                OpenAPIParameter(
+                    name: "includePosts",
+                    location: "query",
+                    required: false,
+                    schema: OpenAPISchema(type: "boolean")
+                ),
+            ],
+            "expected OpenAPI parameters from route metadata"
+        )
+        try expect(
+            showUser?.responses["200"] == OpenAPIResponse(
+                description: "OK",
+                content: [
+                    "application/json": OpenAPIMediaType(
+                        schema: OpenAPISchema(type: "object", swiftType: "UserResponse")
+                    ),
+                ]
+            ),
+            "expected OpenAPI response metadata"
+        )
+        try expect(
+            createUser?.requestBody == OpenAPIRequestBody(
+                required: true,
+                content: [
+                    "application/json": OpenAPIMediaType(
+                        schema: OpenAPISchema(type: "object", swiftType: "CreateUserInput")
+                    ),
+                ]
+            ),
+            "expected OpenAPI JSON request body metadata"
+        )
+        try expect(
+            createUser?.responses["201"] == OpenAPIResponse(
+                description: "Created",
+                content: [
+                    "application/json": OpenAPIMediaType(
+                        schema: OpenAPISchema(type: "object", swiftType: "UserResponse")
+                    ),
+                ]
+            ),
+            "expected OpenAPI created response metadata"
+        )
+        try expect(ping?.responses["200"] == OpenAPIResponse(description: "OK"), "expected default 200 response")
     }
 
     private static func testClientGet() async throws {

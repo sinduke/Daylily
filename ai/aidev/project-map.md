@@ -16,6 +16,7 @@ Daylily/
 │   ├── DaylilyMacros/
 │   ├── DaylilyNIO/
 │   ├── DaylilyObservability/
+│   ├── DaylilyOpenAPI/
 │   ├── DaylilyTesting/
 │   └── HelloDaylily/
 └── ai/
@@ -30,7 +31,7 @@ Daylily/
 `Daylily`
 
 - Public user-facing library.
-- Re-exports `DaylilyCore`, `DaylilyJSON`, `DaylilyNIO`, and `DaylilyObservability`.
+- Re-exports `DaylilyCore`, `DaylilyJSON`, `DaylilyNIO`, `DaylilyObservability`, and `DaylilyOpenAPI`.
 - Adds `Application.run(host:port:)`.
 - Exposes `@DaylilyServer`, `@GET`, `@POST`, and `@GROUP`.
 
@@ -69,6 +70,14 @@ Daylily/
 - Owns `RequestLoggingMiddleware`, `RequestLog`, and request log sinks.
 - Must not pull logging backends, tracing SDKs, or transport-specific APIs into `DaylilyCore`.
 
+`DaylilyOpenAPI`
+
+- Minimal OpenAPI document generation.
+- Depends on `DaylilyCore`.
+- Owns OpenAPI DTOs and `Application.openAPI(title:version:)`.
+- Reads `Application.describeRoutes()` and maps runtime metadata into an OpenAPI document.
+- Does not derive deep Swift schemas in the MVP.
+
 `DaylilyTesting`
 
 - Transport-free testing helpers.
@@ -94,7 +103,7 @@ Daylily/
 
 `Sources/Daylily/Exports.swift`
 
-- Re-exports `DaylilyCore`, `DaylilyJSON`, `DaylilyNIO`, and `DaylilyObservability`.
+- Re-exports `DaylilyCore`, `DaylilyJSON`, `DaylilyNIO`, `DaylilyObservability`, and `DaylilyOpenAPI`.
 
 `Sources/Daylily/Macros.swift`
 
@@ -230,6 +239,12 @@ Daylily/
 - Defines `RequestLogSink`.
 - Defines `RequestLoggingMiddleware`.
 - Provides `ConsoleRequestLogSink` and `InMemoryRequestLogSink`.
+
+`Sources/DaylilyOpenAPI/OpenAPI.swift`
+
+- Defines minimal OpenAPI DTOs.
+- Defines `OpenAPIBuilder`.
+- Adds `Application.openAPI(title:version:openapi:)`.
 
 `Sources/DaylilyTesting/TestClient.swift`
 

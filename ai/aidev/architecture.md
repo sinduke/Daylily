@@ -56,6 +56,12 @@ Daylily
 DaylilyObservability
   ↓
 DaylilyCore
+
+Daylily
+  ↓
+DaylilyOpenAPI
+  ↓
+DaylilyCore
 ```
 
 This diagram is conceptual. Package dependencies are:
@@ -66,9 +72,11 @@ Daylily -> DaylilyJSON
 Daylily -> DaylilyMacros
 Daylily -> DaylilyNIO
 Daylily -> DaylilyObservability
+Daylily -> DaylilyOpenAPI
 DaylilyJSON -> DaylilyCore
 DaylilyJSON -> Foundation
 DaylilyObservability -> DaylilyCore
+DaylilyOpenAPI -> DaylilyCore
 DaylilyTesting -> DaylilyCore
 DaylilyTesting -> Foundation
 DaylilyMacros -> SwiftSyntax
@@ -105,6 +113,8 @@ JSON support lives in `DaylilyJSON`, not `DaylilyCore`. `DaylilyJSON` may import
 Testing support lives in `DaylilyTesting`, not `DaylilyCore`. `DaylilyTesting` may use Foundation for test JSON helpers, must stay transport-free and NIO-free, and should call `Application.respond(to:)` directly.
 
 Observability helpers live in `DaylilyObservability`, not `DaylilyCore`. The first slice is request logging middleware. It may depend on `DaylilyCore`, but it must not force logging backends, tracing SDKs, metrics clients, or transport-specific APIs into the core runtime.
+
+OpenAPI document generation lives in `DaylilyOpenAPI`, not `DaylilyCore`. `DaylilyCore` stores runtime metadata; `DaylilyOpenAPI` converts route descriptions into OpenAPI DTOs. Deep Swift schema derivation is not part of the first generator slice.
 
 ## Runtime First
 
@@ -230,6 +240,18 @@ Application.describeRoutes()
 ```
 
 OpenAPI metadata starts in the runtime route model. Macros and generators must lower into or read this runtime metadata instead of inventing a parallel source of truth. Route metadata is descriptive only; it does not change matching, middleware order, lifecycle behavior, or handler execution.
+
+0014-002 minimal OpenAPI document:
+
+```text
+Application.describeRoutes()
+  ↓
+DaylilyOpenAPI.OpenAPIBuilder
+  ↓
+OpenAPIDocument
+```
+
+The generator maps Daylily route paths such as `/users/:id` into OpenAPI paths such as `/users/{id}`. It maps known scalar Swift type names into simple OpenAPI schema types and preserves unknown Swift type names through `x-swift-type`.
 
 ## Router Rules
 

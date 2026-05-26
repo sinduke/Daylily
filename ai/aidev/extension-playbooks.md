@@ -367,6 +367,8 @@ Get("/users/:id") {
     inputs: [.path("id", type: "Int")],
     responses: [.response(.ok, contentType: "text/plain", type: "String")]
 )
+
+let document = app.openAPI(title: "Daylily Demo", version: "0.1.0")
 ```
 
 Rules:
@@ -378,10 +380,10 @@ Rules:
 5. Keep schema derivation separate from route metadata storage.
 6. Macro metadata bridge must lower into runtime metadata.
 7. Add behavior checks for metadata preservation.
+8. OpenAPI document generation should read `Application.describeRoutes()`, not route source code.
 
 Next steps:
 
-- Generate a minimal OpenAPI document from route descriptions.
 - Lower macro typed inputs into `RouteInputMetadata` and `RouteBodyMetadata`.
 - Add schema hooks after JSON/body conventions mature.
 
