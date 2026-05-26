@@ -5,7 +5,7 @@ project:
   license: MIT
   license_file: LICENSE
   swift_tools_version: "6.0"
-  current_phase: "graceful_shutdown_and_server_controls"
+  current_phase: "server_configuration_controls"
   authoritative_ai_entry:
     - AIDEV.md
     - ai/aidev/start-here.md
@@ -308,6 +308,18 @@ implemented_features:
       - "Application.run calls started only after NIO bind succeeds"
       - "shutdown and cleanup are attempted if server run fails after boot"
       - "lifecycle APIs do not expose NIO types"
+  graceful_shutdown:
+    status: implemented
+    epic: "0012-lifecycle-server-controls"
+    task: "0012-002-graceful-shutdown"
+    module: DaylilyNIO
+    behavior:
+      - "SIGINT and SIGTERM close the server channel"
+      - "Application.run can continue into shutdown and cleanup lifecycle phases"
+    decisions:
+      - "signal handling is transport-owned"
+      - "NIO channel types are not exposed to user APIs"
+      - "request draining and shutdown timeouts are deferred"
   daylily_testing_minimal_client:
     status: implemented
     epic: "0011-daylily-testing"
@@ -510,7 +522,8 @@ planned_features:
     epic: "0012-lifecycle-server-controls"
     completed:
       - "0012-001-application-lifecycle-mvp"
-    next_task: "0012-002-graceful-shutdown"
+      - "0012-002-graceful-shutdown"
+    next_task: "0012-003-server-configuration"
   dependency_injection:
     status: future
 
@@ -948,7 +961,7 @@ runtime_rules:
   macro_path_parameter_policy: "@Path parameters are marker wrappers; @DaylilyServer validates route membership and lowers them into Parameters.require(_:as:)."
   query_and_header_input_policy: "Request.query uses QueryParameters; Headers has typed require/get; @Query lowers to req.query.require and @Header lowers to req.headers.require."
   macro_json_body_policy: "@JSONBody parameters are marker wrappers in DaylilyJSON; @DaylilyServer lowers them into try await req.json(Type.self). True @Body spelling is deferred because Body is the raw request body type."
-  lifecycle_policy: "Application lifecycle phases are configure, boot, started, shutdown, cleanup. Application.run binds lifecycle to transport; Application.respond(to:) does not run lifecycle."
+  lifecycle_policy: "Application lifecycle phases are configure, boot, started, shutdown, cleanup. Application.run binds lifecycle to transport; Application.respond(to:) does not run lifecycle. The default NIO server closes on SIGINT/SIGTERM."
   test_client_policy: "TestClient is an in-memory helper in DaylilyTesting; it calls Application.respond(to:) directly and does not use transport. TestRequest and response assertions are testing helpers, not runtime behavior."
   wildcard_prefix: "*"
   current_body_model: "Body one-shot API with NIO true streaming bridge and in-process buffered Body.bytes support"
@@ -1015,6 +1028,7 @@ aidev_files:
     - ai/tasks/0011-001-minimal-test-client.md
     - ai/tasks/0011-002-request-builders-and-json-assertions.md
     - ai/tasks/0012-001-application-lifecycle-mvp.md
+    - ai/tasks/0012-002-graceful-shutdown.md
   docs:
     - ai/aidev/project-map.md
     - ai/aidev/architecture.md
@@ -1116,11 +1130,11 @@ roadmap:
     - "0011-001-minimal-test-client"
     - "0011-002-request-builders-and-json-assertions"
     - "0012-001-application-lifecycle-mvp"
+    - "0012-002-graceful-shutdown"
   in_progress: []
   next_recommended:
-    - "0012-002-graceful-shutdown"
+    - "0012-003-server-configuration"
   later:
-    - "0012-002-graceful-shutdown"
     - "0012-003-server-configuration"
     - "0013-001-request-logging-middleware"
     - "0014-001-route-metadata-runtime"

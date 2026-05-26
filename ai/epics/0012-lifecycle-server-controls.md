@@ -20,7 +20,7 @@ cleanup
 Recommended tasks:
 
 - `0012-001-application-lifecycle-mvp` (implemented)
-- `0012-002-graceful-shutdown`
+- `0012-002-graceful-shutdown` (implemented)
 - `0012-003-server-configuration`
 
 Design notes:
@@ -29,6 +29,7 @@ Design notes:
 - Transport should integrate with lifecycle without leaking NIO types into user APIs.
 - Server controls should remain explicit and boring.
 - `0012-001` delivered runtime lifecycle hooks and integrated `Application.run`.
+- `0012-002` delivered default SIGINT/SIGTERM server channel shutdown.
 
 Non-goals for the first task:
 

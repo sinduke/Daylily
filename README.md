@@ -39,6 +39,7 @@ Implemented today:
 - True NIO request body streaming bridge with bounded buffering and practical backpressure.
 - Runtime middleware with application, group, and route scopes.
 - Application lifecycle hooks: `configure`, `boot`, `started`, `shutdown`, `cleanup`.
+- Default SIGINT/SIGTERM graceful server shutdown.
 - Explicit `withBufferedBody(upTo:_:)` helper for bounded body inspection and replacement.
 - `ResponseConvertible` for `String`, `Status`, and `Response`.
 - Async JSON body decoding with `request.body.json(...)` and `request.json(...)`.
@@ -57,7 +58,7 @@ Not implemented yet:
 
 - Macro typed input injection beyond `@Path`, `@Query`, `@Header`, and `@JSONBody` (true `@Body` spelling, optional values, etc.).
 - OpenAPI generation.
-- Graceful shutdown and production server controls.
+- Production server controls.
 - Dependency injection.
 - Macro middleware attributes.
 
@@ -423,7 +424,7 @@ The most important invariants:
 
 Near-term:
 
-1. Graceful shutdown and production server controls.
+1. Production server controls.
 2. Observability middleware.
 3. OpenAPI metadata before ecosystem modules.
 

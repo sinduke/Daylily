@@ -49,11 +49,11 @@ Guarantees:
 - `Application.run` calls `shutdown` after server close.
 - `Application.run` calls `cleanup` after shutdown.
 - `shutdown` and `cleanup` are attempted if server run fails after boot.
+- SIGINT/SIGTERM close the default NIO server channel so lifecycle shutdown can continue.
 - Lifecycle APIs do not expose NIO types.
 
 Known limitations:
 
-- No signal handling yet.
 - No graceful request draining yet.
 - No worker or pool integration yet.
 

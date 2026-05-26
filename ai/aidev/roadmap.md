@@ -169,7 +169,8 @@ Practical interleave:
 0010-003 @JSONBody macro/runtime bridge (delivered)
 0010-004 @Query / @Header (delivered)
 0012-001 Application lifecycle MVP (delivered)
-0012-002 Graceful shutdown
+0012-002 Graceful shutdown (delivered)
+0012-003 Server configuration
 ```
 
 ## Recently Completed Epic
@@ -208,6 +209,7 @@ Status: in-progress
 Delivered:
 
 - `0012-001-application-lifecycle-mvp`
+- `0012-002-graceful-shutdown`
 
 Delivered shape:
 
@@ -223,7 +225,7 @@ let app = Application {
 
 Next task:
 
-- `0012-002-graceful-shutdown`
+- `0012-003-server-configuration`
 
 ### Future Epics
 

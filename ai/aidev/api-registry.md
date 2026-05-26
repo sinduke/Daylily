@@ -221,6 +221,7 @@ Rules:
 - `shutdown` and `cleanup` run after server close.
 - `shutdown` and `cleanup` are attempted if server run fails after boot.
 - Lifecycle APIs do not expose NIO types.
+- The default NIO server closes on SIGINT/SIGTERM so `shutdown` and `cleanup` can run.
 
 ### Route
 
@@ -895,6 +896,12 @@ public struct NIOHTTPServer: Sendable {
     public func run(started: @escaping @Sendable () async throws -> Void = {}) async throws
 }
 ```
+
+Rules:
+
+- `run(started:)` binds, calls `started`, and waits for the server channel to close.
+- Default SIGINT/SIGTERM handling closes the server channel.
+- Signal handling stays in `DaylilyNIO` and does not leak NIO types into user APIs.
 
 Rules:
 

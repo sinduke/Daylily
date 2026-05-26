@@ -39,6 +39,7 @@ Daylily 不是 Vapor 或 Hummingbird 的复制品。它是在探索：如果 AI 
 - 真正的 NIO request body streaming bridge，带有有界缓冲和实用 backpressure。
 - 支持 application、group、route 作用域的 runtime middleware。
 - Application lifecycle hooks：`configure`、`boot`、`started`、`shutdown`、`cleanup`。
+- 默认 SIGINT/SIGTERM graceful server shutdown。
 - 显式的 `withBufferedBody(upTo:_:)` helper，用于有界 body 检查和 replacement。
 - `String`、`Status`、`Response` 的 `ResponseConvertible` 支持。
 - 通过 `request.body.json(...)` 和 `request.json(...)` 异步解码 JSON body。
@@ -57,7 +58,7 @@ Daylily 不是 Vapor 或 Hummingbird 的复制品。它是在探索：如果 AI 
 
 - `@Path`、`@Query`、`@Header`、`@JSONBody` 之外的宏级类型化输入注入（真正的 `@Body` 写法、optional values 等）。
 - OpenAPI 生成。
-- Graceful shutdown 和生产级 server 控制。
+- 生产级 server 控制。
 - 依赖注入。
 - Macro middleware attributes。
 
@@ -423,7 +424,7 @@ Daylily/
 
 近期：
 
-1. Graceful shutdown 和生产级 server 控制。
+1. 生产级 server 控制。
 2. Observability middleware。
 3. OpenAPI metadata，然后再扩生态模块。
 

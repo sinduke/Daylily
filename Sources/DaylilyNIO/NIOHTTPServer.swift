@@ -1,4 +1,6 @@
 @_spi(Transport) import DaylilyCore
+import Darwin
+import Dispatch
 import NIOCore
 import NIOHTTP1
 import NIOPosix
@@ -46,6 +48,13 @@ public struct NIOHTTPServer: Sendable {
         let channel = try await bootstrap.bind(host: configuration.host, port: configuration.port).get()
         print("Daylily listening on http://\(configuration.host):\(configuration.port)")
 
+        let signalSources = Self.installGracefulShutdownSignals(on: channel)
+        defer {
+            for source in signalSources {
+                source.cancel()
+            }
+        }
+
         do {
             try await started()
             try await channel.closeFuture.get()
@@ -54,6 +63,24 @@ public struct NIOHTTPServer: Sendable {
             channel.close(promise: nil)
             try? await group.shutdownGracefully()
             throw error
+        }
+    }
+
+    private static func installGracefulShutdownSignals(on channel: any Channel) -> [DispatchSourceSignal] {
+        let eventLoop = channel.eventLoop
+        let signals: [Int32] = [SIGINT, SIGTERM]
+
+        return signals.map { signalNumber in
+            signal(signalNumber, SIG_IGN)
+
+            let source = DispatchSource.makeSignalSource(signal: signalNumber, queue: .global())
+            source.setEventHandler {
+                eventLoop.execute {
+                    channel.close(promise: nil)
+                }
+            }
+            source.resume()
+            return source
         }
     }
 }
