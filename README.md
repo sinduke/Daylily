@@ -44,7 +44,7 @@ Implemented today:
 - NIO-backed HTTP/1.1 server.
 - Macro route/group MVP: `@DaylilyServer`, `@GET`, `@POST`, `@GROUP`.
 - Macro `@Path` typed path parameter injection.
-- `DaylilyTesting` minimal in-memory `TestClient`.
+- `DaylilyTesting` in-memory `TestClient`, request builders, and JSON assertions.
 - Default `swift run` example server.
 - Lightweight behavior checks.
 - AIDEV project handoff system.
@@ -191,7 +191,7 @@ The replacement body is still one-shot, and the helper requires an explicit size
 
 ## DaylilyTesting
 
-`DaylilyTesting` provides a transport-free test client:
+`DaylilyTesting` provides transport-free test helpers:
 
 ```swift
 import Daylily
@@ -204,6 +204,30 @@ let app = Application {
 }
 
 let response = try await TestClient(app).get("/hello")
+
+try response.requireStatus(.ok)
+try response.requireBody("Daylily ships.")
+```
+
+It also includes request builders and JSON assertions:
+
+```swift
+struct EchoPayload: Codable, Equatable, Sendable {
+    let message: String
+}
+
+struct EchoResponse: Codable, Equatable, Sendable {
+    let echo: String
+}
+
+let request = try TestRequest
+    .post("/json/echo")
+    .withJSON(EchoPayload(message: "hi"))
+
+let jsonResponse = try await TestClient(app).send(request)
+
+try jsonResponse.requireStatus(.ok)
+try jsonResponse.requireJSON(EchoResponse(echo: "hi"))
 ```
 
 `TestClient` calls `Application.respond(to:)` directly, so tests exercise the same in-memory runtime behavior without opening a socket.
@@ -333,8 +357,8 @@ The most important invariants:
 
 Near-term:
 
-1. `DaylilyTesting` request builders and JSON assertions.
-2. `@Body` JSON macro/runtime bridge.
+1. `@Body` JSON macro/runtime bridge.
+2. `@Query` and `@Header` typed inputs.
 3. Lifecycle and production server controls before ecosystem modules.
 
 ## License

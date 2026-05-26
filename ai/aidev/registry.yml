@@ -5,7 +5,7 @@ project:
   license: MIT
   license_file: LICENSE
   swift_tools_version: "6.0"
-  current_phase: "daylily_testing_request_builders"
+  current_phase: "body_json_macro_runtime_bridge"
   authoritative_ai_entry:
     - AIDEV.md
     - ai/aidev/start-here.md
@@ -141,10 +141,14 @@ products:
     role: testing_helpers
     responsibility:
       - provide_transport_free_test_client
+      - provide_test_request_builder
+      - provide_response_assertion_helpers
+      - provide_json_test_helpers
       - call_application_respond_directly
       - support_in_memory_request_response_checks
     depends_on:
       - DaylilyCore
+      - Foundation
     forbidden_imports:
       - NIO
       - NIOCore
@@ -227,9 +231,31 @@ implemented_features:
       - "TestClient.post(_:headers:body:)"
     decisions:
       - "TestClient calls Application.respond(to:) directly"
-      - "DaylilyTesting depends on DaylilyCore only"
+      - "0011-001 kept DaylilyTesting to DaylilyCore only"
       - "TestClient is transport-free and opens no sockets"
-      - "rich request builders and JSON assertions are deferred to 0011-002"
+      - "rich request builders and JSON assertions are delivered by 0011-002"
+  daylily_testing_request_builders_and_json_assertions:
+    status: implemented
+    epic: "0011-daylily-testing"
+    task: "0011-002-request-builders-and-json-assertions"
+    module: DaylilyTesting
+    public_api:
+      - TestRequest
+      - TestFailure
+      - "TestClient.send(_:)"
+      - "TestClient.postJSON(_:headers:body:)"
+      - "Response.json(_:)"
+      - "Response.requireStatus(_:)"
+      - "Response.requireBody(_:)"
+      - "Response.requireJSON(_:as:)"
+    decisions:
+      - "TestRequest builds in-memory Request values"
+      - "TestRequest.withJSON encodes with Foundation JSONEncoder"
+      - "TestRequest.withJSON sets content-type to application/json when absent"
+      - "Response JSON helpers decode with Foundation JSONDecoder"
+      - "Response assertion helpers throw TestFailure"
+      - "DaylilyTesting remains transport-free and NIO-free"
+      - "runtime JSON behavior remains owned by DaylilyJSON"
   nio_http_server:
     status: implemented
     protocol: HTTP/1.1
@@ -380,11 +406,12 @@ planned_features:
       - "0010-002-path-macro-mvp"
     next_task: "0010-003-body-json-macro-runtime-bridge"
   daylily_testing:
-    status: in-progress
+    status: implemented
     epic: "0011-daylily-testing"
     completed:
       - "0011-001-minimal-test-client"
-    next_task: "0011-002-request-builders-and-json-assertions"
+      - "0011-002-request-builders-and-json-assertions"
+    next_task: null
   openapi:
     status: future
   dependency_injection:
@@ -422,11 +449,51 @@ public_api:
       methods:
         - "public init(_ application: Application)"
         - "public func respond(to request: Request) async throws -> Response"
+        - "public func send(_ request: TestRequest) async throws -> Response"
         - "public func get(_ path: String, headers: Headers = [:]) async throws -> Response"
         - "public func post(_ path: String, headers: Headers = [:], body: Body = .bytes([])) async throws -> Response"
         - "public func post(_ path: String, headers: Headers = [:], body: [UInt8]) async throws -> Response"
         - "public func post(_ path: String, headers: Headers = [:], body: String) async throws -> Response"
+        - "public func postJSON<Value: Encodable>(_ path: String, headers: Headers = [:], body value: Value) async throws -> Response"
       contract: "Transport-free in-memory test client that calls Application.respond(to:) directly."
+    TestRequest:
+      kind: struct
+      conforms:
+        - Sendable
+      properties:
+        - "method: HTTPMethod"
+        - "path: String"
+        - "headers: Headers"
+        - "body: Body"
+      factories:
+        - "public static func get(_ path: String, headers: Headers = [:]) -> TestRequest"
+        - "public static func post(_ path: String, headers: Headers = [:], body: Body = .bytes([])) -> TestRequest"
+      methods:
+        - "public func withHeader(_ name: String, _ value: String) -> TestRequest"
+        - "public func withBody(_ body: Body) -> TestRequest"
+        - "public func withBody(_ bytes: [UInt8]) -> TestRequest"
+        - "public func withBody(_ string: String) -> TestRequest"
+        - "public func withJSON<Value: Encodable>(_ value: Value) throws -> TestRequest"
+        - "public func toRequest() -> Request"
+      contract: "Small immutable-style builder for in-memory Daylily Request values."
+    TestFailure:
+      kind: enum
+      conforms:
+        - Error
+        - Sendable
+        - CustomStringConvertible
+      cases:
+        - "status(expected: Status, actual: Status)"
+        - "body(expected: String, actual: String)"
+        - "json(reason: String)"
+    Response_testing_helpers:
+      kind: extension_methods
+      methods:
+        - "public func json<Value: Decodable>(_ type: Value.Type = Value.self) throws -> Value"
+        - "public func requireStatus(_ expected: Status) throws"
+        - "public func requireBody(_ expected: String) throws"
+        - "public func requireJSON<Value: Decodable & Equatable>(_ expected: Value, as type: Value.Type = Value.self) throws"
+      contract: "Testing-only response decode and assertion helpers in DaylilyTesting."
   DaylilyCore:
     Application:
       kind: struct
@@ -681,7 +748,7 @@ runtime_rules:
   path_parameter_prefix: ":"
   typed_path_parameter_policy: "Parameters.require(_:as:) and Parameters.get(_:as:) use ParameterDecodable; missing required and invalid values map to 400; UUID is deferred."
   macro_path_parameter_policy: "@Path parameters are marker wrappers; @DaylilyServer validates route membership and lowers them into Parameters.require(_:as:)."
-  test_client_policy: "TestClient is an in-memory helper in DaylilyTesting; it calls Application.respond(to:) directly and does not use transport."
+  test_client_policy: "TestClient is an in-memory helper in DaylilyTesting; it calls Application.respond(to:) directly and does not use transport. TestRequest and response assertions are testing helpers, not runtime behavior."
   wildcard_prefix: "*"
   current_body_model: "Body one-shot API with NIO true streaming bridge and in-process buffered Body.bytes support"
   future_body_model: "response body streaming and higher-level upload helpers"
@@ -743,6 +810,7 @@ aidev_files:
     - ai/tasks/0010-001-typed-path-extraction-runtime.md
     - ai/tasks/0010-002-path-macro-mvp.md
     - ai/tasks/0011-001-minimal-test-client.md
+    - ai/tasks/0011-002-request-builders-and-json-assertions.md
   docs:
     - ai/aidev/project-map.md
     - ai/aidev/architecture.md
@@ -835,11 +903,11 @@ roadmap:
     - "0010-001-typed-path-extraction-runtime"
     - "0010-002-path-macro-mvp"
     - "0011-001-minimal-test-client"
+    - "0011-002-request-builders-and-json-assertions"
   in_progress: []
   next_recommended:
-    - "0011-002-request-builders-and-json-assertions"
-  later:
     - "0010-003-body-json-macro-runtime-bridge"
+  later:
     - "0010-004-query-and-header-inputs"
     - "0012-001-application-lifecycle-mvp"
     - "0013-001-request-logging-middleware"

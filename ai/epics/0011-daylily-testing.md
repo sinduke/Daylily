@@ -26,7 +26,7 @@ let response = try await TestClient(app).get("/hello")
 Recommended tasks:
 
 - `0011-001-minimal-test-client` (implemented)
-- `0011-002-request-builders-and-json-assertions`
+- `0011-002-request-builders-and-json-assertions` (implemented)
 
 Timing:
 
@@ -36,6 +36,7 @@ Timing:
 Design notes:
 
 - `0011-001` delivered the `DaylilyTesting` product and minimal `TestClient`.
+- `0011-002` delivered `TestRequest`, JSON request helpers, and response assertion helpers.
 - Testing is part of Daylily's AI-native identity.
 - `TestClient` should use `Application.respond(to:)` directly.
 - Keep the first version transport-free.

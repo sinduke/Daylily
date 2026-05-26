@@ -165,7 +165,7 @@ Practical interleave:
 0010-001 Typed path extraction runtime (delivered)
 0010-002 @Path macro MVP (delivered)
 0011-001 DaylilyTesting minimal TestClient (delivered)
-0011-002 DaylilyTesting request builders and JSON assertions
+0011-002 DaylilyTesting request builders and JSON assertions (delivered)
 0010-003 @Body JSON
 0010-004 @Query / @Header
 0012 Lifecycle
@@ -180,17 +180,23 @@ Status: in-progress
 Delivered:
 
 - `0011-001-minimal-test-client`
+- `0011-002-request-builders-and-json-assertions`
+
+Delivered shape:
+
+```swift
+let request = try TestRequest
+    .post("/json/echo")
+    .withJSON(input)
+
+let response = try await TestClient(app).send(request)
+try response.requireStatus(.ok)
+try response.requireJSON(expected)
+```
 
 Next task:
 
-- `0011-002-request-builders-and-json-assertions`
-
-Example target:
-
-```swift
-let response = try await TestClient(app).get("/hello")
-#expect(response.status == .ok)
-```
+- `0010-003-body-json-macro-runtime-bridge`
 
 ### Future Epics
 

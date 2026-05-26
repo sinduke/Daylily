@@ -66,6 +66,8 @@ public struct TestClient: Sendable {
 
     public func respond(to request: Request) async throws -> Response
 
+    public func send(_ request: TestRequest) async throws -> Response
+
     public func get(
         _ path: String,
         headers: Headers = [:]
@@ -88,6 +90,60 @@ public struct TestClient: Sendable {
         headers: Headers = [:],
         body: String
     ) async throws -> Response
+
+    public func postJSON<Value: Encodable>(
+        _ path: String,
+        headers: Headers = [:],
+        body value: Value
+    ) async throws -> Response
+}
+```
+
+### TestRequest
+
+```swift
+public struct TestRequest: Sendable {
+    public var method: HTTPMethod
+    public var path: String
+    public var headers: Headers
+    public var body: Body
+
+    public init(
+        method: HTTPMethod,
+        path: String,
+        headers: Headers = [:],
+        body: Body = .bytes([])
+    )
+
+    public static func get(_ path: String, headers: Headers = [:]) -> TestRequest
+    public static func post(_ path: String, headers: Headers = [:], body: Body = .bytes([])) -> TestRequest
+
+    public func withHeader(_ name: String, _ value: String) -> TestRequest
+    public func withBody(_ body: Body) -> TestRequest
+    public func withBody(_ bytes: [UInt8]) -> TestRequest
+    public func withBody(_ string: String) -> TestRequest
+    public func withJSON<Value: Encodable>(_ value: Value) throws -> TestRequest
+    public func toRequest() -> Request
+}
+```
+
+### Response Testing Helpers
+
+```swift
+public enum TestFailure: Error, Sendable, CustomStringConvertible {
+    case status(expected: Status, actual: Status)
+    case body(expected: String, actual: String)
+    case json(reason: String)
+}
+
+public extension Response {
+    func json<Value: Decodable>(_ type: Value.Type = Value.self) throws -> Value
+    func requireStatus(_ expected: Status) throws
+    func requireBody(_ expected: String) throws
+    func requireJSON<Value: Decodable & Equatable>(
+        _ expected: Value,
+        as type: Value.Type = Value.self
+    ) throws
 }
 ```
 
@@ -96,7 +152,10 @@ Rules:
 - `TestClient` is transport-free.
 - `TestClient` calls `Application.respond(to:)` directly.
 - `TestClient` depends on `DaylilyCore`, not NIO.
-- Rich request builders and JSON assertions are future work.
+- `TestRequest` is a builder for in-memory Daylily `Request` values.
+- `TestRequest.withJSON(...)` sets `content-type: application/json` when absent.
+- Response testing helpers live in `DaylilyTesting`, not `DaylilyCore`.
+- Runtime JSON request/response behavior remains owned by `DaylilyJSON`.
 
 ## Module DaylilyCore
 

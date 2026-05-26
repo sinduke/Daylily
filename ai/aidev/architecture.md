@@ -41,6 +41,10 @@ DaylilyTesting
   ↓
 DaylilyCore
 
+DaylilyTesting
+  ↓
+Foundation
+
 Daylily
   ↓
 DaylilyNIO
@@ -58,6 +62,7 @@ Daylily -> DaylilyNIO
 DaylilyJSON -> DaylilyCore
 DaylilyJSON -> Foundation
 DaylilyTesting -> DaylilyCore
+DaylilyTesting -> Foundation
 DaylilyMacros -> SwiftSyntax
 DaylilyNIO -> DaylilyCore
 DaylilyNIO -> SwiftNIO
@@ -87,7 +92,7 @@ The transport may use those internally.
 
 JSON support lives in `DaylilyJSON`, not `DaylilyCore`. `DaylilyJSON` may import Foundation for `JSONEncoder`, `JSONDecoder`, and `Data`.
 
-Testing support lives in `DaylilyTesting`, not `DaylilyCore`. `DaylilyTesting` must stay transport-free and should call `Application.respond(to:)` directly.
+Testing support lives in `DaylilyTesting`, not `DaylilyCore`. `DaylilyTesting` may use Foundation for test JSON helpers, must stay transport-free and NIO-free, and should call `Application.respond(to:)` directly.
 
 ## Runtime First
 

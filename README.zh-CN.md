@@ -44,7 +44,7 @@ Daylily 不是 Vapor 或 Hummingbird 的复制品。它是在探索：如果 AI 
 - 基于 NIO 的 HTTP/1.1 server。
 - Macro route/group MVP：`@DaylilyServer`、`@GET`、`@POST`、`@GROUP`。
 - Macro `@Path` 类型化路径参数注入。
-- `DaylilyTesting` 最小 in-memory `TestClient`。
+- `DaylilyTesting` in-memory `TestClient`、request builders 和 JSON assertions。
 - 默认 `swift run` 示例服务。
 - 轻量行为检查。
 - AIDEV 项目接管系统。
@@ -191,7 +191,7 @@ replacement body 依然是 one-shot，而且 helper 必须传入明确的大小�
 
 ## DaylilyTesting
 
-`DaylilyTesting` 提供一个不走真实网络的 test client：
+`DaylilyTesting` 提供不走真实网络的测试辅助：
 
 ```swift
 import Daylily
@@ -204,6 +204,30 @@ let app = Application {
 }
 
 let response = try await TestClient(app).get("/hello")
+
+try response.requireStatus(.ok)
+try response.requireBody("Daylily ships.")
+```
+
+它也包含 request builders 和 JSON assertions：
+
+```swift
+struct EchoPayload: Codable, Equatable, Sendable {
+    let message: String
+}
+
+struct EchoResponse: Codable, Equatable, Sendable {
+    let echo: String
+}
+
+let request = try TestRequest
+    .post("/json/echo")
+    .withJSON(EchoPayload(message: "hi"))
+
+let jsonResponse = try await TestClient(app).send(request)
+
+try jsonResponse.requireStatus(.ok)
+try jsonResponse.requireJSON(EchoResponse(echo: "hi"))
 ```
 
 `TestClient` 会直接调用 `Application.respond(to:)`，所以测试覆盖的是同一套 in-memory runtime 行为，不需要打开 socket。
@@ -333,8 +357,8 @@ Daylily/
 
 近期：
 
-1. `DaylilyTesting` request builders 和 JSON assertions。
-2. `@Body` JSON macro/runtime bridge。
+1. `@Body` JSON macro/runtime bridge。
+2. `@Query` 和 `@Header` typed inputs。
 3. 先做 lifecycle 和生产级 server 控制，再扩生态模块。
 
 ## License

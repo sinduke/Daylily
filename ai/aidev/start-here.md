@@ -19,7 +19,7 @@ struct App {
 }
 ```
 
-Current implemented surfaces are the runtime DSL, runtime middleware, the Daylily-owned `Body` model, explicit buffered body replacement, JSON body/response helpers, the macro route/group MVP, macro `@Path` typed input injection, and the minimal `DaylilyTesting` `TestClient`.
+Current implemented surfaces are the runtime DSL, runtime middleware, the Daylily-owned `Body` model, explicit buffered body replacement, JSON body/response helpers, the macro route/group MVP, macro `@Path` typed input injection, and `DaylilyTesting` in-memory request/response helpers.
 
 Runtime DSL:
 
@@ -116,9 +116,19 @@ let app = Application {
 }
 
 let response = try await TestClient(app).get("/hello")
+
+try response.requireStatus(.ok)
+try response.requireBody("Daylily ships.")
+
+let jsonRequest = try TestRequest
+    .post("/json/echo")
+    .withJSON(EchoPayload(message: "hi"))
+
+let jsonResponse = try await TestClient(app).send(jsonRequest)
+try jsonResponse.requireJSON(EchoResponse(echo: "hi"))
 ```
 
-`TestClient` is transport-free and calls `Application.respond(to:)` directly.
+`TestClient` is transport-free and calls `Application.respond(to:)` directly. `TestRequest` builds in-memory `Request` values, and response helpers decode/assert JSON for tests.
 
 ## Current Stage
 
@@ -131,7 +141,7 @@ Implemented:
 - Macro route/group MVP: `@DaylilyServer`, `@GET`, `@POST`, `@GROUP`.
 - Macro `@Path` typed path parameter injection.
 - Runtime typed path parameter extraction.
-- `DaylilyTesting` minimal in-memory `TestClient`.
+- `DaylilyTesting` in-memory `TestClient`, `TestRequest`, and response assertion helpers.
 - Daylily-owned `Body` model with one-shot consumption.
 - Explicit `request.withBufferedBody(upTo:_:)` helper for bounded body buffering and replacement.
 - `ByteChunk`, `BodyBytes`, `ByteCount`, `BodyError`, and `ResponseError`.
@@ -224,5 +234,5 @@ Do not start with:
 Current strategic order:
 
 1. Keep AIDEV self-contained.
-2. Add `DaylilyTesting` request builders and JSON assertions.
-3. Add `@Body` JSON macro/runtime bridge.
+2. Add `@Body` JSON macro/runtime bridge.
+3. Add `@Query` and `@Header` typed inputs.

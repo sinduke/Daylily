@@ -279,6 +279,11 @@ Current shape:
 
 ```swift
 let response = try await TestClient(app).get("/hello")
+try response.requireStatus(.ok)
+
+let request = try TestRequest.post("/json/echo").withJSON(input)
+let jsonResponse = try await TestClient(app).send(request)
+try jsonResponse.requireJSON(expected)
 ```
 
 Rules:
@@ -287,7 +292,7 @@ Rules:
 2. Keep `DaylilyTesting` transport-free.
 3. Do not add NIO dependencies to `DaylilyTesting`.
 4. Reuse `Application.respond(to:)` for in-memory behavior.
-5. Keep rich request builders and JSON assertions in focused tasks.
+5. Keep request construction as Daylily `Request`/`Body` sugar rather than a separate transport model.
 6. Add `HelloDaylily --check` coverage until a dedicated Swift test target exists.
 
 ## Add Checks

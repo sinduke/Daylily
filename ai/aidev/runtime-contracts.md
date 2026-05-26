@@ -397,7 +397,7 @@ Extension points:
 Input:
 
 - An `Application`.
-- In-memory `Request` values or convenience method/path calls.
+- In-memory `Request` values, `TestRequest` values, or convenience method/path calls.
 
 Output:
 
@@ -408,21 +408,23 @@ Guarantees:
 - `TestClient` calls `Application.respond(to:)` directly.
 - `TestClient` is transport-free and opens no sockets.
 - `TestClient` depends on `DaylilyCore`, not NIO.
+- `send(_:)` sends a `TestRequest` by converting it to a runtime `Request`.
 - `get(_:)` sends a GET request with optional headers.
 - `post(_:body:)` sends a POST request with optional headers and a `Body`, `[UInt8]`, or `String`.
+- `postJSON(_:headers:body:)` encodes an `Encodable` body and sets `content-type: application/json` when absent.
+- `Response.json(_:)` decodes response bytes with Foundation `JSONDecoder`.
+- `requireStatus(_:)`, `requireBody(_:)`, and `requireJSON(_:as:)` throw `TestFailure` when assertions fail.
 - Missing routes and thrown framework errors map exactly as `Application.respond(to:)` maps them.
 
 Known limitations:
 
-- No JSON assertion helpers yet.
-- No rich request builder DSL yet.
 - No dedicated Swift test target yet.
+- Request bodies remain one-shot after a built request is sent.
 
 Extension points:
 
-- request builders
-- JSON assertions
 - typed response helpers
+- Swift Testing or XCTest integration
 
 ## Macro Route Contract
 

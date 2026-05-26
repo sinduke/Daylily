@@ -320,6 +320,14 @@ Current surface:
 
 ```swift
 let response = try await TestClient(app).get("/hello")
+try response.requireStatus(.ok)
+
+let request = try TestRequest
+    .post("/json/echo")
+    .withJSON(EchoPayload(message: "hi"))
+
+let jsonResponse = try await TestClient(app).send(request)
+try jsonResponse.requireJSON(EchoResponse(echo: "hi"))
 ```
 
 `TestClient` wraps an `Application` and calls:
@@ -330,7 +338,7 @@ Application.respond(to:)
 
 This makes tests deterministic and keeps them on the same in-memory behavior path used by runtime checks.
 
-`TestClient` is not a transport and does not open sockets.
+`TestClient` is not a transport and does not open sockets. `TestRequest` builds in-memory `Request` values, and response helpers provide JSON decoding plus throwing assertions for tests.
 
 ## Macro Layer
 

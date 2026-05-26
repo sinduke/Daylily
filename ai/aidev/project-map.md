@@ -66,6 +66,8 @@ Daylily/
 - Transport-free testing helpers.
 - Depends on `DaylilyCore`.
 - Owns `TestClient`, which calls `Application.respond(to:)` directly.
+- Owns `TestRequest` for in-memory request construction.
+- Owns response assertion helpers such as `requireStatus(_:)`, `requireBody(_:)`, and `requireJSON(_:as:)`.
 - Must not depend on NIO.
 
 `HelloDaylily`
@@ -180,9 +182,17 @@ Daylily/
 
 `Sources/DaylilyTesting/TestClient.swift`
 
-- Minimal in-memory test client.
-- Provides `respond(to:)`, `get(_:)`, and `post(_:body:)`.
+- In-memory test client.
+- Provides `respond(to:)`, `send(_:)`, `get(_:)`, `post(_:body:)`, and `postJSON(_:headers:body:)`.
 - Reuses `Application`, `Request`, `Response`, `Headers`, and `Body`.
+
+`Sources/DaylilyTesting/TestRequest.swift`
+
+- Test request builder for method, path, headers, body, and JSON body construction.
+
+`Sources/DaylilyTesting/ResponseAssertions.swift`
+
+- Response JSON decoding and throwing assertion helpers for tests.
 
 `Sources/HelloDaylily/HelloDaylily.swift`
 

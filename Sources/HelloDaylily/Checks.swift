@@ -10,6 +10,10 @@ enum DaylilyChecks {
         try await testClientPostBody()
         try await testClientRespondToRequest()
         try await testClientNotFound()
+        try await testClientRequestBuilder()
+        try await testClientPostJSON()
+        try await responseTestingHelpers()
+        try await responseTestingFailure()
         try await pathParameter()
         try await typedPathParameterInt()
         try await typedPathParameterScalars()
@@ -119,6 +123,73 @@ enum DaylilyChecks {
 
         try expect(response.status == .notFound, "expected TestClient missing route 404")
         try expect(response.bodyString == "Not Found", "expected TestClient missing route body")
+    }
+
+    private static func testClientRequestBuilder() async throws {
+        let app = Application {
+            Post("/echo") { request in
+                let body = try await request.body.string(upTo: .kilobytes(64))
+                return "\(request.headers["x-daylily"] ?? "missing"):\(body)"
+            }
+        }
+
+        let request = TestRequest
+            .post("/echo")
+            .withHeader("x-daylily", "builder")
+            .withBody("hello")
+        let response = try await TestClient(app).send(request)
+
+        try response.requireStatus(.ok)
+        try response.requireBody("builder:hello")
+    }
+
+    private static func testClientPostJSON() async throws {
+        let app = Application {
+            Post("/json/echo") { request in
+                let input = try await request.json(EchoPayload.self)
+                return JSON(EchoResponse(echo: input.message))
+            }
+        }
+
+        let response = try await TestClient(app).postJSON(
+            "/json/echo",
+            body: EchoPayload(message: "testing")
+        )
+
+        try response.requireStatus(.ok)
+        try response.requireJSON(EchoResponse(echo: "testing"))
+    }
+
+    private static func responseTestingHelpers() async throws {
+        let app = Application {
+            Get("/json/health") {
+                JSON(HealthPayload(status: "ok"))
+            }
+        }
+
+        let response = try await TestClient(app).get("/json/health")
+        let payload = try response.json(HealthPayload.self)
+
+        try response.requireStatus(.ok)
+        try response.requireJSON(HealthPayload(status: "ok"))
+        try expect(payload == HealthPayload(status: "ok"), "expected response JSON helper payload")
+    }
+
+    private static func responseTestingFailure() async throws {
+        let response = Response(status: .notFound, body: Array("nope".utf8))
+
+        do {
+            try response.requireStatus(.ok)
+            try expect(false, "expected status assertion failure")
+        } catch let error as TestFailure {
+            switch error {
+            case .status(let expected, let actual):
+                try expect(expected == .ok, "expected status assertion to carry expected status")
+                try expect(actual == .notFound, "expected status assertion to carry actual status")
+            default:
+                try expect(false, "expected status assertion failure")
+            }
+        }
     }
 
     private static func pathParameter() async throws {
