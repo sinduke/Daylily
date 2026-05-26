@@ -203,6 +203,16 @@ scripts/consumer-smoke-test.sh --mode path
 scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.1
 ```
 
+To start from the recommended minimal app shape:
+
+```sh
+cp -R templates/minimal-app MyDaylilyApp
+cd MyDaylilyApp
+swift build
+swift test
+swift run App --check
+```
+
 Daylily uses Swift Testing for the formal test target. If `swift test` reports `no such module 'Testing'` while `xcode-select -p` points at Command Line Tools, run it with an Xcode developer directory, for example:
 
 ```sh

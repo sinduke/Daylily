@@ -11,7 +11,7 @@ Purpose:
 Tasks:
 
 - `0020-001-external-consumer-smoke-test` (implemented)
-- `0020-002-minimal-app-template` (planned)
+- `0020-002-minimal-app-template` (implemented)
 - `0020-003-first-real-api-example` (planned)
 - `0020-004-dependency-injection-design` (planned)
 - `0020-005-di-runtime-mvp` (planned)

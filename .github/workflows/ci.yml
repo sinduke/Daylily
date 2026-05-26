@@ -42,6 +42,12 @@ jobs:
       - name: Run Release Consumer Smoke
         run: scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.1
 
+      - name: Run Path Template Smoke
+        run: scripts/template-smoke-test.sh --mode path
+
+      - name: Run Release Template Smoke
+        run: scripts/template-smoke-test.sh --mode release --version 0.1.0-alpha.1
+
   linux:
     name: Linux Build, Test, and Check
     runs-on: ubuntu-latest
@@ -71,3 +77,9 @@ jobs:
 
       - name: Run Release Consumer Smoke
         run: scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.1
+
+      - name: Run Path Template Smoke
+        run: scripts/template-smoke-test.sh --mode path
+
+      - name: Run Release Template Smoke
+        run: scripts/template-smoke-test.sh --mode release --version 0.1.0-alpha.1

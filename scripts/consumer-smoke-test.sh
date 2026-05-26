@@ -91,7 +91,7 @@ absolute_path() {
 case "$MODE" in
     path)
         PACKAGE_PATH="$(absolute_path "$PACKAGE_PATH")"
-        DAYLILY_DEPENDENCY=".package(path: $(swift_string_literal "$PACKAGE_PATH"))"
+        DAYLILY_DEPENDENCY=".package(name: \"Daylily\", path: $(swift_string_literal "$PACKAGE_PATH"))"
         ;;
     release)
         DAYLILY_DEPENDENCY=".package(url: $(swift_string_literal "$REPO_URL"), from: $(swift_string_literal "$VERSION"))"

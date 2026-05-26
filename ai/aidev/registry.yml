@@ -539,9 +539,16 @@ implemented_features:
     epic: "0020-package-consumer-experience"
     completed:
       - "0020-001-external-consumer-smoke-test"
-    next_task: "0020-002-minimal-app-template"
+      - "0020-002-minimal-app-template"
+    next_task: "0020-003-first-real-api-example"
     files:
       - scripts/consumer-smoke-test.sh
+      - scripts/template-smoke-test.sh
+      - templates/minimal-app/Package.swift
+      - templates/minimal-app/Sources/AppCore/App.swift
+      - templates/minimal-app/Sources/App/main.swift
+      - templates/minimal-app/Tests/AppCoreTests/AppCoreTests.swift
+      - templates/minimal-app/README.md
       - .github/workflows/ci.yml
     smoke_modes:
       path: "validates current checkout as an external SwiftPM dependency"
@@ -551,6 +558,7 @@ implemented_features:
       - "runtime DSL executable"
       - "macro executable with @main @DaylilyServer"
       - "Swift Testing target importing DaylilyTesting"
+      - "minimal app template with AppCore, App executable, and AppCoreTests"
   macro_route_mvp:
     status: implemented
     task: "0003-001-macro-route-mvp"
@@ -923,7 +931,8 @@ planned_features:
     epic: "0020-package-consumer-experience"
     completed:
       - "0020-001-external-consumer-smoke-test"
-    next_task: "0020-002-minimal-app-template"
+      - "0020-002-minimal-app-template"
+    next_task: "0020-003-first-real-api-example"
 
 public_api:
   Daylily:
@@ -1793,6 +1802,7 @@ aidev_files:
     - ai/tasks/0019-001-release-hygiene.md
     - ai/tasks/0019-002-alpha-release.md
     - ai/tasks/0020-001-external-consumer-smoke-test.md
+    - ai/tasks/0020-002-minimal-app-template.md
   docs:
     - CHANGELOG.md
     - docs/README.md
@@ -1897,7 +1907,7 @@ roadmap:
     in_progress:
       - "0020-package-consumer-experience"
     next_recommended:
-      - "0020-002-minimal-app-template"
+      - "0020-003-first-real-api-example"
   completed:
     - "0001-001-minimal-http-server"
     - "0002-001-aidev-project-contract"
@@ -1934,8 +1944,9 @@ roadmap:
     - "0019-001-release-hygiene"
     - "0019-002-alpha-release"
     - "0020-001-external-consumer-smoke-test"
+    - "0020-002-minimal-app-template"
   in_progress: []
   next_recommended:
-    - "0020-002-minimal-app-template"
+    - "0020-003-first-real-api-example"
   later:
     - "0013-003-observability-hooks"

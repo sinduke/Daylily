@@ -203,6 +203,16 @@ scripts/consumer-smoke-test.sh --mode path
 scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.1
 ```
 
+如果要从推荐的最小 app 结构开始：
+
+```sh
+cp -R templates/minimal-app MyDaylilyApp
+cd MyDaylilyApp
+swift build
+swift test
+swift run App --check
+```
+
 Daylily 使用 Swift Testing 作为正式 test target。如果 `swift test` 报 `no such module 'Testing'`，并且 `xcode-select -p` 指向 Command Line Tools，可以显式指定 Xcode developer directory：
 
 ```sh

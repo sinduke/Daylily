@@ -1,6 +1,6 @@
 # Release Readiness
 
-Daylily is in experimental beta-closure work. This document tracks what is ready for external trial and what still needs caution.
+Daylily is in experimental package-consumer work after the first alpha release. This document tracks what is ready for external trial and what still needs caution.
 
 ## Current Release Status
 
@@ -18,6 +18,8 @@ DEVELOPER_DIR=/Applications/Xcode-26.5.0.app/Contents/Developer swift test
 swift run HelloDaylily --check
 scripts/consumer-smoke-test.sh --mode path
 scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.1
+scripts/template-smoke-test.sh --mode path
+scripts/template-smoke-test.sh --mode release --version 0.1.0-alpha.1
 ```
 
 GitHub Actions validation:
@@ -26,6 +28,7 @@ GitHub Actions validation:
 - Linux runner: `ubuntu-latest` with the official `swift:6.3.2-noble` container
 - Commands: `swift package resolve`, `swift build`, `swift test`, `swift run HelloDaylily --check`
 - External consumer smoke: fresh SwiftPM package using both local path dependency and released package dependency
+- Template smoke: `templates/minimal-app` using both local path dependency and released package dependency
 
 Linux validation is CI-owned for now. Local development has been verified on macOS with Xcode 26.5 and Swift 6.3.2.
 
@@ -40,6 +43,7 @@ Linux validation is CI-owned for now. Local development has been verified on mac
 - Macro route/group MVP and typed handler inputs.
 - Transport-free testing helpers.
 - External SwiftPM consumer smoke coverage for runtime, macro, and testing package shapes.
+- Minimal app template with `AppCore`, executable startup, and in-memory tests.
 - AI-readable AIDEV project handoff.
 - Beta documentation set.
 
@@ -60,5 +64,6 @@ Before creating a tag:
 - `CHANGELOG.md` has a section for the tag.
 - README and docs state the correct support level.
 - External consumer smoke passes for local path and release dependency modes.
+- Minimal app template smoke passes for local path and release dependency modes.
 - `ai/aidev/api-registry.md` and `ai/aidev/registry.yml` match public API.
 - The tag name follows semver pre-release form, such as `0.1.0-alpha.1`.

@@ -45,6 +45,30 @@ To validate a local checkout as an external package dependency:
 scripts/consumer-smoke-test.sh --mode path
 ```
 
+## Start from the Minimal Template
+
+Copy the recommended external app shape:
+
+```sh
+cp -R templates/minimal-app MyDaylilyApp
+cd MyDaylilyApp
+```
+
+Build, test, and run the template smoke check:
+
+```sh
+swift build
+swift test
+swift run App --check
+```
+
+Daylily validates the template in both local path and released package modes:
+
+```sh
+scripts/template-smoke-test.sh --mode path
+scripts/template-smoke-test.sh --mode release --version 0.1.0-alpha.1
+```
+
 ## Run Checks
 
 Daylily keeps a shared behavior check suite that is used by both the example executable and formal tests:

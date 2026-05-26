@@ -311,7 +311,7 @@ Macro typed inputs now lower into route metadata:
 
 Suggested next task:
 
-- Continue Package Consumer Experience with the minimal app template.
+- Continue Package Consumer Experience with the first real API example.
 
 ## Beta Closure Sequence
 
@@ -330,6 +330,7 @@ Recommended sequence:
 0019-001 Release hygiene: Linux CI, CHANGELOG, semver tag strategy, public API registry sync (delivered)
 0019-002 Alpha release: first public SwiftPM prerelease (delivered)
 0020-001 External consumer smoke test: path and release package modes (delivered)
+0020-002 Minimal app template: recommended external project shape (delivered)
 ```
 
 ### 0015 HTTP Verbs Beta Closure
@@ -354,7 +355,7 @@ Options("/health") { Status.noContent }
 Remaining:
 
 - `0.1.0-alpha.1` is the first public alpha release after macOS and Linux CI are green.
-- Next package consumer slice is a minimal app template.
+- Next package consumer slice is the first real API example.
 
 ## Package Consumer Experience
 
@@ -366,7 +367,7 @@ Sequence:
 
 ```text
 0020-001 External SwiftPM consumer smoke test (delivered)
-0020-002 Minimal app template (planned)
+0020-002 Minimal app template (delivered)
 0020-003 First real API example (planned)
 0020-004 Dependency injection design (planned)
 0020-005 DI runtime MVP (planned)
@@ -379,6 +380,8 @@ Delivered:
 - Release mode validates the published `0.1.0-alpha.1` package path.
 - The generated consumer package compiles runtime DSL and macro executable targets.
 - The generated consumer package runs Swift Testing with `DaylilyTesting`.
+- `templates/minimal-app` defines the recommended `AppCore` plus `App` executable shape.
+- `scripts/template-smoke-test.sh` validates the template in path and release dependency modes.
 
 ### Future Epics
 

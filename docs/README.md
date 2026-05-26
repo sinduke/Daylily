@@ -9,6 +9,7 @@ This directory contains beta-facing docs: practical guides for trying the curren
 - [Quick Start](quickstart.md): install, build, test, run, and validate external package consumption.
 - [Capability Matrix](capability-matrix.md): current features, MVP surfaces, and planned work.
 - [Release Readiness](release-readiness.md): CI, changelog, tag strategy, and known release limits.
+- [Minimal App Template](../templates/minimal-app/README.md): recommended external project shape.
 
 ## Examples
 
@@ -30,5 +31,6 @@ This directory contains beta-facing docs: practical guides for trying the curren
 - Platform declared by the package today: macOS 14+.
 - CI validation: macOS and Linux.
 - External consumer validation: fresh SwiftPM package in path and release modes.
+- Template validation: minimal app template in path and release modes.
 - Transport: NIO-backed HTTP/1.1.
-- Status: experimental beta-closure work.
+- Status: experimental package-consumer work after the first alpha release.

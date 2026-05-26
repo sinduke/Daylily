@@ -11,7 +11,10 @@ Daylily/
 ├── README.md
 ├── README.zh-CN.md
 ├── scripts/
-│   └── consumer-smoke-test.sh
+│   ├── consumer-smoke-test.sh
+│   └── template-smoke-test.sh
+├── templates/
+│   └── minimal-app/
 ├── docs/
 │   ├── README.md
 │   ├── quickstart.md
@@ -75,6 +78,21 @@ Daylily/
 - Validates `Daylily` as a local path dependency or released package dependency.
 - Builds runtime and macro executable targets.
 - Runs a Swift Testing target that imports `DaylilyTesting`.
+
+`scripts/template-smoke-test.sh`
+
+- Copies `templates/minimal-app` to a temporary external directory.
+- Rewrites the Daylily dependency for path, release, or branch validation.
+- Runs `swift package resolve`, `swift build`, `swift test`, and `swift run App --check`.
+
+## Templates
+
+`templates/minimal-app`
+
+- Recommended minimal external Daylily app structure.
+- Uses `AppCore` for application construction and route declarations.
+- Uses `App` for process startup.
+- Uses `AppCoreTests` with `DaylilyTesting` for in-memory tests.
 
 ## Package Products and Targets
 
