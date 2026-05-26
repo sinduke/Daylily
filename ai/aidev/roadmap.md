@@ -43,6 +43,7 @@ Tasks:
 - `0002-002-aidev-self-contained-spec`
 - `0002-003-bilingual-readme-ai-native`
 - `0002-004-work-model-reorganization`
+- `0002-005-github-actions-node24`
 
 Delivered:
 
@@ -50,6 +51,7 @@ Delivered:
 - Self-contained AI handoff docs.
 - Workflow, task protocol, extension playbooks, and registry.
 - Epic / Task / Step work model.
+- GitHub Actions checkout action updated for Node.js 24.
 - English and Simplified Chinese README files.
 - AI-native development model documentation.
 

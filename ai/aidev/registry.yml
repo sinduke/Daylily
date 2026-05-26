@@ -13,6 +13,7 @@ project:
   check_command: "swift run HelloDaylily --check"
   build_command: "swift build"
   ci_workflow: ".github/workflows/ci.yml"
+  ci_checkout_action: "actions/checkout@v6"
 
 work_model:
   hierarchy:
@@ -511,6 +512,7 @@ aidev_files:
     - ai/tasks/0002-002-aidev-self-contained-spec.md
     - ai/tasks/0002-003-bilingual-readme-ai-native.md
     - ai/tasks/0002-004-work-model-reorganization.md
+    - ai/tasks/0002-005-github-actions-node24.md
     - ai/tasks/0003-001-macro-route-mvp.md
     - ai/tasks/0003-002-group-macro-mvp.md
     - ai/tasks/0004-001-json-body-and-response.md
@@ -546,6 +548,7 @@ verification:
   ci:
     provider: GitHub Actions
     workflow: ".github/workflows/ci.yml"
+    checkout_action: "actions/checkout@v6"
     triggers:
       - push_to_main
       - pull_request_to_main
@@ -588,6 +591,7 @@ roadmap:
     - "0002-002-aidev-self-contained-spec"
     - "0002-003-bilingual-readme-ai-native"
     - "0002-004-work-model-reorganization"
+    - "0002-005-github-actions-node24"
     - "0003-001-macro-route-mvp"
     - "0003-002-group-macro-mvp"
     - "0004-001-json-body-and-response"
