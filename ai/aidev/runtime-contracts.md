@@ -624,13 +624,12 @@ Guarantees:
 
 Known limitations:
 
-- No dedicated Swift test target yet.
 - Request bodies remain one-shot after a built request is sent.
 
 Extension points:
 
 - typed response helpers
-- Swift Testing or XCTest integration
+- broader Swift Testing coverage
 
 ## Macro Route Contract
 

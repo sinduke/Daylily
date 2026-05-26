@@ -72,8 +72,15 @@ From the project root:
 
 ```sh
 swift build
+swift test
 swift run HelloDaylily --check
 swift run
+```
+
+Daylily uses Swift Testing for the formal test target. If `swift test` reports `no such module 'Testing'` while `xcode-select -p` points at Command Line Tools, run it with an Xcode developer directory, for example:
+
+```sh
+DEVELOPER_DIR=/Applications/Xcode-26.5.0.app/Contents/Developer swift test
 ```
 
 The server listens on:
@@ -527,7 +534,10 @@ Daylily/
 │   ├── DaylilyObservability/
 │   ├── DaylilyOpenAPI/
 │   ├── DaylilyTesting/
+│   ├── DaylilyCheckSuite/
 │   └── HelloDaylily/
+├── Tests/
+│   └── DaylilyTests/
 └── ai/
     ├── epics/
     ├── aidev/
@@ -543,6 +553,7 @@ The most important invariants:
 - User-facing APIs must not expose NIO types.
 - Runtime APIs come before macro sugar.
 - `swift run` should keep starting the example server.
+- `swift test` should keep passing.
 - `swift run HelloDaylily --check` should keep passing.
 - Public API changes must update AIDEV.
 
@@ -550,10 +561,9 @@ The most important invariants:
 
 Near-term:
 
-1. Add a formal test target.
-2. Decide and implement true `@Body`.
-3. Add beta docs: quickstart, examples, and capability matrix.
-4. Add release hygiene: Linux CI, CHANGELOG, semver tag, and public API registry sync.
+1. Decide and implement true `@Body`.
+2. Add beta docs: quickstart, examples, and capability matrix.
+3. Add release hygiene: Linux CI, CHANGELOG, semver tag, and public API registry sync.
 
 ## License
 

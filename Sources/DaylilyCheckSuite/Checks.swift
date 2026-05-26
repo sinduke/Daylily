@@ -3,8 +3,8 @@ import Daylily
 import DaylilyTesting
 import Foundation
 
-enum DaylilyChecks {
-    static func run() async throws {
+public enum DaylilyChecks {
+    public static func run() async throws {
         try await exactRoute()
         try await lifecycleHooks()
         try await lifecycleErrors()

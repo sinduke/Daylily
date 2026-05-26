@@ -1,4 +1,5 @@
 import Daylily
+import DaylilyCheckSuite
 
 @main
 struct HelloDaylily {

@@ -45,6 +45,14 @@ DaylilyTesting
   ↓
 Foundation
 
+DaylilyCheckSuite
+  ↓
+Daylily / DaylilyTesting
+
+DaylilyTests
+  ↓
+DaylilyCheckSuite / Swift Testing
+
 Daylily
   ↓
 DaylilyNIO
@@ -79,6 +87,13 @@ DaylilyObservability -> DaylilyCore
 DaylilyOpenAPI -> DaylilyCore
 DaylilyTesting -> DaylilyCore
 DaylilyTesting -> Foundation
+DaylilyCheckSuite -> Daylily
+DaylilyCheckSuite -> DaylilyCore
+DaylilyCheckSuite -> DaylilyTesting
+DaylilyTests -> Daylily
+DaylilyTests -> DaylilyCheckSuite
+DaylilyTests -> DaylilyTesting
+DaylilyTests -> Swift Testing
 DaylilyMacros -> SwiftSyntax
 DaylilyNIO -> DaylilyCore
 DaylilyNIO -> SwiftNIO
@@ -111,6 +126,8 @@ The transport may use those internally.
 JSON support lives in `DaylilyJSON`, not `DaylilyCore`. `DaylilyJSON` may import Foundation for `JSONEncoder`, `JSONDecoder`, and `Data`.
 
 Testing support lives in `DaylilyTesting`, not `DaylilyCore`. `DaylilyTesting` may use Foundation for test JSON helpers, must stay transport-free and NIO-free, and should call `Application.respond(to:)` directly.
+
+Behavior checks live in `DaylilyCheckSuite` and are exercised by both `swift test` and `swift run HelloDaylily --check`. The formal test target uses Swift Testing and must not open a network port for in-memory behavior checks.
 
 Observability helpers live in `DaylilyObservability`, not `DaylilyCore`. The first slice is request logging middleware. It may depend on `DaylilyCore`, but it must not force logging backends, tracing SDKs, metrics clients, or transport-specific APIs into the core runtime.
 

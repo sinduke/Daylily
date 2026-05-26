@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   build:
-    name: Build and Check
+    name: Build, Test, and Check
     runs-on: macos-latest
 
     steps:
@@ -29,6 +29,9 @@ jobs:
 
       - name: Build
         run: swift build
+
+      - name: Run Swift Tests
+        run: swift test
 
       - name: Run Daylily Checks
         run: swift run HelloDaylily --check

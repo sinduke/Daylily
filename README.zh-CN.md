@@ -72,8 +72,15 @@ Daylily 不是 Vapor 或 Hummingbird 的复制品。它是在探索：如果 AI 
 
 ```sh
 swift build
+swift test
 swift run HelloDaylily --check
 swift run
+```
+
+Daylily 使用 Swift Testing 作为正式 test target。如果 `swift test` 报 `no such module 'Testing'`，并且 `xcode-select -p` 指向 Command Line Tools，可以显式指定 Xcode developer directory：
+
+```sh
+DEVELOPER_DIR=/Applications/Xcode-26.5.0.app/Contents/Developer swift test
 ```
 
 服务监听：
@@ -527,7 +534,10 @@ Daylily/
 │   ├── DaylilyObservability/
 │   ├── DaylilyOpenAPI/
 │   ├── DaylilyTesting/
+│   ├── DaylilyCheckSuite/
 │   └── HelloDaylily/
+├── Tests/
+│   └── DaylilyTests/
 └── ai/
     ├── epics/
     ├── aidev/
@@ -543,6 +553,7 @@ Daylily/
 - 用户侧 API 不能暴露 NIO 类型。
 - runtime API 先于宏语法糖。
 - `swift run` 应该一直能启动示例服务。
+- `swift test` 应该一直通过。
 - `swift run HelloDaylily --check` 应该一直通过。
 - public API 变化必须同步更新 AIDEV。
 
@@ -550,10 +561,9 @@ Daylily/
 
 近期：
 
-1. 添加正式 test target。
-2. 决定并实现真正的 `@Body`。
-3. 补齐 beta docs：quickstart、examples、capability matrix。
-4. 补齐 release hygiene：Linux CI、CHANGELOG、semver tag 和 public API registry 同步。
+1. 决定并实现真正的 `@Body`。
+2. 补齐 beta docs：quickstart、examples、capability matrix。
+3. 补齐 release hygiene：Linux CI、CHANGELOG、semver tag 和 public API registry 同步。
 
 ## License
 

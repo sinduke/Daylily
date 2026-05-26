@@ -439,14 +439,16 @@ Rules:
 3. Do not add NIO dependencies to `DaylilyTesting`.
 4. Reuse `Application.respond(to:)` for in-memory behavior.
 5. Keep request construction as Daylily `Request`/`Body` sugar rather than a separate transport model.
-6. Add `HelloDaylily --check` coverage until a dedicated Swift test target exists.
+6. Add shared `DaylilyCheckSuite` coverage.
+7. Add or update `Tests/DaylilyTests` coverage when the behavior should be visible through `swift test`.
 
 ## Add Checks
 
-Current check host:
+Current check hosts:
 
 ```text
-Sources/HelloDaylily/Checks.swift
+Sources/DaylilyCheckSuite/Checks.swift
+Tests/DaylilyTests/
 ```
 
 Steps:
@@ -454,8 +456,9 @@ Steps:
 1. Add a focused in-memory check using `TestClient` or `Application.respond(to:)`.
 2. Use clear failure messages.
 3. Keep checks fast.
-4. If adding server behavior, smoke test manually with `curl`.
+4. Keep `swift test` and `swift run HelloDaylily --check` in sync when possible by reusing `DaylilyCheckSuite`.
+5. If adding server behavior, smoke test manually with `curl`.
 
 Future:
 
-- Add a dedicated Swift test target once the project chooses `XCTest` or Swift Testing.
+- Broaden Swift Testing coverage beyond the shared behavior suite.

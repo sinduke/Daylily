@@ -29,6 +29,7 @@ Delivered:
 - NIO HTTP transport.
 - Default `swift run` server.
 - `swift run HelloDaylily --check` behavior checks.
+- Formal `swift test` entrypoint.
 - Basic `Get`, `Post`, and `Group`.
 - Path parameter matching.
 - 404 behavior.
@@ -308,7 +309,7 @@ Macro typed inputs now lower into route metadata:
 
 Suggested next task:
 
-- `0016-001-formal-test-target`
+- `0017-001-true-body-input`
 
 ## Beta Closure Sequence
 
@@ -321,7 +322,7 @@ Recommended sequence:
 ```text
 0015-001 Runtime and testing HTTP verbs: PUT / PATCH / DELETE / HEAD / OPTIONS (delivered)
 0015-002 Macro and OpenAPI HTTP verbs: @PUT / @PATCH / @DELETE / @HEAD / @OPTIONS (delivered)
-0016-001 Formal test target
+0016-001 Formal test target (delivered)
 0017-001 True @Body input spelling
 0018-001 Beta docs: quickstart, examples, capability matrix
 0019-001 Release hygiene: Linux CI, CHANGELOG, semver tag, public API registry sync
@@ -348,7 +349,7 @@ Options("/health") { Status.noContent }
 
 Remaining:
 
-- Formal test target work starts at `0016-001-formal-test-target`.
+- True `@Body` input spelling starts at `0017-001-true-body-input`.
 
 ### Future Epics
 

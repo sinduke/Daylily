@@ -261,6 +261,8 @@ try jsonResponse.requireJSON(EchoResponse(echo: "hi"))
 
 `TestClient` is transport-free and calls `Application.respond(to:)` directly. `TestRequest` builds in-memory `Request` values, and response helpers decode/assert JSON for tests.
 
+Formal tests live in `Tests/DaylilyTests` and use Swift Testing. The test target calls the shared `DaylilyCheckSuite`, so `swift test` and `swift run HelloDaylily --check` exercise the same behavior core.
+
 ## Current Stage
 
 Implemented:
@@ -292,7 +294,8 @@ Implemented:
 - Path parameter extraction as strings.
 - NIO-backed HTTP server.
 - Default `swift run` executable.
-- Lightweight behavior checks.
+- Shared `DaylilyCheckSuite` behavior checks.
+- Formal Swift Testing target.
 - AIDEV project contract.
 
 Not implemented:
@@ -301,7 +304,6 @@ Not implemented:
 - Deep OpenAPI schema derivation.
 - Dependency injection.
 - Macro middleware attributes.
-- Dedicated Swift test target.
 
 ## Read Order
 
@@ -346,7 +348,14 @@ Always verify with:
 
 ```sh
 swift build
+swift test
 swift run HelloDaylily --check
+```
+
+If `swift test` reports `no such module 'Testing'` because the active developer directory is Command Line Tools, run it with the installed Xcode toolchain:
+
+```sh
+DEVELOPER_DIR=/Applications/Xcode-26.5.0.app/Contents/Developer swift test
 ```
 
 If server behavior changed, also run:
@@ -372,7 +381,6 @@ Do not start with:
 
 Current strategic order:
 
-1. Add a formal test target.
-2. Decide and implement true `@Body`.
-3. Add beta docs: quickstart, JSON API example, middleware example, testing example, and capability matrix.
-4. Add release hygiene: Linux CI, CHANGELOG, semver tag, and public API registry sync.
+1. Decide and implement true `@Body`.
+2. Add beta docs: quickstart, JSON API example, middleware example, testing example, and capability matrix.
+3. Add release hygiene: Linux CI, CHANGELOG, semver tag, and public API registry sync.

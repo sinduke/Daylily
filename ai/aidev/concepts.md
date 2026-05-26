@@ -389,6 +389,8 @@ try jsonResponse.requireJSON(EchoResponse(echo: "hi"))
 Application.respond(to:)
 ```
 
+Formal tests live in `Tests/DaylilyTests` and use Swift Testing. Shared behavior checks live in `DaylilyCheckSuite`, so `swift test` and `swift run HelloDaylily --check` can exercise the same core checks.
+
 This makes tests deterministic and keeps them on the same in-memory behavior path used by runtime checks.
 
 `TestClient` is not a transport and does not open sockets. `TestRequest` builds in-memory `Request` values, and response helpers provide JSON decoding plus throwing assertions for tests.

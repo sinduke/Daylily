@@ -18,7 +18,10 @@ Daylily/
 │   ├── DaylilyObservability/
 │   ├── DaylilyOpenAPI/
 │   ├── DaylilyTesting/
+│   ├── DaylilyCheckSuite/
 │   └── HelloDaylily/
+├── Tests/
+│   └── DaylilyTests/
 └── ai/
     ├── epics/
     ├── aidev/
@@ -88,12 +91,25 @@ Daylily/
 - Owns response assertion helpers such as `requireStatus(_:)`, `requireBody(_:)`, and `requireJSON(_:as:)`.
 - Must not depend on NIO.
 
+`DaylilyCheckSuite`
+
+- Internal shared behavior check target.
+- Depends on `Daylily`, `DaylilyCore`, and `DaylilyTesting`.
+- Owns `DaylilyChecks.run()` and shared example DTOs.
+- Used by both `swift run HelloDaylily --check` and `swift test`.
+
 `HelloDaylily`
 
-- Example executable and current smoke-check host.
+- Example executable and smoke-check entrypoint.
 - Default `swift run` launches the HTTP server.
-- `swift run HelloDaylily --check` runs in-process runtime checks.
+- `swift run HelloDaylily --check` runs `DaylilyCheckSuite`.
 - Includes `/upload/count` for chunked upload smoke checks.
+
+`DaylilyTests`
+
+- Formal Swift Testing target under `Tests/DaylilyTests`.
+- Runs the shared `DaylilyCheckSuite` through `swift test`.
+- Adds focused test-target coverage for `DaylilyTesting` without opening a port.
 
 ## Source Files
 
@@ -272,17 +288,22 @@ Daylily/
 
 - Default executable entry.
 
-`Sources/HelloDaylily/Checks.swift`
+`Sources/DaylilyCheckSuite/Checks.swift`
 
-- Lightweight checks, including `DaylilyTesting` coverage, used until a dedicated test target is added.
+- Shared behavior checks, including `DaylilyTesting` coverage, used by the executable check command and formal test target.
 
-`Sources/HelloDaylily/Payloads.swift`
+`Sources/DaylilyCheckSuite/Payloads.swift`
 
 - Shared DTOs for example JSON routes and checks.
 
 `Sources/HelloDaylily/MacroSmoke.swift`
 
 - Compile-time smoke coverage for macro route/group MVP, including `@Path` and `@JSONBody` handler inputs.
+
+`Tests/DaylilyTests/DaylilyBehaviorTests.swift`
+
+- Swift Testing entrypoint for the shared behavior suite.
+- Verifies the formal test target can exercise `DaylilyTesting` without opening a port.
 
 ## AI Files
 

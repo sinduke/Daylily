@@ -40,6 +40,10 @@ let package = Package(
             name: "DaylilyOpenAPI",
             dependencies: ["DaylilyCore"]
         ),
+        .target(
+            name: "DaylilyCheckSuite",
+            dependencies: ["Daylily", "DaylilyCore", "DaylilyTesting"]
+        ),
         .macro(
             name: "DaylilyMacros",
             dependencies: [
@@ -71,7 +75,15 @@ let package = Package(
         ),
         .executableTarget(
             name: "HelloDaylily",
-            dependencies: ["Daylily", "DaylilyCore", "DaylilyTesting"]
+            dependencies: ["Daylily", "DaylilyCheckSuite"]
+        ),
+        .testTarget(
+            name: "DaylilyTests",
+            dependencies: [
+                "Daylily",
+                "DaylilyCheckSuite",
+                "DaylilyTesting",
+            ]
         ),
     ]
 )

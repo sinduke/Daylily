@@ -138,11 +138,12 @@ During implementation:
 After implementation:
 
 1. Run `swift build`.
-2. Run `swift run HelloDaylily --check`.
-3. If server behavior changed, smoke test with `swift run` and `curl`.
-4. Stop any local server started for verification.
-5. Record task and step status in `ai/tasks/`.
-6. Commit and push only if a full task is complete and reviewed.
+2. Run `swift test`.
+3. Run `swift run HelloDaylily --check`.
+4. If server behavior changed, smoke test with `swift run` and `curl`.
+5. Stop any local server started for verification.
+6. Record task and step status in `ai/tasks/`.
+7. Commit and push only if a full task is complete and reviewed.
 
 ## Source Reading Policy
 
@@ -173,6 +174,18 @@ Runtime checks:
 
 ```sh
 swift run HelloDaylily --check
+```
+
+Formal tests:
+
+```sh
+swift test
+```
+
+If the active developer directory is Command Line Tools and SwiftPM cannot locate Swift Testing, use the installed Xcode toolchain:
+
+```sh
+DEVELOPER_DIR=/Applications/Xcode-26.5.0.app/Contents/Developer swift test
 ```
 
 Run server:
@@ -209,6 +222,7 @@ CI mirrors the required local validation:
 
 ```sh
 swift build
+swift test
 swift run HelloDaylily --check
 ```
 

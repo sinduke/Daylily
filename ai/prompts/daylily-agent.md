@@ -24,6 +24,7 @@ Use AIDEV as the authoritative project map. Source files may be read for exact e
 - Do not expose NIO types in user-facing APIs.
 - Runtime APIs come before macro sugar.
 - Keep `swift run` as the default server command.
+- Keep `swift test` passing.
 - Keep `swift run HelloDaylily --check` passing.
 - Public API changes require AIDEV updates.
 - Module boundary changes require AIDEV updates.
@@ -32,6 +33,7 @@ Use AIDEV as the authoritative project map. Source files may be read for exact e
 
 ```sh
 swift build
+swift test
 swift run HelloDaylily --check
 swift run
 ```

@@ -15,9 +15,10 @@ These rules define Daylily's shape. Do not break them without an ADR.
 
 1. `swift build` must pass.
 2. `swift run` must start the example server.
-3. `swift run HelloDaylily --check` must pass.
-4. If server behavior changes, smoke test with `curl`.
-5. Every public API change must update AIDEV.
+3. `swift test` must pass.
+4. `swift run HelloDaylily --check` must pass.
+5. If server behavior changes, smoke test with `curl`.
+6. Every public API change must update AIDEV.
 
 ## Public API
 

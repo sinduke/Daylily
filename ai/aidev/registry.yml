@@ -11,6 +11,8 @@ project:
     - ai/aidev/start-here.md
   default_run: "swift run"
   check_command: "swift run HelloDaylily --check"
+  test_command: "swift test"
+  xcode_toolchain_test_command: "DEVELOPER_DIR=/Applications/Xcode-26.5.0.app/Contents/Developer swift test"
   build_command: "swift build"
   ci_workflow: ".github/workflows/ci.yml"
   ci_checkout_action: "actions/checkout@v6"
@@ -202,16 +204,36 @@ products:
       - NIOCore
       - NIOHTTP1
       - NIOPosix
-  HelloDaylily:
-    kind: executable
-    role: example_and_checks
+  DaylilyCheckSuite:
+    kind: target
+    role: shared_behavior_checks
     responsibility:
-      - default_server_for_swift_run
-      - smoke_routes
-      - lightweight_behavior_checks
+      - provide_DaylilyChecks_run
+      - share_check_payloads_with_example_and_tests
+      - keep_executable_checks_and_formal_tests_in_sync
     depends_on:
       - Daylily
       - DaylilyCore
+      - DaylilyTesting
+  HelloDaylily:
+    kind: executable
+    role: example_and_check_entrypoint
+    responsibility:
+      - default_server_for_swift_run
+      - smoke_routes
+      - delegate_check_command_to_DaylilyCheckSuite
+    depends_on:
+      - Daylily
+      - DaylilyCheckSuite
+  DaylilyTests:
+    kind: test_target
+    role: formal_swift_testing_target
+    responsibility:
+      - run_DaylilyCheckSuite_with_swift_test
+      - verify_DaylilyTesting_without_opening_ports
+    depends_on:
+      - Daylily
+      - DaylilyCheckSuite
       - DaylilyTesting
 
 implemented_features:
@@ -765,6 +787,23 @@ implemented_features:
       - "HEAD and OPTIONS remain explicit route methods only."
       - "No automatic HEAD to GET fallback is introduced."
       - "No automatic OPTIONS Allow response is introduced."
+  formal_test_target:
+    status: implemented
+    task: "0016-001-formal-test-target"
+    modules:
+      - DaylilyCheckSuite
+      - DaylilyTests
+      - HelloDaylily
+    public_commands:
+      - "swift test"
+      - "swift run HelloDaylily --check"
+    decisions:
+      - "Swift Testing is the formal test target style."
+      - "DaylilyCheckSuite owns shared behavior checks."
+      - "HelloDaylily --check delegates to DaylilyCheckSuite."
+      - "DaylilyTests calls DaylilyCheckSuite so formal tests and executable checks stay aligned."
+      - "Swift Testing is provided by the selected Xcode toolchain, not by a package dependency."
+      - "If Command Line Tools cannot locate Testing, use DEVELOPER_DIR to point at an installed Xcode."
 
 planned_features:
   typed_handler_inputs:
@@ -815,7 +854,8 @@ planned_features:
     completed:
       - "0015-001-runtime-and-testing-http-verbs"
       - "0015-002-macro-and-openapi-http-verbs"
-    next_task: "0016-001-formal-test-target"
+      - "0016-001-formal-test-target"
+    next_task: "0017-001-true-body-input"
     sequence:
       - "0015-001-runtime-and-testing-http-verbs"
       - "0015-002-macro-and-openapi-http-verbs"
@@ -1619,6 +1659,7 @@ invariants:
   - "Runtime APIs are the ground truth."
   - "Macros lower into runtime APIs."
   - "swift build passes."
+  - "swift test passes."
   - "swift run starts the server."
   - "swift run HelloDaylily --check passes."
   - "Public API changes update AIDEV."
@@ -1672,6 +1713,7 @@ aidev_files:
     - ai/tasks/0014-003-macro-metadata-bridge.md
     - ai/tasks/0015-001-runtime-and-testing-http-verbs.md
     - ai/tasks/0015-002-macro-and-openapi-http-verbs.md
+    - ai/tasks/0016-001-formal-test-target.md
   docs:
     - ai/aidev/project-map.md
     - ai/aidev/architecture.md
@@ -1720,10 +1762,13 @@ verification:
       - "swift --version"
       - "swift package resolve"
       - "swift build"
+      - "swift test"
       - "swift run HelloDaylily --check"
   required:
     - "swift build"
+    - "swift test"
     - "swift run HelloDaylily --check"
+  swift_testing_toolchain_note: "Swift Testing is provided by the selected Xcode toolchain. If xcode-select points at Command Line Tools and swift test reports no such module Testing, use DEVELOPER_DIR=/Applications/Xcode-26.5.0.app/Contents/Developer swift test locally."
   server_smoke:
     start: "swift run"
     requests:
@@ -1744,7 +1789,7 @@ verification:
     cleanup: "stop the HelloDaylily process"
 
 roadmap:
-  current_task: "0016-001-formal-test-target"
+  current_task: "0017-001-true-body-input"
   epics:
     completed:
       - "0001-runtime-foundation"
@@ -1759,7 +1804,7 @@ roadmap:
       - "0014-openapi-metadata"
       - "0015-http-verbs-beta-closure"
     next_recommended:
-      - "0016-001-formal-test-target"
+      - "0017-001-true-body-input"
   completed:
     - "0001-001-minimal-http-server"
     - "0002-001-aidev-project-contract"
@@ -1790,11 +1835,11 @@ roadmap:
     - "0014-003-macro-metadata-bridge"
     - "0015-001-runtime-and-testing-http-verbs"
     - "0015-002-macro-and-openapi-http-verbs"
+    - "0016-001-formal-test-target"
   in_progress: []
   next_recommended:
-    - "0016-001-formal-test-target"
-  later:
     - "0017-001-true-body-input"
+  later:
     - "0018-001-beta-docs"
     - "0019-001-release-hygiene"
     - "0013-003-observability-hooks"
