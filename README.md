@@ -44,6 +44,7 @@ Implemented today:
 - NIO-backed HTTP/1.1 server.
 - Macro route/group MVP: `@DaylilyServer`, `@GET`, `@POST`, `@GROUP`.
 - Macro `@Path` typed path parameter injection.
+- Macro `@JSONBody` typed JSON body injection.
 - `DaylilyTesting` in-memory `TestClient`, request builders, and JSON assertions.
 - Default `swift run` example server.
 - Lightweight behavior checks.
@@ -51,7 +52,7 @@ Implemented today:
 
 Not implemented yet:
 
-- Macro typed input injection beyond `@Path` (`@Body`, `@Query`, `@Header`, etc.).
+- Macro typed input injection beyond `@Path` and `@JSONBody` (`@Query`, `@Header`, true `@Body` spelling, etc.).
 - OpenAPI generation.
 - Dependency injection.
 - Macro middleware attributes.
@@ -92,6 +93,10 @@ import Daylily
 
 struct HealthPayload: Codable, Sendable {
     let status: String
+}
+
+struct CreateUserInput: Codable, Sendable {
+    let name: String
 }
 
 struct EchoPayload: Codable, Sendable {
@@ -243,6 +248,10 @@ struct HealthPayload: Codable, Sendable {
     let status: String
 }
 
+struct CreateUserInput: Codable, Sendable {
+    let name: String
+}
+
 @main
 @DaylilyServer
 struct App {
@@ -266,6 +275,11 @@ struct App {
         JSON(HealthPayload(status: "ok"))
     }
 
+    @POST("/users")
+    func create(@JSONBody input: CreateUserInput) -> Status {
+        .created
+    }
+
     @GROUP("/api")
     struct API {
         @GET("/health")
@@ -282,11 +296,13 @@ MVP limits:
 
 - handlers must be instance methods;
 - the server type must be default-initializable with `Self()`;
-- handlers may use zero parameters, one `Request` parameter, and `@Path` parameters;
+- handlers may use zero parameters, one `Request` parameter, `@Path` parameters, and one `@JSONBody` parameter;
 - `@Path` lowers into `req.parameters.require(_:as:)`;
 - `@Path` names must match `:name` route segments;
+- `@JSONBody` lowers into `try await req.json(Type.self)`;
+- true `@Body` spelling is deferred because `Body` is already Daylily's raw request body type;
 - grouped types must be default-initializable;
-- `@Body`, `@Query`, `@Header`, macro middleware attributes, DI, and OpenAPI are future work.
+- `@Query`, `@Header`, macro middleware attributes, DI, and OpenAPI are future work.
 
 ## AI-Native Development
 
@@ -357,9 +373,9 @@ The most important invariants:
 
 Near-term:
 
-1. `@Body` JSON macro/runtime bridge.
-2. `@Query` and `@Header` typed inputs.
-3. Lifecycle and production server controls before ecosystem modules.
+1. `@Query` and `@Header` typed inputs.
+2. Lifecycle and production server controls.
+3. Observability and OpenAPI metadata before ecosystem modules.
 
 ## License
 

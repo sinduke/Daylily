@@ -37,6 +37,11 @@ struct MacroSmoke {
         JSON(MacroJSONPayload(status: "ok"))
     }
 
+    @POST("/macro/json/echo")
+    func jsonEcho(@JSONBody input: MacroEchoPayload) -> JSON<MacroEchoResponse> {
+        JSON(MacroEchoResponse(echo: input.message))
+    }
+
     @GROUP("/macro/api")
     struct API {
         @GET("/health")
@@ -63,9 +68,22 @@ struct MacroSmoke {
         func json() -> JSON<MacroJSONPayload> {
             JSON(MacroJSONPayload(status: "ok"))
         }
+
+        @POST("/json/echo")
+        func jsonEcho(@JSONBody input: MacroEchoPayload) -> JSON<MacroEchoResponse> {
+            JSON(MacroEchoResponse(echo: input.message))
+        }
     }
 }
 
 struct MacroJSONPayload: Codable, Sendable {
     let status: String
+}
+
+struct MacroEchoPayload: Codable, Sendable {
+    let message: String
+}
+
+struct MacroEchoResponse: Codable, Sendable {
+    let echo: String
 }

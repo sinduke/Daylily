@@ -352,11 +352,16 @@ Current macro-facing attributes:
 @POST("/path")
 @GROUP("/prefix")
 @Path
+@JSONBody
 ```
 
 Example:
 
 ```swift
+struct CreateUserInput: Codable, Sendable {
+    let name: String
+}
+
 @main
 @DaylilyServer
 struct App {
@@ -368,6 +373,11 @@ struct App {
     @GET("/users/:id")
     func user(@Path id: Int) -> String {
         "User \(id)"
+    }
+
+    @POST("/users")
+    func create(@JSONBody input: CreateUserInput) -> Status {
+        .created
     }
 
     @GROUP("/api")
@@ -385,8 +395,10 @@ MVP assumptions:
 - server type can be initialized with `Self()`
 - grouped types can be initialized with `Self.GroupType()`
 - handlers are instance methods
-- handlers may have zero parameters, one `Request` parameter, and `@Path` parameters
+- handlers may have zero parameters, one `Request` parameter, `@Path` parameters, and one `@JSONBody` parameter
 - `@Path` lowers into `req.parameters.require(_:as:)`
+- `@JSONBody` lowers into `try await req.json(Type.self)`
+- true `@Body` spelling is deferred because `Body` is already Daylily's raw request body type
 
 Macros create or expose the same route graph the runtime DSL creates.
 

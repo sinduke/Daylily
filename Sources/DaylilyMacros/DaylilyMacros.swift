@@ -206,6 +206,7 @@ private struct RouteMethod {
         let routeParameterNames = pathParameterNames(in: routePath)
         var arguments: [String] = []
         var hasRequestParameter = false
+        var hasBodyParameter = false
 
         for parameter in parameters {
             if let pathAttribute = try PathAttribute(parameter) {
@@ -226,6 +227,18 @@ private struct RouteMethod {
                 continue
             }
 
+            if try JSONBodyAttribute(parameter) != nil {
+                guard !hasBodyParameter else {
+                    throw DaylilyMacroError("@\(routeName) handlers may only have one @JSONBody parameter.")
+                }
+
+                hasBodyParameter = true
+                let typeName = parameter.type.description.trimmed
+                let value = "try await req.json(\(typeName).self)"
+                arguments.append(callArgument(for: parameter, value: value))
+                continue
+            }
+
             if isRequestParameter(parameter) {
                 guard !hasRequestParameter else {
                     throw DaylilyMacroError("@\(routeName) handlers may only have one Request parameter.")
@@ -236,7 +249,7 @@ private struct RouteMethod {
                 continue
             }
 
-            throw DaylilyMacroError("@\(routeName) handler parameters must be Request or annotated with @Path in this MVP.")
+            throw DaylilyMacroError("@\(routeName) handler parameters must be Request or annotated with @Path or @JSONBody in this MVP.")
         }
 
         return HandlerCall(argumentExpressions: arguments, usesRequest: true)
@@ -286,6 +299,38 @@ private struct HandlerCall {
 
     var arguments: String {
         argumentExpressions.joined(separator: ", ")
+    }
+}
+
+private struct JSONBodyAttribute {
+    init?(_ parameter: FunctionParameterSyntax) throws {
+        var found = false
+
+        for attributeElement in parameter.attributes {
+            guard case let .attribute(attribute) = attributeElement else {
+                continue
+            }
+
+            let name = RouteAttribute.routeName(for: attribute.attributeName.description.trimmed)
+            guard name == "JSONBody" else {
+                continue
+            }
+
+            if found {
+                throw DaylilyMacroError("Handler parameters may only have one @JSONBody attribute.")
+            }
+
+            let text = attribute.description
+            if text.contains("("), text.contains(")") {
+                throw DaylilyMacroError("@JSONBody does not accept arguments in this MVP.")
+            }
+
+            found = true
+        }
+
+        guard found else {
+            return nil
+        }
     }
 }
 

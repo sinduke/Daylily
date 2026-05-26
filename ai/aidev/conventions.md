@@ -115,6 +115,20 @@ try await request.withBufferedBody(upTo: .megabytes(1)) { replayed, bytes in ...
 
 Collection helpers must use explicit limits. `request.json(Type.self)` is convenience sugar with a default 1 MB limit.
 
+Macro JSON body injection:
+
+```swift
+@POST("/users")
+func create(@JSONBody input: CreateUserInput) async throws -> Status
+```
+
+Rules:
+
+- `@JSONBody` lowers to `try await req.json(CreateUserInput.self)`.
+- The marker lives in `DaylilyJSON`.
+- It uses the existing default `request.json(...)` limit of 1 MB.
+- True `@Body` spelling is deferred because `Body` is already Daylily's raw request body type.
+
 `ByteCount.kilobytes`, `.megabytes`, and `.gigabytes` are 1024-based.
 
 ```swift
@@ -130,7 +144,7 @@ Use `withBufferedBody(upTo:_:)` only when the caller explicitly wants in-memory 
 Macro future:
 
 ```swift
-func upload(@Body(.stream) body: BodyStream) async throws -> UploadResult
+func upload(@RawBody body: Body) async throws -> UploadResult
 ```
 
 ## Responses

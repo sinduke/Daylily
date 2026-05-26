@@ -251,11 +251,29 @@ When extending:
 
 Still non-goals until separate tasks:
 
-- `@Body`
+- true `@Body` spelling
 - `@Query`
 - `@Header`
 - OpenAPI
 - DI
+
+## Extend JSON Body Macro Injection
+
+Current shape:
+
+```swift
+@POST("/users")
+func create(@JSONBody input: CreateUserInput) async throws -> Status
+```
+
+Rules:
+
+1. Keep `@JSONBody` as a marker in `DaylilyJSON`.
+2. Lower into `try await req.json(Type.self)`.
+3. Preserve runtime JSON behavior and error mapping.
+4. Allow at most one `@JSONBody` parameter per handler.
+5. Do not rename this to `@Body` until the raw `Body` type naming decision is revisited.
+6. Add macro smoke coverage for top-level and grouped handlers.
 
 ## Add a New Transport
 

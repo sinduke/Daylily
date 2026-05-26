@@ -170,6 +170,11 @@ Daylily/
 - Adds async `Body.json(_:upTo:)` and `Request.json(_:upTo:)` body decoding.
 - Converts JSON decode failures into `Abort(.badRequest, reason: "Invalid JSON body")`.
 
+`Sources/DaylilyJSON/JSONBody.swift`
+
+- Public `@JSONBody` marker used by `@DaylilyServer`.
+- Keeps JSON body marker ownership with the JSON module.
+
 `Sources/DaylilyMacros/DaylilyMacros.swift`
 
 - Macro implementation and compiler plugin registration.
@@ -208,7 +213,7 @@ Daylily/
 
 `Sources/HelloDaylily/MacroSmoke.swift`
 
-- Compile-time smoke coverage for macro route/group MVP.
+- Compile-time smoke coverage for macro route/group MVP, including `@Path` and `@JSONBody` handler inputs.
 
 ## AI Files
 

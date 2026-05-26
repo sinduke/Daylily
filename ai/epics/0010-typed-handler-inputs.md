@@ -17,7 +17,7 @@ func user(@Path id: UUID) async throws -> JSON<User> {
 }
 
 @POST("/users")
-func create(@Body input: CreateUserInput) async throws -> Status {
+func create(@JSONBody input: CreateUserInput) async throws -> Status {
     ...
 }
 ```
@@ -26,7 +26,7 @@ Recommended tasks:
 
 - `0010-001-typed-path-extraction-runtime` (implemented)
 - `0010-002-path-macro-mvp` (implemented)
-- `0010-003-body-json-macro-runtime-bridge`
+- `0010-003-body-json-macro-runtime-bridge` (implemented)
 - `0010-004-query-and-header-inputs`
 
 Order:
@@ -34,13 +34,15 @@ Order:
 1. Runtime typed path extraction.
 2. `@Path` macro MVP.
 3. Minimal `DaylilyTesting` before larger handler input expansion.
-4. `@Body` JSON.
+4. `@JSONBody` JSON macro bridge.
 5. `@Query` and `@Header`.
 
 Design notes:
 
 - `0010-001` delivered the runtime API: `ParameterDecodable`, `Parameters.require(_:as:)`, `Parameters.get(_:as:)`, and `ParameterError`.
 - `0010-002` delivered macro `@Path` input injection by lowering into `Parameters.require(_:as:)`.
+- `0010-003` delivered macro `@JSONBody` input injection by lowering into `Request.json(_:upTo:)`.
+- True `@Body` spelling is deferred because `Body` is already Daylily's raw request body type.
 - First runtime step should avoid query/header/body scope creep.
 - `DaylilyCore` should stay small.
 - Foundation-backed types such as `UUID` need a deliberate decision before being added to core.
@@ -51,6 +53,6 @@ Non-goals for the first task:
 
 - Full parameter injection macros.
 - Query/header/cookie extraction.
-- JSON body macro.
+- True `@Body` spelling.
 - OpenAPI metadata.
 - Validation framework.

@@ -19,7 +19,7 @@ struct App {
 }
 ```
 
-Current implemented surfaces are the runtime DSL, runtime middleware, the Daylily-owned `Body` model, explicit buffered body replacement, JSON body/response helpers, the macro route/group MVP, macro `@Path` typed input injection, and `DaylilyTesting` in-memory request/response helpers.
+Current implemented surfaces are the runtime DSL, runtime middleware, the Daylily-owned `Body` model, explicit buffered body replacement, JSON body/response helpers, the macro route/group MVP, macro `@Path` and `@JSONBody` typed input injection, and `DaylilyTesting` in-memory request/response helpers.
 
 Runtime DSL:
 
@@ -78,6 +78,10 @@ Middleware may read `request.body`, but `Body` is one-shot. There is no hidden b
 Macro route/group MVP:
 
 ```swift
+struct CreateUserInput: Codable, Sendable {
+    let name: String
+}
+
 @main
 @DaylilyServer
 struct App {
@@ -89,6 +93,11 @@ struct App {
     @GET("/users/:id")
     func user(@Path id: Int) -> String {
         "User \(id)"
+    }
+
+    @POST("/users")
+    func create(@JSONBody input: CreateUserInput) -> Status {
+        .created
     }
 
     @GROUP("/api")
@@ -140,6 +149,7 @@ Implemented:
 - Runtime middleware at application, group, and route scope.
 - Macro route/group MVP: `@DaylilyServer`, `@GET`, `@POST`, `@GROUP`.
 - Macro `@Path` typed path parameter injection.
+- Macro `@JSONBody` typed JSON body injection.
 - Runtime typed path parameter extraction.
 - `DaylilyTesting` in-memory `TestClient`, `TestRequest`, and response assertion helpers.
 - Daylily-owned `Body` model with one-shot consumption.
@@ -157,7 +167,7 @@ Implemented:
 
 Not implemented:
 
-- Macro typed input injection beyond `@Path` (`@Body`, `@Query`, `@Header`, etc.).
+- Macro typed input injection beyond `@Path` and `@JSONBody` (`@Query`, `@Header`, true `@Body` spelling, etc.).
 - OpenAPI.
 - Dependency injection.
 - Macro middleware attributes.
@@ -234,5 +244,5 @@ Do not start with:
 Current strategic order:
 
 1. Keep AIDEV self-contained.
-2. Add `@Body` JSON macro/runtime bridge.
-3. Add `@Query` and `@Header` typed inputs.
+2. Add `@Query` and `@Header` typed inputs.
+3. Add lifecycle and production server controls.

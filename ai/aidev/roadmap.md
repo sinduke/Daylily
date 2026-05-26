@@ -166,37 +166,36 @@ Practical interleave:
 0010-002 @Path macro MVP (delivered)
 0011-001 DaylilyTesting minimal TestClient (delivered)
 0011-002 DaylilyTesting request builders and JSON assertions (delivered)
-0010-003 @Body JSON
+0010-003 @JSONBody macro/runtime bridge (delivered)
 0010-004 @Query / @Header
 0012 Lifecycle
 ```
 
 ## Current Epic
 
-### 0011 DaylilyTesting
+### 0010 Typed Handler Inputs
 
 Status: in-progress
 
 Delivered:
 
-- `0011-001-minimal-test-client`
-- `0011-002-request-builders-and-json-assertions`
+- `0010-001-typed-path-extraction-runtime`
+- `0010-002-path-macro-mvp`
+- `0010-003-body-json-macro-runtime-bridge`
 
 Delivered shape:
 
 ```swift
-let request = try TestRequest
-    .post("/json/echo")
-    .withJSON(input)
+@GET("/users/:id")
+func user(@Path id: Int) -> String
 
-let response = try await TestClient(app).send(request)
-try response.requireStatus(.ok)
-try response.requireJSON(expected)
+@POST("/users")
+func create(@JSONBody input: CreateUserInput) async throws -> Status
 ```
 
 Next task:
 
-- `0010-003-body-json-macro-runtime-bridge`
+- `0010-004-query-and-header-inputs`
 
 ### Future Epics
 

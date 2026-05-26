@@ -44,6 +44,7 @@ Daylily 不是 Vapor 或 Hummingbird 的复制品。它是在探索：如果 AI 
 - 基于 NIO 的 HTTP/1.1 server。
 - Macro route/group MVP：`@DaylilyServer`、`@GET`、`@POST`、`@GROUP`。
 - Macro `@Path` 类型化路径参数注入。
+- Macro `@JSONBody` 类型化 JSON body 注入。
 - `DaylilyTesting` in-memory `TestClient`、request builders 和 JSON assertions。
 - 默认 `swift run` 示例服务。
 - 轻量行为检查。
@@ -51,7 +52,7 @@ Daylily 不是 Vapor 或 Hummingbird 的复制品。它是在探索：如果 AI 
 
 还没有实现：
 
-- `@Path` 之外的宏级类型化输入注入（`@Body`、`@Query`、`@Header` 等）。
+- `@Path` 和 `@JSONBody` 之外的宏级类型化输入注入（`@Query`、`@Header`、真正的 `@Body` 写法等）。
 - OpenAPI 生成。
 - 依赖注入。
 - Macro middleware attributes。
@@ -92,6 +93,10 @@ import Daylily
 
 struct HealthPayload: Codable, Sendable {
     let status: String
+}
+
+struct CreateUserInput: Codable, Sendable {
+    let name: String
 }
 
 struct EchoPayload: Codable, Sendable {
@@ -243,6 +248,10 @@ struct HealthPayload: Codable, Sendable {
     let status: String
 }
 
+struct CreateUserInput: Codable, Sendable {
+    let name: String
+}
+
 @main
 @DaylilyServer
 struct App {
@@ -266,6 +275,11 @@ struct App {
         JSON(HealthPayload(status: "ok"))
     }
 
+    @POST("/users")
+    func create(@JSONBody input: CreateUserInput) -> Status {
+        .created
+    }
+
     @GROUP("/api")
     struct API {
         @GET("/health")
@@ -282,11 +296,13 @@ MVP 限制：
 
 - handler 必须是 instance method；
 - server type 必须可以通过 `Self()` 默认初始化；
-- handler 可以没有参数，可以有一个 `Request` 参数，也可以有 `@Path` 参数；
+- handler 可以没有参数，可以有一个 `Request` 参数，可以有 `@Path` 参数，也可以有一个 `@JSONBody` 参数；
 - `@Path` 会降级到 `req.parameters.require(_:as:)`；
 - `@Path` 名称必须匹配 `:name` route segment；
+- `@JSONBody` 会降级到 `try await req.json(Type.self)`；
+- 真正的 `@Body` 写法暂缓，因为 `Body` 已经是 Daylily 的 raw request body 类型；
 - group type 必须可以默认初始化；
-- `@Body`、`@Query`、`@Header`、macro middleware attributes、DI、OpenAPI 都是后续工作。
+- `@Query`、`@Header`、macro middleware attributes、DI、OpenAPI 都是后续工作。
 
 ## AI-Native 开发
 
@@ -357,9 +373,9 @@ Daylily/
 
 近期：
 
-1. `@Body` JSON macro/runtime bridge。
-2. `@Query` 和 `@Header` typed inputs。
-3. 先做 lifecycle 和生产级 server 控制，再扩生态模块。
+1. `@Query` 和 `@Header` typed inputs。
+2. Lifecycle 和生产级 server 控制。
+3. Observability 和 OpenAPI metadata，然后再扩生态模块。
 
 ## License
 

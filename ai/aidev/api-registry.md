@@ -33,7 +33,7 @@ Rules:
 - `@DaylilyServer` generates `static func main() async throws`.
 - The generated main creates `let server = Self()`.
 - Route handlers must be instance methods.
-- Route handlers may have zero parameters, one `Request` parameter, and `@Path` parameters.
+- Route handlers may have zero parameters, one `Request` parameter, `@Path` parameters, and one `@JSONBody` parameter.
 - `@GET` lowers to runtime `Get`.
 - `@POST` lowers to runtime `Post`.
 - `@GROUP` marks a nested struct as a route group and contributes a path prefix.
@@ -41,6 +41,8 @@ Rules:
 - Bare `@Path` uses the Swift local parameter name.
 - `@Path("name")` maps to an explicit path parameter name.
 - `@Path` names must match `:name` segments in the full route path.
+- `@JSONBody` lowers into `try await req.json(Type.self)`.
+- True `@Body` spelling is deferred because `Body` is already Daylily's raw request body type.
 - Grouped types are instantiated with `Self.GroupType()`.
 
 ### Application.run
@@ -714,6 +716,23 @@ Rules:
 - Body collection limit failures keep their `BodyError` mapping.
 - Decode failures throw `Abort(.badRequest, reason: "Invalid JSON body")`.
 - Request content type is not enforced yet.
+
+### JSONBody
+
+```swift
+@propertyWrapper
+public struct JSONBody<Value: Decodable & Sendable>: Sendable {
+    public var wrappedValue: Value
+    public init(wrappedValue: Value)
+}
+```
+
+Rules:
+
+- `JSONBody` is a macro marker for typed JSON body injection.
+- It lives in `DaylilyJSON`, not `DaylilyCore`.
+- `@DaylilyServer` lowers it into `try await req.json(Type.self)`.
+- The marker does not own runtime decode behavior.
 
 ## Module DaylilyNIO
 
