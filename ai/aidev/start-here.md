@@ -19,7 +19,7 @@ struct App {
 }
 ```
 
-Current implemented surfaces are the runtime DSL, runtime middleware, the Daylily-owned `Body` model, explicit buffered body replacement, JSON body/response helpers, the macro route/group MVP, and macro `@Path` typed input injection.
+Current implemented surfaces are the runtime DSL, runtime middleware, the Daylily-owned `Body` model, explicit buffered body replacement, JSON body/response helpers, the macro route/group MVP, macro `@Path` typed input injection, and the minimal `DaylilyTesting` `TestClient`.
 
 Runtime DSL:
 
@@ -103,6 +103,23 @@ struct App {
 
 The macro layer lowers into the runtime DSL.
 
+Testing surface:
+
+```swift
+import Daylily
+import DaylilyTesting
+
+let app = Application {
+    Get("/hello") {
+        "Daylily ships."
+    }
+}
+
+let response = try await TestClient(app).get("/hello")
+```
+
+`TestClient` is transport-free and calls `Application.respond(to:)` directly.
+
 ## Current Stage
 
 Implemented:
@@ -114,6 +131,7 @@ Implemented:
 - Macro route/group MVP: `@DaylilyServer`, `@GET`, `@POST`, `@GROUP`.
 - Macro `@Path` typed path parameter injection.
 - Runtime typed path parameter extraction.
+- `DaylilyTesting` minimal in-memory `TestClient`.
 - Daylily-owned `Body` model with one-shot consumption.
 - Explicit `request.withBufferedBody(upTo:_:)` helper for bounded body buffering and replacement.
 - `ByteChunk`, `BodyBytes`, `ByteCount`, `BodyError`, and `ResponseError`.
@@ -133,7 +151,7 @@ Not implemented:
 - OpenAPI.
 - Dependency injection.
 - Macro middleware attributes.
-- Real test target.
+- Dedicated Swift test target.
 
 ## Read Order
 
@@ -206,5 +224,5 @@ Do not start with:
 Current strategic order:
 
 1. Keep AIDEV self-contained.
-2. Add `DaylilyTesting` minimal test client.
+2. Add `DaylilyTesting` request builders and JSON assertions.
 3. Add `@Body` JSON macro/runtime bridge.

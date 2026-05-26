@@ -1,6 +1,6 @@
 # 0011 DaylilyTesting
 
-Status: proposed
+Status: in-progress
 
 Purpose:
 
@@ -25,7 +25,7 @@ let response = try await TestClient(app).get("/hello")
 
 Recommended tasks:
 
-- `0011-001-minimal-test-client`
+- `0011-001-minimal-test-client` (implemented)
 - `0011-002-request-builders-and-json-assertions`
 
 Timing:
@@ -35,6 +35,7 @@ Timing:
 
 Design notes:
 
+- `0011-001` delivered the `DaylilyTesting` product and minimal `TestClient`.
 - Testing is part of Daylily's AI-native identity.
 - `TestClient` should use `Application.respond(to:)` directly.
 - Keep the first version transport-free.

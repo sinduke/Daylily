@@ -2,7 +2,7 @@
 
 ## Layering
 
-Daylily is divided into four conceptual layers:
+Daylily is divided into four runtime-facing conceptual layers plus separate testing support:
 
 ```text
 User API
@@ -37,6 +37,10 @@ DaylilyJSON
   ↓
 Foundation
 
+DaylilyTesting
+  ↓
+DaylilyCore
+
 Daylily
   ↓
 DaylilyNIO
@@ -53,6 +57,7 @@ Daylily -> DaylilyMacros
 Daylily -> DaylilyNIO
 DaylilyJSON -> DaylilyCore
 DaylilyJSON -> Foundation
+DaylilyTesting -> DaylilyCore
 DaylilyMacros -> SwiftSyntax
 DaylilyNIO -> DaylilyCore
 DaylilyNIO -> SwiftNIO
@@ -81,6 +86,8 @@ Public user APIs must not expose:
 The transport may use those internally.
 
 JSON support lives in `DaylilyJSON`, not `DaylilyCore`. `DaylilyJSON` may import Foundation for `JSONEncoder`, `JSONDecoder`, and `Data`.
+
+Testing support lives in `DaylilyTesting`, not `DaylilyCore`. `DaylilyTesting` must stay transport-free and should call `Application.respond(to:)` directly.
 
 ## Runtime First
 

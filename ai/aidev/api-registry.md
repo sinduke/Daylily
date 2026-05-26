@@ -56,6 +56,48 @@ Parameters:
 - `host`: address to bind. Default `127.0.0.1`.
 - `port`: port to bind. Default `8080`.
 
+## Module DaylilyTesting
+
+### TestClient
+
+```swift
+public struct TestClient: Sendable {
+    public init(_ application: Application)
+
+    public func respond(to request: Request) async throws -> Response
+
+    public func get(
+        _ path: String,
+        headers: Headers = [:]
+    ) async throws -> Response
+
+    public func post(
+        _ path: String,
+        headers: Headers = [:],
+        body: Body = .bytes([])
+    ) async throws -> Response
+
+    public func post(
+        _ path: String,
+        headers: Headers = [:],
+        body: [UInt8]
+    ) async throws -> Response
+
+    public func post(
+        _ path: String,
+        headers: Headers = [:],
+        body: String
+    ) async throws -> Response
+}
+```
+
+Rules:
+
+- `TestClient` is transport-free.
+- `TestClient` calls `Application.respond(to:)` directly.
+- `TestClient` depends on `DaylilyCore`, not NIO.
+- Rich request builders and JSON assertions are future work.
+
 ## Module DaylilyCore
 
 ### Application

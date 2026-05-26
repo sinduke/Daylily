@@ -44,6 +44,7 @@ Implemented today:
 - NIO-backed HTTP/1.1 server.
 - Macro route/group MVP: `@DaylilyServer`, `@GET`, `@POST`, `@GROUP`.
 - Macro `@Path` typed path parameter injection.
+- `DaylilyTesting` minimal in-memory `TestClient`.
 - Default `swift run` example server.
 - Lightweight behavior checks.
 - AIDEV project handoff system.
@@ -188,6 +189,25 @@ struct SignatureMiddleware: Middleware {
 
 The replacement body is still one-shot, and the helper requires an explicit size limit.
 
+## DaylilyTesting
+
+`DaylilyTesting` provides a transport-free test client:
+
+```swift
+import Daylily
+import DaylilyTesting
+
+let app = Application {
+    Get("/hello") {
+        "Daylily ships."
+    }
+}
+
+let response = try await TestClient(app).get("/hello")
+```
+
+`TestClient` calls `Application.respond(to:)` directly, so tests exercise the same in-memory runtime behavior without opening a socket.
+
 ## Macro API MVP
 
 Daylily's macro MVP supports this shape:
@@ -289,6 +309,7 @@ Daylily/
 │   ├── DaylilyCore/
 │   ├── DaylilyJSON/
 │   ├── DaylilyNIO/
+│   ├── DaylilyTesting/
 │   └── HelloDaylily/
 └── ai/
     ├── epics/
@@ -312,7 +333,7 @@ The most important invariants:
 
 Near-term:
 
-1. `DaylilyTesting` minimal test client.
+1. `DaylilyTesting` request builders and JSON assertions.
 2. `@Body` JSON macro/runtime bridge.
 3. Lifecycle and production server controls before ecosystem modules.
 

@@ -273,6 +273,23 @@ Rules:
 4. It must not require changes to handlers.
 5. It should not become a dependency of `DaylilyCore`.
 
+## Extend DaylilyTesting
+
+Current shape:
+
+```swift
+let response = try await TestClient(app).get("/hello")
+```
+
+Rules:
+
+1. Keep testing helpers in `DaylilyTesting`.
+2. Keep `DaylilyTesting` transport-free.
+3. Do not add NIO dependencies to `DaylilyTesting`.
+4. Reuse `Application.respond(to:)` for in-memory behavior.
+5. Keep rich request builders and JSON assertions in focused tasks.
+6. Add `HelloDaylily --check` coverage until a dedicated Swift test target exists.
+
 ## Add Checks
 
 Current check host:
@@ -283,11 +300,11 @@ Sources/HelloDaylily/Checks.swift
 
 Steps:
 
-1. Add a focused in-memory check using `Application.respond(to:)`.
+1. Add a focused in-memory check using `TestClient` or `Application.respond(to:)`.
 2. Use clear failure messages.
 3. Keep checks fast.
 4. If adding server behavior, smoke test manually with `curl`.
 
 Future:
 
-- Add a proper test target once the environment supports `XCTest` or Swift Testing.
+- Add a dedicated Swift test target once the project chooses `XCTest` or Swift Testing.

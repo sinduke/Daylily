@@ -15,6 +15,7 @@ Daylily/
 │   ├── DaylilyJSON/
 │   ├── DaylilyMacros/
 │   ├── DaylilyNIO/
+│   ├── DaylilyTesting/
 │   └── HelloDaylily/
 └── ai/
     ├── epics/
@@ -59,6 +60,13 @@ Daylily/
 - Feeds NIO body chunks into `BodyBytes` without exposing NIO types.
 - Uses bounded buffering and practical backpressure for request bodies.
 - Converts Daylily `Response` into NIO HTTP response parts.
+
+`DaylilyTesting`
+
+- Transport-free testing helpers.
+- Depends on `DaylilyCore`.
+- Owns `TestClient`, which calls `Application.respond(to:)` directly.
+- Must not depend on NIO.
 
 `HelloDaylily`
 
@@ -170,13 +178,19 @@ Daylily/
 
 - NIO HTTP server and channel handler.
 
+`Sources/DaylilyTesting/TestClient.swift`
+
+- Minimal in-memory test client.
+- Provides `respond(to:)`, `get(_:)`, and `post(_:body:)`.
+- Reuses `Application`, `Request`, `Response`, `Headers`, and `Body`.
+
 `Sources/HelloDaylily/HelloDaylily.swift`
 
 - Default executable entry.
 
 `Sources/HelloDaylily/Checks.swift`
 
-- Lightweight checks used until a real test target is added.
+- Lightweight checks, including `DaylilyTesting` coverage, used until a dedicated test target is added.
 
 `Sources/HelloDaylily/Payloads.swift`
 

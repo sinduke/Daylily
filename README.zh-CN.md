@@ -44,6 +44,7 @@ Daylily 不是 Vapor 或 Hummingbird 的复制品。它是在探索：如果 AI 
 - 基于 NIO 的 HTTP/1.1 server。
 - Macro route/group MVP：`@DaylilyServer`、`@GET`、`@POST`、`@GROUP`。
 - Macro `@Path` 类型化路径参数注入。
+- `DaylilyTesting` 最小 in-memory `TestClient`。
 - 默认 `swift run` 示例服务。
 - 轻量行为检查。
 - AIDEV 项目接管系统。
@@ -188,6 +189,25 @@ struct SignatureMiddleware: Middleware {
 
 replacement body 依然是 one-shot，而且 helper 必须传入明确的大小限制。
 
+## DaylilyTesting
+
+`DaylilyTesting` 提供一个不走真实网络的 test client：
+
+```swift
+import Daylily
+import DaylilyTesting
+
+let app = Application {
+    Get("/hello") {
+        "Daylily ships."
+    }
+}
+
+let response = try await TestClient(app).get("/hello")
+```
+
+`TestClient` 会直接调用 `Application.respond(to:)`，所以测试覆盖的是同一套 in-memory runtime 行为，不需要打开 socket。
+
 ## Macro API MVP
 
 Daylily 的 macro MVP 已支持这种形态：
@@ -289,6 +309,7 @@ Daylily/
 │   ├── DaylilyCore/
 │   ├── DaylilyJSON/
 │   ├── DaylilyNIO/
+│   ├── DaylilyTesting/
 │   └── HelloDaylily/
 └── ai/
     ├── epics/
@@ -312,7 +333,7 @@ Daylily/
 
 近期：
 
-1. `DaylilyTesting` 最小 TestClient。
+1. `DaylilyTesting` request builders 和 JSON assertions。
 2. `@Body` JSON macro/runtime bridge。
 3. 先做 lifecycle 和生产级 server 控制，再扩生态模块。
 

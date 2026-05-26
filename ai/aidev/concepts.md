@@ -286,6 +286,7 @@ Current conformers:
 
 - `Abort`
 - `BodyError`
+- `ParameterError`
 
 `Application.respond(to:)` maps `ResponseError.status` and `ResponseError.reason` into a text response.
 
@@ -310,6 +311,26 @@ Transport accepts network traffic and calls:
 Current transport is `DaylilyNIO`.
 
 Transport details must not leak into `DaylilyCore` or user-facing handler APIs.
+
+## Testing
+
+`DaylilyTesting` provides transport-free test helpers.
+
+Current surface:
+
+```swift
+let response = try await TestClient(app).get("/hello")
+```
+
+`TestClient` wraps an `Application` and calls:
+
+```swift
+Application.respond(to:)
+```
+
+This makes tests deterministic and keeps them on the same in-memory behavior path used by runtime checks.
+
+`TestClient` is not a transport and does not open sockets.
 
 ## Macro Layer
 

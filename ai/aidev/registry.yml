@@ -5,7 +5,7 @@ project:
   license: MIT
   license_file: LICENSE
   swift_tools_version: "6.0"
-  current_phase: "daylily_testing_mvp"
+  current_phase: "daylily_testing_request_builders"
   authoritative_ai_entry:
     - AIDEV.md
     - ai/aidev/start-here.md
@@ -136,6 +136,20 @@ products:
       - NIOCore
       - NIOHTTP1
       - NIOPosix
+  DaylilyTesting:
+    kind: library
+    role: testing_helpers
+    responsibility:
+      - provide_transport_free_test_client
+      - call_application_respond_directly
+      - support_in_memory_request_response_checks
+    depends_on:
+      - DaylilyCore
+    forbidden_imports:
+      - NIO
+      - NIOCore
+      - NIOHTTP1
+      - NIOPosix
   HelloDaylily:
     kind: executable
     role: example_and_checks
@@ -146,6 +160,7 @@ products:
     depends_on:
       - Daylily
       - DaylilyCore
+      - DaylilyTesting
 
 implemented_features:
   runtime_dsl:
@@ -200,6 +215,21 @@ implemented_features:
       - "@Path names must match :name route segments in the full route path"
       - "missing and invalid values keep ParameterError 400 mappings"
       - "@Body, @Query, @Header, optional path values, and UUID remain out of scope"
+  daylily_testing_minimal_client:
+    status: implemented
+    epic: "0011-daylily-testing"
+    task: "0011-001-minimal-test-client"
+    module: DaylilyTesting
+    public_api:
+      - TestClient
+      - "TestClient.respond(to:)"
+      - "TestClient.get(_:headers:)"
+      - "TestClient.post(_:headers:body:)"
+    decisions:
+      - "TestClient calls Application.respond(to:) directly"
+      - "DaylilyTesting depends on DaylilyCore only"
+      - "TestClient is transport-free and opens no sockets"
+      - "rich request builders and JSON assertions are deferred to 0011-002"
   nio_http_server:
     status: implemented
     protocol: HTTP/1.1
@@ -349,7 +379,12 @@ planned_features:
       - "0010-001-typed-path-extraction-runtime"
       - "0010-002-path-macro-mvp"
     next_task: "0010-003-body-json-macro-runtime-bridge"
-    recommended_interleave_next: "0011-001-minimal-test-client"
+  daylily_testing:
+    status: in-progress
+    epic: "0011-daylily-testing"
+    completed:
+      - "0011-001-minimal-test-client"
+    next_task: "0011-002-request-builders-and-json-assertions"
   openapi:
     status: future
   dependency_injection:
@@ -379,6 +414,19 @@ public_api:
       GROUP:
         signature: "public macro GROUP(_ prefix: String)"
         role: "mark nested struct as route group"
+  DaylilyTesting:
+    TestClient:
+      kind: struct
+      conforms:
+        - Sendable
+      methods:
+        - "public init(_ application: Application)"
+        - "public func respond(to request: Request) async throws -> Response"
+        - "public func get(_ path: String, headers: Headers = [:]) async throws -> Response"
+        - "public func post(_ path: String, headers: Headers = [:], body: Body = .bytes([])) async throws -> Response"
+        - "public func post(_ path: String, headers: Headers = [:], body: [UInt8]) async throws -> Response"
+        - "public func post(_ path: String, headers: Headers = [:], body: String) async throws -> Response"
+      contract: "Transport-free in-memory test client that calls Application.respond(to:) directly."
   DaylilyCore:
     Application:
       kind: struct
@@ -633,6 +681,7 @@ runtime_rules:
   path_parameter_prefix: ":"
   typed_path_parameter_policy: "Parameters.require(_:as:) and Parameters.get(_:as:) use ParameterDecodable; missing required and invalid values map to 400; UUID is deferred."
   macro_path_parameter_policy: "@Path parameters are marker wrappers; @DaylilyServer validates route membership and lowers them into Parameters.require(_:as:)."
+  test_client_policy: "TestClient is an in-memory helper in DaylilyTesting; it calls Application.respond(to:) directly and does not use transport."
   wildcard_prefix: "*"
   current_body_model: "Body one-shot API with NIO true streaming bridge and in-process buffered Body.bytes support"
   future_body_model: "response body streaming and higher-level upload helpers"
@@ -693,6 +742,7 @@ aidev_files:
     - ai/tasks/0009-002-explicit-buffered-body-helper.md
     - ai/tasks/0010-001-typed-path-extraction-runtime.md
     - ai/tasks/0010-002-path-macro-mvp.md
+    - ai/tasks/0011-001-minimal-test-client.md
   docs:
     - ai/aidev/project-map.md
     - ai/aidev/architecture.md
@@ -718,6 +768,7 @@ extension_playbooks:
   - add_explicit_buffered_body_helper
   - add_streaming_body
   - extend_macro_route_mvp
+  - extend_daylily_testing
   - add_new_transport
   - add_checks
 
@@ -783,9 +834,10 @@ roadmap:
     - "0009-002-explicit-buffered-body-helper"
     - "0010-001-typed-path-extraction-runtime"
     - "0010-002-path-macro-mvp"
+    - "0011-001-minimal-test-client"
   in_progress: []
   next_recommended:
-    - "0011-001-minimal-test-client"
+    - "0011-002-request-builders-and-json-assertions"
   later:
     - "0010-003-body-json-macro-runtime-bridge"
     - "0010-004-query-and-header-inputs"

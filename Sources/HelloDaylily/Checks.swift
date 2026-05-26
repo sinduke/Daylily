@@ -1,10 +1,15 @@
 @_spi(Transport) import DaylilyCore
 import Daylily
+import DaylilyTesting
 import Foundation
 
 enum DaylilyChecks {
     static func run() async throws {
         try await exactRoute()
+        try await testClientGet()
+        try await testClientPostBody()
+        try await testClientRespondToRequest()
+        try await testClientNotFound()
         try await pathParameter()
         try await typedPathParameterInt()
         try await typedPathParameterScalars()
@@ -60,6 +65,60 @@ enum DaylilyChecks {
 
         try expect(response.status == .ok, "expected 200 OK")
         try expect(response.bodyString == "Daylily ships.", "expected hello response")
+    }
+
+    private static func testClientGet() async throws {
+        let app = Application {
+            Get("/hello") {
+                "Daylily ships."
+            }
+        }
+
+        let response = try await TestClient(app).get("/hello")
+
+        try expect(response.status == .ok, "expected TestClient GET 200 OK")
+        try expect(response.bodyString == "Daylily ships.", "expected TestClient GET response")
+    }
+
+    private static func testClientPostBody() async throws {
+        let app = Application {
+            Post("/echo") { request in
+                try await request.body.string(upTo: .kilobytes(64))
+            }
+        }
+
+        let response = try await TestClient(app).post("/echo", body: "hello")
+
+        try expect(response.status == .ok, "expected TestClient POST 200 OK")
+        try expect(response.bodyString == "hello", "expected TestClient POST body response")
+    }
+
+    private static func testClientRespondToRequest() async throws {
+        let app = Application {
+            Get("/headers") { request in
+                request.headers["x-daylily"] ?? "missing"
+            }
+        }
+
+        let response = try await TestClient(app).respond(
+            to: Request(method: .get, path: "/headers", headers: ["x-daylily": "ships"])
+        )
+
+        try expect(response.status == .ok, "expected TestClient request 200 OK")
+        try expect(response.bodyString == "ships", "expected TestClient to send headers")
+    }
+
+    private static func testClientNotFound() async throws {
+        let app = Application {
+            Get("/hello") {
+                "Daylily ships."
+            }
+        }
+
+        let response = try await TestClient(app).get("/missing")
+
+        try expect(response.status == .notFound, "expected TestClient missing route 404")
+        try expect(response.bodyString == "Not Found", "expected TestClient missing route body")
     }
 
     private static func pathParameter() async throws {

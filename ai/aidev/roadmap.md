@@ -164,7 +164,8 @@ Practical interleave:
 ```text
 0010-001 Typed path extraction runtime (delivered)
 0010-002 @Path macro MVP (delivered)
-0011-001 DaylilyTesting minimal TestClient
+0011-001 DaylilyTesting minimal TestClient (delivered)
+0011-002 DaylilyTesting request builders and JSON assertions
 0010-003 @Body JSON
 0010-004 @Query / @Header
 0012 Lifecycle
@@ -172,28 +173,27 @@ Practical interleave:
 
 ## Current Epic
 
-### 0010 Typed Handler Inputs
+### 0011 DaylilyTesting
 
 Status: in-progress
 
 Delivered:
 
-- `0010-001-typed-path-extraction-runtime`
-- `0010-002-path-macro-mvp`
+- `0011-001-minimal-test-client`
 
 Next task:
 
-- `0011-001-minimal-test-client`
+- `0011-002-request-builders-and-json-assertions`
 
 Example target:
 
 ```swift
 let response = try await TestClient(app).get("/hello")
+#expect(response.status == .ok)
 ```
 
 ### Future Epics
 
-- `0011` DaylilyTesting.
 - `0012` Lifecycle and production server controls.
 - `0013` Observability middleware.
 - `0014` OpenAPI metadata.

@@ -19,7 +19,7 @@ Guarantees:
 - Application middleware wraps router dispatch.
 - Application middleware can transform missing-route responses.
 - `ResponseError` is converted to its status and reason.
-- `Abort` and `BodyError` conform to `ResponseError`.
+- `Abort`, `BodyError`, and `ParameterError` conform to `ResponseError`.
 - Unknown errors become `500 Internal Server Error`.
 - Missing route becomes `404 Not Found`.
 
@@ -391,6 +391,38 @@ Extension points:
 - TLS
 - HTTP/2
 - alternate transports
+
+## DaylilyTesting Contract
+
+Input:
+
+- An `Application`.
+- In-memory `Request` values or convenience method/path calls.
+
+Output:
+
+- Daylily `Response` values.
+
+Guarantees:
+
+- `TestClient` calls `Application.respond(to:)` directly.
+- `TestClient` is transport-free and opens no sockets.
+- `TestClient` depends on `DaylilyCore`, not NIO.
+- `get(_:)` sends a GET request with optional headers.
+- `post(_:body:)` sends a POST request with optional headers and a `Body`, `[UInt8]`, or `String`.
+- Missing routes and thrown framework errors map exactly as `Application.respond(to:)` maps them.
+
+Known limitations:
+
+- No JSON assertion helpers yet.
+- No rich request builder DSL yet.
+- No dedicated Swift test target yet.
+
+Extension points:
+
+- request builders
+- JSON assertions
+- typed response helpers
 
 ## Macro Route Contract
 
