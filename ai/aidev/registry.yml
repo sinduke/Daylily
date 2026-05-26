@@ -5,7 +5,7 @@ project:
   license: MIT
   license_file: LICENSE
   swift_tools_version: "6.0"
-  current_phase: "server_configuration_controls"
+  current_phase: "observability_middleware"
   authoritative_ai_entry:
     - AIDEV.md
     - ai/aidev/start-here.md
@@ -107,6 +107,7 @@ products:
       - body_model
       - middleware_runtime
       - lifecycle_runtime
+      - server_configuration
       - response_conversion
       - path_parameters
       - query_parameters
@@ -320,6 +321,30 @@ implemented_features:
       - "signal handling is transport-owned"
       - "NIO channel types are not exposed to user APIs"
       - "request draining and shutdown timeouts are deferred"
+  server_configuration:
+    status: implemented
+    epic: "0012-lifecycle-server-controls"
+    task: "0012-003-server-configuration"
+    modules:
+      - DaylilyCore
+      - Daylily
+      - DaylilyNIO
+    public_api:
+      - ServerConfiguration
+      - "Application.run(configuration:)"
+      - "NIOServerConfiguration.init(_:)"
+    defaults:
+      host: "127.0.0.1"
+      port: 8080
+      backlog: 256
+      reuseAddress: true
+      maxMessagesPerRead: 16
+      gracefulShutdownSignals: true
+    decisions:
+      - "ServerConfiguration is NIO-free and lives in DaylilyCore"
+      - "Application.run(host:port:) remains convenience sugar"
+      - "Application.run(configuration:) is the explicit server control API"
+      - "NIOServerConfiguration mirrors the active NIO transport controls"
   daylily_testing_minimal_client:
     status: implemented
     epic: "0011-daylily-testing"
@@ -523,7 +548,8 @@ planned_features:
     completed:
       - "0012-001-application-lifecycle-mvp"
       - "0012-002-graceful-shutdown"
-    next_task: "0012-003-server-configuration"
+      - "0012-003-server-configuration"
+    next_task: null
   dependency_injection:
     status: future
 
@@ -534,10 +560,13 @@ public_api:
       - DaylilyJSON
       - DaylilyNIO
     Application.run:
-      signature: "public func run(host: String = \"127.0.0.1\", port: Int = 8080) async throws"
+      signatures:
+        - "public func run(host: String = \"127.0.0.1\", port: Int = 8080) async throws"
+        - "public func run(configuration: ServerConfiguration) async throws"
       parameters:
         host: "bind host"
         port: "bind port"
+        configuration: "explicit server configuration"
     macros:
       DaylilyServer:
         signature: "public macro DaylilyServer()"
@@ -637,6 +666,20 @@ public_api:
     LifecycleOperation:
       kind: typealias
       signature: "public typealias LifecycleOperation = @Sendable () async throws -> Void"
+    ServerConfiguration:
+      kind: struct
+      conforms:
+        - Equatable
+        - Sendable
+      properties:
+        - "host: String"
+        - "port: Int"
+        - "backlog: Int"
+        - "reuseAddress: Bool"
+        - "maxMessagesPerRead: Int"
+        - "gracefulShutdownSignals: Bool"
+      initializer: "public init(host: String = \"127.0.0.1\", port: Int = 8080, backlog: Int = 256, reuseAddress: Bool = true, maxMessagesPerRead: Int = 16, gracefulShutdownSignals: Bool = true)"
+      contract: "NIO-free configuration consumed by Application.run(configuration:)."
     Route:
       kind: struct
       conforms:
@@ -939,6 +982,10 @@ public_api:
       defaults:
         host: "127.0.0.1"
         port: 8080
+        backlog: 256
+        reuseAddress: true
+        maxMessagesPerRead: 16
+        gracefulShutdownSignals: true
   DaylilyMacros:
     DaylilyServerMacro:
       kind: macro_implementation
@@ -962,6 +1009,7 @@ runtime_rules:
   query_and_header_input_policy: "Request.query uses QueryParameters; Headers has typed require/get; @Query lowers to req.query.require and @Header lowers to req.headers.require."
   macro_json_body_policy: "@JSONBody parameters are marker wrappers in DaylilyJSON; @DaylilyServer lowers them into try await req.json(Type.self). True @Body spelling is deferred because Body is the raw request body type."
   lifecycle_policy: "Application lifecycle phases are configure, boot, started, shutdown, cleanup. Application.run binds lifecycle to transport; Application.respond(to:) does not run lifecycle. The default NIO server closes on SIGINT/SIGTERM."
+  server_configuration_policy: "ServerConfiguration is the NIO-free user-facing server control type. Application.run(configuration:) bridges it into DaylilyNIO."
   test_client_policy: "TestClient is an in-memory helper in DaylilyTesting; it calls Application.respond(to:) directly and does not use transport. TestRequest and response assertions are testing helpers, not runtime behavior."
   wildcard_prefix: "*"
   current_body_model: "Body one-shot API with NIO true streaming bridge and in-process buffered Body.bytes support"
@@ -1029,6 +1077,7 @@ aidev_files:
     - ai/tasks/0011-002-request-builders-and-json-assertions.md
     - ai/tasks/0012-001-application-lifecycle-mvp.md
     - ai/tasks/0012-002-graceful-shutdown.md
+    - ai/tasks/0012-003-server-configuration.md
   docs:
     - ai/aidev/project-map.md
     - ai/aidev/architecture.md
@@ -1105,8 +1154,8 @@ roadmap:
       - "0009-middleware-system"
       - "0010-typed-handler-inputs"
       - "0011-daylily-testing"
-    next_recommended:
       - "0012-lifecycle-server-controls"
+    next_recommended:
       - "0013-observability-middleware"
       - "0014-openapi-metadata"
   completed:
@@ -1131,10 +1180,10 @@ roadmap:
     - "0011-002-request-builders-and-json-assertions"
     - "0012-001-application-lifecycle-mvp"
     - "0012-002-graceful-shutdown"
+    - "0012-003-server-configuration"
   in_progress: []
   next_recommended:
-    - "0012-003-server-configuration"
+    - "0013-001-request-logging-middleware"
   later:
-    - "0012-003-server-configuration"
     - "0013-001-request-logging-middleware"
     - "0014-001-route-metadata-runtime"

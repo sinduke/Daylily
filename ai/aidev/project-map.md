@@ -161,6 +161,10 @@ Daylily/
 - Method, path, headers, `Body`, path parameters, and query parameters.
 - Request copy helpers for parameters, body replacement, and explicit buffered body replacement.
 
+`Sources/DaylilyCore/ServerConfiguration.swift`
+
+- NIO-free server configuration consumed by `Application.run(configuration:)`.
+
 `Sources/DaylilyCore/Response.swift`
 
 - Response model and `ResponseConvertible`.

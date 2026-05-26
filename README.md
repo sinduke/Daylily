@@ -40,6 +40,7 @@ Implemented today:
 - Runtime middleware with application, group, and route scopes.
 - Application lifecycle hooks: `configure`, `boot`, `started`, `shutdown`, `cleanup`.
 - Default SIGINT/SIGTERM graceful server shutdown.
+- Explicit `ServerConfiguration` for host, port, backlog, address reuse, read batching, and shutdown signals.
 - Explicit `withBufferedBody(upTo:_:)` helper for bounded body inspection and replacement.
 - `ResponseConvertible` for `String`, `Status`, and `Response`.
 - Async JSON body decoding with `request.body.json(...)` and `request.json(...)`.
@@ -58,7 +59,6 @@ Not implemented yet:
 
 - Macro typed input injection beyond `@Path`, `@Query`, `@Header`, and `@JSONBody` (true `@Body` spelling, optional values, etc.).
 - OpenAPI generation.
-- Production server controls.
 - Dependency injection.
 - Macro middleware attributes.
 
@@ -181,6 +181,17 @@ let app = Application {
 .cleanup {
     // release resources
 }
+```
+
+Explicit server configuration is available when defaults are not enough:
+
+```swift
+try await app.run(
+    configuration: ServerConfiguration(
+        host: "0.0.0.0",
+        port: 8080
+    )
+)
 ```
 
 ## Runtime Middleware
@@ -424,9 +435,9 @@ The most important invariants:
 
 Near-term:
 
-1. Production server controls.
-2. Observability middleware.
-3. OpenAPI metadata before ecosystem modules.
+1. Observability middleware.
+2. OpenAPI metadata.
+3. Ecosystem modules after core experience stays stable.
 
 ## License
 

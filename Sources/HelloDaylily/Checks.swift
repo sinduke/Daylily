@@ -8,6 +8,7 @@ enum DaylilyChecks {
         try await exactRoute()
         try await lifecycleHooks()
         try await lifecycleErrors()
+        try serverConfiguration()
         try await testClientGet()
         try await testClientPostBody()
         try await testClientRespondToRequest()
@@ -132,6 +133,33 @@ enum DaylilyChecks {
             try expect(error.status == .badRequest, "expected lifecycle error status")
             try expect(error.reason == "Boot failed", "expected lifecycle error reason")
         }
+    }
+
+    private static func serverConfiguration() throws {
+        let defaults = ServerConfiguration()
+        try expect(defaults.host == "127.0.0.1", "expected default server host")
+        try expect(defaults.port == 8080, "expected default server port")
+        try expect(defaults.backlog == 256, "expected default server backlog")
+        try expect(defaults.reuseAddress, "expected address reuse by default")
+        try expect(defaults.maxMessagesPerRead == 16, "expected default max messages per read")
+        try expect(defaults.gracefulShutdownSignals, "expected graceful shutdown signals by default")
+
+        let custom = ServerConfiguration(
+            host: "0.0.0.0",
+            port: 9090,
+            backlog: 64,
+            reuseAddress: false,
+            maxMessagesPerRead: 4,
+            gracefulShutdownSignals: false
+        )
+        let nio = NIOServerConfiguration(custom)
+
+        try expect(nio.host == "0.0.0.0", "expected custom NIO host")
+        try expect(nio.port == 9090, "expected custom NIO port")
+        try expect(nio.backlog == 64, "expected custom NIO backlog")
+        try expect(!nio.reuseAddress, "expected custom NIO reuseAddress")
+        try expect(nio.maxMessagesPerRead == 4, "expected custom NIO maxMessagesPerRead")
+        try expect(!nio.gracefulShutdownSignals, "expected custom NIO gracefulShutdownSignals")
     }
 
     private static func testClientGet() async throws {

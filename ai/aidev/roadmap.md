@@ -170,7 +170,8 @@ Practical interleave:
 0010-004 @Query / @Header (delivered)
 0012-001 Application lifecycle MVP (delivered)
 0012-002 Graceful shutdown (delivered)
-0012-003 Server configuration
+0012-003 Server configuration (delivered)
+0013-001 Observability middleware
 ```
 
 ## Recently Completed Epic
@@ -210,6 +211,7 @@ Delivered:
 
 - `0012-001-application-lifecycle-mvp`
 - `0012-002-graceful-shutdown`
+- `0012-003-server-configuration`
 
 Delivered shape:
 
@@ -225,7 +227,7 @@ let app = Application {
 
 Next task:
 
-- `0012-003-server-configuration`
+- `0013-001-request-logging-middleware`
 
 ### Future Epics
 

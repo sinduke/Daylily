@@ -179,6 +179,7 @@ Implemented:
 - Runtime middleware at application, group, and route scope.
 - Application lifecycle hooks: `configure`, `boot`, `started`, `shutdown`, `cleanup`.
 - Default SIGINT/SIGTERM graceful server shutdown.
+- Explicit `ServerConfiguration`.
 - Macro route/group MVP: `@DaylilyServer`, `@GET`, `@POST`, `@GROUP`.
 - Macro `@Path` typed path parameter injection.
 - Macro `@Query` and `@Header` typed input injection.
@@ -204,7 +205,6 @@ Not implemented:
 - OpenAPI.
 - Dependency injection.
 - Macro middleware attributes.
-- Production server controls.
 - Dedicated Swift test target.
 
 ## Read Order
@@ -278,5 +278,5 @@ Do not start with:
 Current strategic order:
 
 1. Keep AIDEV self-contained.
-2. Add production server controls.
-3. Add observability middleware.
+2. Add observability middleware.
+3. Add OpenAPI metadata.

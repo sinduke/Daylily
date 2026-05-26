@@ -56,6 +56,7 @@ Rules:
 ```swift
 extension Application {
     public func run(host: String = "127.0.0.1", port: Int = 8080) async throws
+    public func run(configuration: ServerConfiguration) async throws
 }
 ```
 
@@ -63,6 +64,7 @@ Parameters:
 
 - `host`: address to bind. Default `127.0.0.1`.
 - `port`: port to bind. Default `8080`.
+- `configuration`: explicit server configuration.
 
 Lifecycle order:
 
@@ -221,6 +223,33 @@ Rules:
 - `shutdown` and `cleanup` run after server close.
 - `shutdown` and `cleanup` are attempted if server run fails after boot.
 - Lifecycle APIs do not expose NIO types.
+
+### ServerConfiguration
+
+```swift
+public struct ServerConfiguration: Equatable, Sendable {
+    public var host: String
+    public var port: Int
+    public var backlog: Int
+    public var reuseAddress: Bool
+    public var maxMessagesPerRead: Int
+    public var gracefulShutdownSignals: Bool
+
+    public init(
+        host: String = "127.0.0.1",
+        port: Int = 8080,
+        backlog: Int = 256,
+        reuseAddress: Bool = true,
+        maxMessagesPerRead: Int = 16,
+        gracefulShutdownSignals: Bool = true
+    )
+}
+```
+
+Rules:
+
+- `ServerConfiguration` is NIO-free and lives in `DaylilyCore`.
+- `Application.run(configuration:)` bridges it into the active transport.
 - The default NIO server closes on SIGINT/SIGTERM so `shutdown` and `cleanup` can run.
 
 ### Route
@@ -879,8 +908,21 @@ Rules:
 public struct NIOServerConfiguration: Sendable {
     public var host: String
     public var port: Int
+    public var backlog: Int
+    public var reuseAddress: Bool
+    public var maxMessagesPerRead: Int
+    public var gracefulShutdownSignals: Bool
 
-    public init(host: String = "127.0.0.1", port: Int = 8080)
+    public init(
+        host: String = "127.0.0.1",
+        port: Int = 8080,
+        backlog: Int = 256,
+        reuseAddress: Bool = true,
+        maxMessagesPerRead: Int = 16,
+        gracefulShutdownSignals: Bool = true
+    )
+
+    public init(_ configuration: ServerConfiguration)
 }
 ```
 

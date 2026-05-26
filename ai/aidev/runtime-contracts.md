@@ -52,7 +52,30 @@ Guarantees:
 - SIGINT/SIGTERM close the default NIO server channel so lifecycle shutdown can continue.
 - Lifecycle APIs do not expose NIO types.
 
+## Server Configuration Contract
+
+Input:
+
+- `ServerConfiguration`.
+
+Output:
+
+- Active transport configuration.
+
+Guarantees:
+
+- `ServerConfiguration` is NIO-free.
+- `Application.run(configuration:)` is the explicit server control API.
+- `Application.run(host:port:)` remains convenience sugar.
+- Defaults preserve the original host, port, backlog, reuse address, max messages per read, and graceful signal behavior.
+
 Known limitations:
+
+- No TLS controls yet.
+- No HTTP/2 controls yet.
+- No worker thread count controls yet.
+
+Lifecycle limitations:
 
 - No graceful request draining yet.
 - No worker or pool integration yet.

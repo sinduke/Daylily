@@ -8,10 +8,36 @@ import NIOPosix
 public struct NIOServerConfiguration: Sendable {
     public var host: String
     public var port: Int
+    public var backlog: Int
+    public var reuseAddress: Bool
+    public var maxMessagesPerRead: Int
+    public var gracefulShutdownSignals: Bool
 
-    public init(host: String = "127.0.0.1", port: Int = 8080) {
+    public init(
+        host: String = "127.0.0.1",
+        port: Int = 8080,
+        backlog: Int = 256,
+        reuseAddress: Bool = true,
+        maxMessagesPerRead: Int = 16,
+        gracefulShutdownSignals: Bool = true
+    ) {
         self.host = host
         self.port = port
+        self.backlog = backlog
+        self.reuseAddress = reuseAddress
+        self.maxMessagesPerRead = maxMessagesPerRead
+        self.gracefulShutdownSignals = gracefulShutdownSignals
+    }
+
+    public init(_ configuration: ServerConfiguration) {
+        self.init(
+            host: configuration.host,
+            port: configuration.port,
+            backlog: configuration.backlog,
+            reuseAddress: configuration.reuseAddress,
+            maxMessagesPerRead: configuration.maxMessagesPerRead,
+            gracefulShutdownSignals: configuration.gracefulShutdownSignals
+        )
     }
 }
 
@@ -34,21 +60,23 @@ public struct NIOHTTPServer: Sendable {
 
         let responder = responder
         let bootstrap = ServerBootstrap(group: group)
-            .serverChannelOption(ChannelOptions.backlog, value: 256)
-            .serverChannelOption(ChannelOptions.socketOption(.so_reuseaddr), value: 1)
+            .serverChannelOption(ChannelOptions.backlog, value: Int32(configuration.backlog))
+            .serverChannelOption(ChannelOptions.socketOption(.so_reuseaddr), value: configuration.reuseAddress ? 1 : 0)
             .childChannelInitializer { channel in
                 channel.pipeline.configureHTTPServerPipeline().flatMap {
                     channel.pipeline.addHandler(DaylilyHTTPHandler(responder: responder))
                 }
             }
-            .childChannelOption(ChannelOptions.socketOption(.so_reuseaddr), value: 1)
-            .childChannelOption(ChannelOptions.maxMessagesPerRead, value: 16)
+            .childChannelOption(ChannelOptions.socketOption(.so_reuseaddr), value: configuration.reuseAddress ? 1 : 0)
+            .childChannelOption(ChannelOptions.maxMessagesPerRead, value: UInt(configuration.maxMessagesPerRead))
             .childChannelOption(ChannelOptions.recvAllocator, value: AdaptiveRecvByteBufferAllocator())
 
         let channel = try await bootstrap.bind(host: configuration.host, port: configuration.port).get()
         print("Daylily listening on http://\(configuration.host):\(configuration.port)")
 
-        let signalSources = Self.installGracefulShutdownSignals(on: channel)
+        let signalSources = configuration.gracefulShutdownSignals
+            ? Self.installGracefulShutdownSignals(on: channel)
+            : []
         defer {
             for source in signalSources {
                 source.cancel()
@@ -60,7 +88,7 @@ public struct NIOHTTPServer: Sendable {
             try await channel.closeFuture.get()
             try await group.shutdownGracefully()
         } catch {
-            channel.close(promise: nil)
+            channel.close(promise: nil as EventLoopPromise<Void>?)
             try? await group.shutdownGracefully()
             throw error
         }

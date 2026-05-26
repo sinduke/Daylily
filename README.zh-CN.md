@@ -40,6 +40,7 @@ Daylily 不是 Vapor 或 Hummingbird 的复制品。它是在探索：如果 AI 
 - 支持 application、group、route 作用域的 runtime middleware。
 - Application lifecycle hooks：`configure`、`boot`、`started`、`shutdown`、`cleanup`。
 - 默认 SIGINT/SIGTERM graceful server shutdown。
+- 显式 `ServerConfiguration`，用于 host、port、backlog、address reuse、read batching 和 shutdown signals。
 - 显式的 `withBufferedBody(upTo:_:)` helper，用于有界 body 检查和 replacement。
 - `String`、`Status`、`Response` 的 `ResponseConvertible` 支持。
 - 通过 `request.body.json(...)` 和 `request.json(...)` 异步解码 JSON body。
@@ -58,7 +59,6 @@ Daylily 不是 Vapor 或 Hummingbird 的复制品。它是在探索：如果 AI 
 
 - `@Path`、`@Query`、`@Header`、`@JSONBody` 之外的宏级类型化输入注入（真正的 `@Body` 写法、optional values 等）。
 - OpenAPI 生成。
-- 生产级 server 控制。
 - 依赖注入。
 - Macro middleware attributes。
 
@@ -181,6 +181,17 @@ let app = Application {
 .cleanup {
     // release resources
 }
+```
+
+默认值不够时，可以使用显式 server configuration：
+
+```swift
+try await app.run(
+    configuration: ServerConfiguration(
+        host: "0.0.0.0",
+        port: 8080
+    )
+)
 ```
 
 ## Runtime Middleware
@@ -424,9 +435,9 @@ Daylily/
 
 近期：
 
-1. 生产级 server 控制。
-2. Observability middleware。
-3. OpenAPI metadata，然后再扩生态模块。
+1. Observability middleware。
+2. OpenAPI metadata。
+3. Core experience 稳定之后再扩生态模块。
 
 ## License
 

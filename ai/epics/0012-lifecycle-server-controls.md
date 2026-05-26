@@ -1,6 +1,6 @@
 # 0012 Lifecycle And Server Controls
 
-Status: in-progress
+Status: implemented
 
 Purpose:
 
@@ -21,7 +21,7 @@ Recommended tasks:
 
 - `0012-001-application-lifecycle-mvp` (implemented)
 - `0012-002-graceful-shutdown` (implemented)
-- `0012-003-server-configuration`
+- `0012-003-server-configuration` (implemented)
 
 Design notes:
 
@@ -30,6 +30,7 @@ Design notes:
 - Server controls should remain explicit and boring.
 - `0012-001` delivered runtime lifecycle hooks and integrated `Application.run`.
 - `0012-002` delivered default SIGINT/SIGTERM server channel shutdown.
+- `0012-003` delivered NIO-free `ServerConfiguration` and `Application.run(configuration:)`.
 
 Non-goals for the first task:
 
