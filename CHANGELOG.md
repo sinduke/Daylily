@@ -11,6 +11,7 @@ Daylily is currently experimental. Public APIs may change before beta or stable 
 - External SwiftPM consumer smoke test script and CI coverage for local path and released package consumption.
 - Minimal app template with `AppCore`, executable startup, in-memory tests, and template smoke validation.
 - Commerce API example with products, orders, state, metadata, tests, and example smoke validation.
+- Dependency injection design for the first `Dependencies` registry MVP.
 
 ## 0.1.0-alpha.1 - 2026-05-26
 

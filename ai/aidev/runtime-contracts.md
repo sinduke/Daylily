@@ -28,7 +28,7 @@ Extension points:
 
 - error renderer
 - lifecycle hooks
-- service container
+- dependencies registry
 
 ## Lifecycle Contract
 
@@ -79,6 +79,72 @@ Lifecycle limitations:
 
 - No graceful request draining yet.
 - No worker or pool integration yet.
+
+## Dependency Injection Design Contract
+
+Status:
+
+- Designed in `ai/tasks/0020-004-dependency-injection-design.md`.
+- Runtime implementation is deferred to `0020-005-dependencies-registry-mvp`.
+
+Owner:
+
+- `DaylilyCore`
+
+Planned MVP shape:
+
+```swift
+public struct Dependencies: Sendable {
+    public init()
+
+    public mutating func register<Value: Sendable>(_ value: Value)
+    public func get<Value: Sendable>(_ type: Value.Type = Value.self) -> Value?
+    public func require<Value: Sendable>(_ type: Value.Type = Value.self) throws -> Value
+}
+
+public struct Application: Sendable {
+    public init(
+        dependencies configureDependencies: (inout Dependencies) -> Void = { _ in },
+        @RouteBuilder routes: () -> [Route]
+    )
+}
+
+public struct Request: Sendable {
+    public let dependencies: Dependencies
+}
+```
+
+MVP guarantees:
+
+- The public concept is `Dependencies`, not `Container`, `Services`, or `ServiceContainer`.
+- The first registry is app-wide and concrete-type based.
+- `Application` owns the configured registry and gives requests read-only access.
+- `register` stores one concrete `Sendable` value per concrete metatype.
+- Re-registering the same concrete type replaces the previous value.
+- `get` returns `nil` for missing values.
+- `require` throws a Daylily-owned missing dependency error.
+- Missing dependency errors map to `500 Internal Server Error`.
+- The registry remains NIO-free.
+- Runtime APIs come before macro sugar.
+
+0020-005 non-goals:
+
+- protocol or existential lookup
+- keyed dependencies
+- `@Dependency`
+- property-wrapper handler injection
+- lifecycle start/stop management
+- async factories
+- request-scoped registration
+- hierarchical containers
+- global singleton registry
+
+Future extension points:
+
+- protocol and keyed dependency design
+- request-scoped values
+- lifecycle-aware services
+- macro `@Dependency` syntax
 
 ## Middleware Contract
 

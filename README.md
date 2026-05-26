@@ -732,7 +732,7 @@ The most important invariants:
 
 Near-term:
 
-1. Stabilize dependency injection design.
+1. Implement the `Dependencies` registry MVP.
 2. Add middleware macro attributes.
 3. Expand OpenAPI schema generation.
 4. Add WebSocket/realtime experiments.

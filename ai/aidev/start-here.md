@@ -303,12 +303,13 @@ Implemented:
 - External SwiftPM consumer smoke script and CI coverage for local path and released package dependency modes.
 - Minimal app template in `templates/minimal-app`, plus template smoke validation for path and release dependency modes.
 - Commerce API example in `examples/commerce-api`, plus example smoke validation for path and release dependency modes.
+- Dependency injection design for the first `Dependencies` registry MVP.
 
 Not implemented:
 
 - Macro typed input injection beyond `@Path`, `@Query`, `@Header`, and `@Body` (optional values, etc.).
 - Deep OpenAPI schema derivation.
-- Dependency injection.
+- Dependency injection runtime.
 - Macro middleware attributes.
 
 ## Read Order
@@ -392,6 +393,6 @@ Do not start with:
 
 Current strategic order:
 
-1. Finish Package Consumer Experience.
-2. Stabilize dependency injection design from the external app and commerce API shapes.
-3. Then implement the DI runtime MVP.
+1. Implement `0020-005-dependencies-registry-mvp`.
+2. Polish the `makeApplication` and test override usage in `0020-006`.
+3. Design protocol/keyed dependencies, lifecycle integration, then `@Dependency` macro sugar in order.

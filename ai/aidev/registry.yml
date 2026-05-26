@@ -541,11 +541,13 @@ implemented_features:
       - "0020-001-external-consumer-smoke-test"
       - "0020-002-minimal-app-template"
       - "0020-003-first-real-api-example"
-    next_task: "0020-004-dependency-injection-design"
+      - "0020-004-dependency-injection-design"
+    next_task: "0020-005-dependencies-registry-mvp"
     files:
       - scripts/consumer-smoke-test.sh
       - scripts/template-smoke-test.sh
       - scripts/example-smoke-test.sh
+      - ai/tasks/0020-004-dependency-injection-design.md
       - templates/minimal-app/Package.swift
       - templates/minimal-app/Sources/AppCore/App.swift
       - templates/minimal-app/Sources/App/main.swift
@@ -567,6 +569,54 @@ implemented_features:
       - "Swift Testing target importing DaylilyTesting"
       - "minimal app template with AppCore, App executable, and AppCoreTests"
       - "commerce API example with AppCore, actor-backed state, route metadata, and AppCoreTests"
+      - "dependency injection design grounded in external package, minimal app, and commerce API shapes"
+    decisions:
+      - "The DI public concept is Dependencies, not Container or Services."
+      - "0020-005 starts with an app-wide concrete Sendable registry."
+      - "Request.dependencies is the first handler-facing access point."
+      - "Protocol lookup, keyed dependencies, lifecycle integration, and @Dependency are deferred."
+    sequence:
+      - "0020-001-external-consumer-smoke-test"
+      - "0020-002-minimal-app-template"
+      - "0020-003-first-real-api-example"
+      - "0020-004-dependency-injection-design"
+      - "0020-005-dependencies-registry-mvp"
+      - "0020-006-di-usage-polish"
+      - "0020-007-protocol-keyed-dependencies-design"
+      - "0020-008-lifecycle-integration-design"
+      - "0020-009-macro-dependency"
+  dependency_injection_design:
+    status: implemented
+    epic: "0020-package-consumer-experience"
+    task: "0020-004-dependency-injection-design"
+    module: DaylilyCore
+    public_api_impact: "none in 0020-004"
+    planned_mvp_public_api:
+      - Dependencies
+      - "Application.init(dependencies:routes:)"
+      - "Request.dependencies"
+      - "Dependencies.register(_:)"
+      - "Dependencies.get(_:)"
+      - "Dependencies.require(_:)"
+    decisions:
+      - "Dependencies is the public name; avoid Container, Services, and ServiceContainer."
+      - "The MVP is app-wide and concrete-type based."
+      - "The MVP stores Sendable values by concrete metatype."
+      - "Re-registering the same concrete type replaces the previous value."
+      - "Missing required dependencies should map to 500 Internal Server Error."
+      - "The registry lives in DaylilyCore and remains NIO-free."
+      - "Runtime APIs come before macro sugar."
+    non_goals:
+      - "protocol or existential lookup"
+      - "keyed dependencies"
+      - "@Dependency macro"
+      - "property-wrapper handler injection"
+      - "lifecycle start/stop management"
+      - "async factories"
+      - "request-scoped registration"
+      - "hierarchical containers"
+      - "global singleton registry"
+    next_task: "0020-005-dependencies-registry-mvp"
   macro_route_mvp:
     status: implemented
     task: "0003-001-macro-route-mvp"
@@ -914,7 +964,18 @@ planned_features:
       - "0014-003-macro-metadata-bridge"
     next_task: null
   dependency_injection:
-    status: future
+    status: in-progress
+    epic: "0020-package-consumer-experience"
+    completed:
+      - "0020-004-dependency-injection-design"
+    next_task: "0020-005-dependencies-registry-mvp"
+    sequence:
+      - "0020-004-dependency-injection-design"
+      - "0020-005-dependencies-registry-mvp"
+      - "0020-006-di-usage-polish"
+      - "0020-007-protocol-keyed-dependencies-design"
+      - "0020-008-lifecycle-integration-design"
+      - "0020-009-macro-dependency"
   beta_closure:
     status: implemented
     completed:
@@ -941,7 +1002,18 @@ planned_features:
       - "0020-001-external-consumer-smoke-test"
       - "0020-002-minimal-app-template"
       - "0020-003-first-real-api-example"
-    next_task: "0020-004-dependency-injection-design"
+      - "0020-004-dependency-injection-design"
+    next_task: "0020-005-dependencies-registry-mvp"
+    sequence:
+      - "0020-001-external-consumer-smoke-test"
+      - "0020-002-minimal-app-template"
+      - "0020-003-first-real-api-example"
+      - "0020-004-dependency-injection-design"
+      - "0020-005-dependencies-registry-mvp"
+      - "0020-006-di-usage-polish"
+      - "0020-007-protocol-keyed-dependencies-design"
+      - "0020-008-lifecycle-integration-design"
+      - "0020-009-macro-dependency"
 
 public_api:
   Daylily:
@@ -1813,6 +1885,7 @@ aidev_files:
     - ai/tasks/0020-001-external-consumer-smoke-test.md
     - ai/tasks/0020-002-minimal-app-template.md
     - ai/tasks/0020-003-first-real-api-example.md
+    - ai/tasks/0020-004-dependency-injection-design.md
   docs:
     - CHANGELOG.md
     - docs/README.md
@@ -1918,7 +1991,7 @@ roadmap:
     in_progress:
       - "0020-package-consumer-experience"
     next_recommended:
-      - "0020-004-dependency-injection-design"
+      - "0020-005-dependencies-registry-mvp"
   completed:
     - "0001-001-minimal-http-server"
     - "0002-001-aidev-project-contract"
@@ -1957,8 +2030,13 @@ roadmap:
     - "0020-001-external-consumer-smoke-test"
     - "0020-002-minimal-app-template"
     - "0020-003-first-real-api-example"
+    - "0020-004-dependency-injection-design"
   in_progress: []
   next_recommended:
-    - "0020-004-dependency-injection-design"
+    - "0020-005-dependencies-registry-mvp"
   later:
     - "0013-003-observability-hooks"
+    - "0020-006-di-usage-polish"
+    - "0020-007-protocol-keyed-dependencies-design"
+    - "0020-008-lifecycle-integration-design"
+    - "0020-009-macro-dependency"
