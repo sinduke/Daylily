@@ -132,14 +132,28 @@ Daylily/
 - Typed path extraction through `ParameterDecodable`.
 - `ParameterError` response mapping for missing and invalid typed parameters.
 
+`Sources/DaylilyCore/QueryParameters.swift`
+
+- Query parameter container with dynamic member access.
+- Typed query extraction through `ParameterDecodable`.
+- `QueryParameterError` response mapping for missing and invalid typed query parameters.
+
 `Sources/DaylilyCore/Path.swift`
 
 - Public `@Path` parameter marker used by `@DaylilyServer`.
 - Keeps macro syntax valid while extraction remains in `Parameters.require(_:as:)`.
 
+`Sources/DaylilyCore/Query.swift`
+
+- Public `@Query` parameter marker used by `@DaylilyServer`.
+
+`Sources/DaylilyCore/Header.swift`
+
+- Public `@Header` parameter marker used by `@DaylilyServer`.
+
 `Sources/DaylilyCore/Request.swift`
 
-- Method, path, headers, `Body`, parameters.
+- Method, path, headers, `Body`, path parameters, and query parameters.
 - Request copy helpers for parameters, body replacement, and explicit buffered body replacement.
 
 `Sources/DaylilyCore/Response.swift`

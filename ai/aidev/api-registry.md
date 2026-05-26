@@ -33,7 +33,7 @@ Rules:
 - `@DaylilyServer` generates `static func main() async throws`.
 - The generated main creates `let server = Self()`.
 - Route handlers must be instance methods.
-- Route handlers may have zero parameters, one `Request` parameter, `@Path` parameters, and one `@JSONBody` parameter.
+- Route handlers may have zero parameters, one `Request` parameter, `@Path`, `@Query`, `@Header`, and one `@JSONBody` parameter.
 - `@GET` lowers to runtime `Get`.
 - `@POST` lowers to runtime `Post`.
 - `@GROUP` marks a nested struct as a route group and contributes a path prefix.
@@ -41,6 +41,12 @@ Rules:
 - Bare `@Path` uses the Swift local parameter name.
 - `@Path("name")` maps to an explicit path parameter name.
 - `@Path` names must match `:name` segments in the full route path.
+- `@Query` lowers into `req.query.require(_:as:)`.
+- Bare `@Query` uses the Swift local parameter name.
+- `@Query("name")` maps to an explicit query parameter name.
+- `@Header` lowers into `req.headers.require(_:as:)`.
+- Bare `@Header` uses the Swift local parameter name.
+- `@Header("name")` maps to an explicit header name.
 - `@JSONBody` lowers into `try await req.json(Type.self)`.
 - True `@Body` spelling is deferred because `Body` is already Daylily's raw request body type.
 - Grouped types are instantiated with `Self.GroupType()`.
@@ -293,13 +299,15 @@ public struct Request: Sendable {
     public let headers: Headers
     public let body: Body
     public let parameters: Parameters
+    public let query: QueryParameters
 
     public init(
         method: HTTPMethod,
         path: String,
         headers: Headers = [:],
         body: Body = .bytes([]),
-        parameters: Parameters = Parameters()
+        parameters: Parameters = Parameters(),
+        query: QueryParameters? = nil
     )
 
     public init(
@@ -307,7 +315,8 @@ public struct Request: Sendable {
         path: String,
         headers: Headers = [:],
         body: [UInt8],
-        parameters: Parameters = Parameters()
+        parameters: Parameters = Parameters(),
+        query: QueryParameters? = nil
     )
 
     public func with(parameters: Parameters) -> Request
@@ -319,6 +328,12 @@ public struct Request: Sendable {
     ) async throws -> R
 }
 ```
+
+Rules:
+
+- Initializers strip query text from `path` and populate `query` when `path` includes `?`.
+- Explicit `query:` overrides query text parsed from `path`.
+- `with(parameters:)`, `with(body:)`, and `withBufferedBody(upTo:_:)` preserve query values.
 
 Body rules:
 
@@ -551,6 +566,8 @@ public struct Headers: Equatable, Sendable, ExpressibleByDictionaryLiteral {
     public init(dictionaryLiteral elements: (String, String)...)
     public subscript(_ name: String) -> String? { get set }
     public var all: [(name: String, value: String)] { get }
+    public func require<Value: ParameterDecodable>(_ name: String, as type: Value.Type = Value.self) throws -> Value
+    public func get<Value: ParameterDecodable>(_ name: String, as type: Value.Type = Value.self) throws -> Value?
 }
 ```
 
@@ -558,6 +575,28 @@ Rules:
 
 - Header names are stored lowercased.
 - Multiple values for the same header are not supported yet.
+- `require(_:as:)` throws `HeaderError.missing` when the header is absent.
+- `require(_:as:)` and `get(_:as:)` throw `HeaderError.invalid` when conversion fails.
+
+### QueryParameters
+
+```swift
+@dynamicMemberLookup
+public struct QueryParameters: Equatable, Sendable {
+    public init(_ storage: [String: String] = [:])
+    public subscript(_ name: String) -> String? { get }
+    public subscript(dynamicMember name: String) -> String? { get }
+    public func require<Value: ParameterDecodable>(_ name: String, as type: Value.Type = Value.self) throws -> Value
+    public func get<Value: ParameterDecodable>(_ name: String, as type: Value.Type = Value.self) throws -> Value?
+}
+```
+
+Rules:
+
+- Query parsing supports `&` pairs, `name=value`, empty values, `+` as space, and percent-decoded UTF-8 bytes.
+- Repeated query names currently use last value wins.
+- `require(_:as:)` throws `QueryParameterError.missing` when the query value is absent.
+- `require(_:as:)` and `get(_:as:)` throw `QueryParameterError.invalid` when conversion fails.
 
 ### Parameters
 
@@ -619,6 +658,34 @@ Mappings:
 - `.missing`: `400 Bad Request`, `Missing path parameter: <name>`
 - `.invalid`: `400 Bad Request`, `Invalid path parameter <name>: expected <type>`
 
+### QueryParameterError
+
+```swift
+public enum QueryParameterError: ResponseError {
+    case missing(name: String)
+    case invalid(name: String, expected: String)
+}
+```
+
+Mappings:
+
+- `.missing`: `400 Bad Request`, `Missing query parameter: <name>`
+- `.invalid`: `400 Bad Request`, `Invalid query parameter <name>: expected <type>`
+
+### HeaderError
+
+```swift
+public enum HeaderError: ResponseError {
+    case missing(name: String)
+    case invalid(name: String, expected: String)
+}
+```
+
+Mappings:
+
+- `.missing`: `400 Bad Request`, `Missing header: <name>`
+- `.invalid`: `400 Bad Request`, `Invalid header <name>: expected <type>`
+
 ### Path
 
 ```swift
@@ -638,6 +705,38 @@ Rules:
 - Macro lowering calls `Parameters.require(_:as:)`.
 - Supported value types are the current `ParameterDecodable` conformers.
 - `UUID` is not supported yet.
+
+### Query
+
+```swift
+@propertyWrapper
+public struct Query<Value: ParameterDecodable>: Sendable {
+    public var wrappedValue: Value
+    public init(wrappedValue: Value)
+    public init(wrappedValue: Value, _ name: String)
+}
+```
+
+Rules:
+
+- `Query` is a parameter marker used by `@DaylilyServer`.
+- Macro lowering calls `QueryParameters.require(_:as:)`.
+
+### Header
+
+```swift
+@propertyWrapper
+public struct Header<Value: ParameterDecodable>: Sendable {
+    public var wrappedValue: Value
+    public init(wrappedValue: Value)
+    public init(wrappedValue: Value, _ name: String)
+}
+```
+
+Rules:
+
+- `Header` is a parameter marker used by `@DaylilyServer`.
+- Macro lowering calls `Headers.require(_:as:)`.
 
 ### ResponseError
 

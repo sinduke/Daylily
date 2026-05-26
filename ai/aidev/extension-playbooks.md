@@ -60,7 +60,29 @@ Rules:
 3. Validate that every `@Path` name exists as a `:name` segment in the full route path.
 4. Preserve existing zero-parameter and `Request` handler support.
 5. Add compile-time macro smoke coverage for new handler shapes.
-6. Do not add `@Body`, `@Query`, `@Header`, or optional path values in this playbook.
+6. Do not add JSON body, query, header, or optional path values in this playbook.
+
+## Extend Query And Header Inputs
+
+Current shape:
+
+```swift
+@GET("/search")
+func search(
+    @Query term: String,
+    @Query("page") pageNumber: Int,
+    @Header("x-daylily") token: String
+) -> String
+```
+
+Rules:
+
+1. Keep runtime extraction in `DaylilyCore`.
+2. Keep `@Query` and `@Header` as markers.
+3. Lower `@Query` into `req.query.require(_:as:)`.
+4. Lower `@Header` into `req.headers.require(_:as:)`.
+5. Preserve source-specific error messages.
+6. Keep optional macro values and repeated query values for separate tasks.
 
 ## Extend JSON Body Decoding
 

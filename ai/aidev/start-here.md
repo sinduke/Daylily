@@ -19,7 +19,7 @@ struct App {
 }
 ```
 
-Current implemented surfaces are the runtime DSL, runtime middleware, the Daylily-owned `Body` model, explicit buffered body replacement, JSON body/response helpers, the macro route/group MVP, macro `@Path` and `@JSONBody` typed input injection, and `DaylilyTesting` in-memory request/response helpers.
+Current implemented surfaces are the runtime DSL, runtime middleware, the Daylily-owned `Body` model, explicit buffered body replacement, JSON body/response helpers, the macro route/group MVP, macro `@Path`, `@Query`, `@Header`, and `@JSONBody` typed input injection, and `DaylilyTesting` in-memory request/response helpers.
 
 Runtime DSL:
 
@@ -50,6 +50,12 @@ let app = Application {
     Get("/users/:id") { request in
         let id = try request.parameters.require("id", as: Int.self)
         return "User \(id)"
+    }
+
+    Get("/search") { request in
+        let term = try request.query.require("term", as: String.self)
+        let page = try request.query.get("page", as: Int.self) ?? 1
+        return "Search \(term) page \(page)"
     }
 
     Post("/json/echo") { request in
@@ -98,6 +104,15 @@ struct App {
     @POST("/users")
     func create(@JSONBody input: CreateUserInput) -> Status {
         .created
+    }
+
+    @GET("/search")
+    func search(
+        @Query term: String,
+        @Query("page") pageNumber: Int,
+        @Header("x-daylily") token: String
+    ) -> String {
+        "\(term):\(pageNumber):\(token)"
     }
 
     @GROUP("/api")
@@ -149,6 +164,7 @@ Implemented:
 - Runtime middleware at application, group, and route scope.
 - Macro route/group MVP: `@DaylilyServer`, `@GET`, `@POST`, `@GROUP`.
 - Macro `@Path` typed path parameter injection.
+- Macro `@Query` and `@Header` typed input injection.
 - Macro `@JSONBody` typed JSON body injection.
 - Runtime typed path parameter extraction.
 - `DaylilyTesting` in-memory `TestClient`, `TestRequest`, and response assertion helpers.
@@ -167,7 +183,7 @@ Implemented:
 
 Not implemented:
 
-- Macro typed input injection beyond `@Path` and `@JSONBody` (`@Query`, `@Header`, true `@Body` spelling, etc.).
+- Macro typed input injection beyond `@Path`, `@Query`, `@Header`, and `@JSONBody` (true `@Body` spelling, optional values, etc.).
 - OpenAPI.
 - Dependency injection.
 - Macro middleware attributes.
@@ -244,5 +260,5 @@ Do not start with:
 Current strategic order:
 
 1. Keep AIDEV self-contained.
-2. Add `@Query` and `@Header` typed inputs.
-3. Add lifecycle and production server controls.
+2. Add lifecycle and production server controls.
+3. Add observability middleware.

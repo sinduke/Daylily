@@ -26,6 +26,16 @@ struct HelloDaylily {
                 return "User \(id)"
             }
 
+            Get("/search") { request in
+                let term = try request.query.require("term", as: String.self)
+                let page = try request.query.get("page", as: Int.self) ?? 1
+                return "Search \(term) page \(page)"
+            }
+
+            Get("/headers") { request in
+                try request.headers.require("x-daylily", as: String.self)
+            }
+
             Get("/json/health") {
                 JSON(HealthPayload(status: "ok"))
             }

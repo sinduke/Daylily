@@ -32,6 +32,7 @@ Daylily 不是 Vapor 或 Hummingbird 的复制品。它是在探索：如果 AI 
 - 声明式路由 DSL：`Get`、`Post`、`Group`。
 - `:name` 形式的路径参数。
 - 运行时类型化路径参数提取。
+- 运行时类型化 query 和 header 提取。
 - `Request`、`Response`、`Status`、`Headers`、`Parameters`。
 - Daylily 自有的 `Body` request body 模型。
 - 基于 `ByteChunk` 和 `ByteCount` 的 one-shot body 消费。
@@ -44,6 +45,7 @@ Daylily 不是 Vapor 或 Hummingbird 的复制品。它是在探索：如果 AI 
 - 基于 NIO 的 HTTP/1.1 server。
 - Macro route/group MVP：`@DaylilyServer`、`@GET`、`@POST`、`@GROUP`。
 - Macro `@Path` 类型化路径参数注入。
+- Macro `@Query` 和 `@Header` 类型化输入注入。
 - Macro `@JSONBody` 类型化 JSON body 注入。
 - `DaylilyTesting` in-memory `TestClient`、request builders 和 JSON assertions。
 - 默认 `swift run` 示例服务。
@@ -52,7 +54,7 @@ Daylily 不是 Vapor 或 Hummingbird 的复制品。它是在探索：如果 AI 
 
 还没有实现：
 
-- `@Path` 和 `@JSONBody` 之外的宏级类型化输入注入（`@Query`、`@Header`、真正的 `@Body` 写法等）。
+- `@Path`、`@Query`、`@Header`、`@JSONBody` 之外的宏级类型化输入注入（真正的 `@Body` 写法、optional values 等）。
 - OpenAPI 生成。
 - 依赖注入。
 - Macro middleware attributes。
@@ -78,6 +80,8 @@ http://127.0.0.1:8080
 ```sh
 curl http://127.0.0.1:8080/hello
 curl http://127.0.0.1:8080/users/42
+curl 'http://127.0.0.1:8080/search?term=daylily&page=1'
+curl -H 'x-daylily: ships' http://127.0.0.1:8080/headers
 curl -X POST --data 'hi' http://127.0.0.1:8080/echo
 printf 'abcdef' | curl --http1.1 -H 'Transfer-Encoding: chunked' -H 'Content-Length:' --data-binary @- http://127.0.0.1:8080/upload/count
 curl http://127.0.0.1:8080/json/health
@@ -122,6 +126,16 @@ struct HelloDaylily {
             Get("/users/:id") { request in
                 let id = try request.parameters.require("id", as: Int.self)
                 return "User \(id)"
+            }
+
+            Get("/search") { request in
+                let term = try request.query.require("term", as: String.self)
+                let page = try request.query.get("page", as: Int.self) ?? 1
+                return "Search \(term) page \(page)"
+            }
+
+            Get("/headers") { request in
+                try request.headers.require("x-daylily", as: String.self)
             }
 
             Get("/json/health") {
@@ -280,6 +294,15 @@ struct App {
         .created
     }
 
+    @GET("/search")
+    func search(
+        @Query term: String,
+        @Query("page") pageNumber: Int,
+        @Header("x-daylily") token: String
+    ) -> String {
+        "\(term):\(pageNumber):\(token)"
+    }
+
     @GROUP("/api")
     struct API {
         @GET("/health")
@@ -296,13 +319,15 @@ MVP 限制：
 
 - handler 必须是 instance method；
 - server type 必须可以通过 `Self()` 默认初始化；
-- handler 可以没有参数，可以有一个 `Request` 参数，可以有 `@Path` 参数，也可以有一个 `@JSONBody` 参数；
+- handler 可以没有参数，可以有一个 `Request` 参数，可以有 `@Path`、`@Query`、`@Header` 参数，也可以有一个 `@JSONBody` 参数；
 - `@Path` 会降级到 `req.parameters.require(_:as:)`；
 - `@Path` 名称必须匹配 `:name` route segment；
+- `@Query` 会降级到 `req.query.require(_:as:)`；
+- `@Header` 会降级到 `req.headers.require(_:as:)`；
 - `@JSONBody` 会降级到 `try await req.json(Type.self)`；
 - 真正的 `@Body` 写法暂缓，因为 `Body` 已经是 Daylily 的 raw request body 类型；
 - group type 必须可以默认初始化；
-- `@Query`、`@Header`、macro middleware attributes、DI、OpenAPI 都是后续工作。
+- optional typed inputs、macro middleware attributes、DI、OpenAPI 都是后续工作。
 
 ## AI-Native 开发
 
@@ -373,9 +398,9 @@ Daylily/
 
 近期：
 
-1. `@Query` 和 `@Header` typed inputs。
-2. Lifecycle 和生产级 server 控制。
-3. Observability 和 OpenAPI metadata，然后再扩生态模块。
+1. Lifecycle 和生产级 server 控制。
+2. Observability middleware。
+3. OpenAPI metadata，然后再扩生态模块。
 
 ## License
 

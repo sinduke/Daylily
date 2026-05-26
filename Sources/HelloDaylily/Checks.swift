@@ -20,6 +20,12 @@ enum DaylilyChecks {
         try await typedPathParameterMissing()
         try await typedPathParameterInvalid()
         try await optionalTypedPathParameter()
+        try await queryParameters()
+        try await queryParameterMissing()
+        try await queryParameterInvalid()
+        try await headerParameters()
+        try await headerParameterMissing()
+        try await headerParameterInvalid()
         try await literalRouteBeatsParameterRoute()
         try await groupPrefix()
         try await middlewareOrder()
@@ -280,6 +286,105 @@ enum DaylilyChecks {
                 "expected invalid optional parameter reason"
             )
         }
+    }
+
+    private static func queryParameters() async throws {
+        let app = Application {
+            Get("/search") { request in
+                let term = try request.query.require("term", as: String.self)
+                let page = try request.query.require("page", as: Int.self)
+                let optional = try request.query.get("missing", as: Int.self)
+                return "\(term):\(page + 1):\(optional == nil)"
+            }
+        }
+
+        let response = await app.respond(to: Request(method: .get, path: "/search?term=daylily+ships&page=41"))
+
+        try expect(response.status == .ok, "expected query parameters 200 OK")
+        try expect(response.bodyString == "daylily ships:42:true", "expected typed query parameters")
+    }
+
+    private static func queryParameterMissing() async throws {
+        let app = Application {
+            Get("/search") { request in
+                let page = try request.query.require("page", as: Int.self)
+                return "page \(page)"
+            }
+        }
+
+        let response = await app.respond(to: Request(method: .get, path: "/search"))
+
+        try expect(response.status == .badRequest, "expected missing query parameter 400")
+        try expect(response.bodyString == "Missing query parameter: page", "expected missing query parameter reason")
+    }
+
+    private static func queryParameterInvalid() async throws {
+        let app = Application {
+            Get("/search") { request in
+                let page = try request.query.require("page", as: Int.self)
+                return "page \(page)"
+            }
+        }
+
+        let response = await app.respond(to: Request(method: .get, path: "/search?page=nope"))
+
+        try expect(response.status == .badRequest, "expected invalid query parameter 400")
+        try expect(
+            response.bodyString == "Invalid query parameter page: expected Int",
+            "expected invalid query parameter reason"
+        )
+    }
+
+    private static func headerParameters() async throws {
+        let app = Application {
+            Get("/headers") { request in
+                let count = try request.headers.require("x-count", as: Int.self)
+                let enabled = try request.headers.require("x-enabled", as: Bool.self)
+                let missing = try request.headers.get("x-missing", as: Int.self)
+                return "\(count + 1):\(enabled):\(missing == nil)"
+            }
+        }
+
+        let response = await app.respond(
+            to: Request(
+                method: .get,
+                path: "/headers",
+                headers: ["x-count": "41", "x-enabled": "true"]
+            )
+        )
+
+        try expect(response.status == .ok, "expected typed headers 200 OK")
+        try expect(response.bodyString == "42:true:true", "expected typed headers")
+    }
+
+    private static func headerParameterMissing() async throws {
+        let app = Application {
+            Get("/headers") { request in
+                let count = try request.headers.require("x-count", as: Int.self)
+                return "count \(count)"
+            }
+        }
+
+        let response = await app.respond(to: Request(method: .get, path: "/headers"))
+
+        try expect(response.status == .badRequest, "expected missing header 400")
+        try expect(response.bodyString == "Missing header: x-count", "expected missing header reason")
+    }
+
+    private static func headerParameterInvalid() async throws {
+        let app = Application {
+            Get("/headers") { request in
+                let count = try request.headers.require("x-count", as: Int.self)
+                return "count \(count)"
+            }
+        }
+
+        let response = await app.respond(
+            to: Request(method: .get, path: "/headers", headers: ["x-count": "nope"])
+        )
+
+        try expect(response.status == .badRequest, "expected invalid header 400")
+        try expect(response.bodyString == "Invalid header x-count: expected Int", "expected invalid header reason")
     }
 
     private static func literalRouteBeatsParameterRoute() async throws {

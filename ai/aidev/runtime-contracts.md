@@ -188,17 +188,25 @@ Fields:
 - `headers`: normalized headers.
 - `body`: Daylily-owned `Body`.
 - `parameters`: path parameters populated by router.
+- `query`: parsed query parameters.
 
 Guarantees:
 
-- `with(parameters:)` returns a new request preserving method, path, headers, and body.
+- Initializers strip query text from `path` and populate `query` when `path` contains `?`.
+- `with(parameters:)` returns a new request preserving method, path, headers, body, and query.
 - Preserved body uses shared one-shot state.
-- `with(body:)` returns a new request preserving method, path, headers, and parameters while replacing body.
+- `with(body:)` returns a new request preserving method, path, headers, parameters, and query while replacing body.
 - `withBufferedBody(upTo:_:)` consumes the current body under an explicit limit.
 - `withBufferedBody(upTo:_:)` passes collected bytes and a replacement request to the operation closure.
 - The replacement request uses `Body.bytes(collectedBytes)`.
 - Replacement bodies remain one-shot.
 - Over-limit buffering throws `BodyError.tooLarge`, which renders as `413 Payload Too Large`.
+
+Query and header behavior:
+
+- `QueryParameters.require(_:as:)` throws `QueryParameterError.missing` or `.invalid`.
+- `Headers.require(_:as:)` throws `HeaderError.missing` or `.invalid`.
+- Header names remain case-insensitive.
 
 Transport behavior:
 
@@ -208,7 +216,6 @@ Transport behavior:
 
 Extension points:
 
-- query parameters
 - JSON body decoding customization
 - streaming body
 - cookies
@@ -448,6 +455,8 @@ Guarantees:
 - `Request` parameters are called with the route request.
 - `@Path` parameters lower into `req.parameters.require(_:as:)`.
 - `@Path` names must match `:name` route segments in the full route path.
+- `@Query` parameters lower into `req.query.require(_:as:)`.
+- `@Header` parameters lower into `req.headers.require(_:as:)`.
 - `@JSONBody` parameters lower into `try await req.json(Type.self)`.
 - A handler may have at most one `@JSONBody` parameter.
 - Grouped handlers are called on default-initialized group instances.
@@ -458,7 +467,7 @@ Known limitations:
 - Group types must be default-initializable.
 - Static route handlers are not supported.
 - True `@Body` spelling is deferred because `Body` is already Daylily's raw request body type.
-- `@Query`, `@Header`, macro middleware attributes, DI, and OpenAPI metadata are not supported yet.
+- Optional typed inputs, macro middleware attributes, DI, and OpenAPI metadata are not supported yet.
 
 Extension points:
 

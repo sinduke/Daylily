@@ -27,6 +27,15 @@ struct MacroSmoke {
         "Macro request user \(req.path):\(id)"
     }
 
+    @GET("/macro/search")
+    func search(
+        @Query term: String,
+        @Query("page") pageNumber: Int,
+        @Header("x-daylily") token: String
+    ) -> String {
+        "Macro search \(term):\(pageNumber):\(token)"
+    }
+
     @POST("/macro/echo")
     func echo(req: Request) async throws -> String {
         try await req.body.string(upTo: .kilobytes(64))
@@ -57,6 +66,14 @@ struct MacroSmoke {
         @GET("/typed-users/:id")
         func typedUser(@Path id: Int) -> String {
             "Macro group typed user \(id)"
+        }
+
+        @GET("/search")
+        func search(
+            @Query term: String,
+            @Header("x-daylily") token: String
+        ) -> String {
+            "Macro group search \(term):\(token)"
         }
 
         @POST("/echo")

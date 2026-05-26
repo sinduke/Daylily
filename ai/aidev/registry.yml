@@ -5,7 +5,7 @@ project:
   license: MIT
   license_file: LICENSE
   swift_tools_version: "6.0"
-  current_phase: "body_json_macro_runtime_bridge"
+  current_phase: "application_lifecycle_mvp"
   authoritative_ai_entry:
     - AIDEV.md
     - ai/aidev/start-here.md
@@ -108,6 +108,8 @@ products:
       - middleware_runtime
       - response_conversion
       - path_parameters
+      - query_parameters
+      - typed_headers
       - basic_errors
     depends_on: []
     allowed_imports:
@@ -242,6 +244,35 @@ implemented_features:
       - "invalid JSON keeps Abort(.badRequest, reason: \"Invalid JSON body\")"
       - "true @Body spelling is deferred because Body is already Daylily's raw request body type"
       - "attached peer macros cannot be applied to function parameters"
+  query_and_header_inputs:
+    status: implemented
+    epic: "0010-typed-handler-inputs"
+    task: "0010-004-query-and-header-inputs"
+    modules:
+      - DaylilyCore
+      - DaylilyMacros
+      - DaylilyNIO
+    public_api:
+      - QueryParameters
+      - QueryParameterError
+      - HeaderError
+      - "@Query"
+      - "@Header"
+      - "Request.query"
+      - "Headers.require(_:as:)"
+      - "Headers.get(_:as:)"
+    lowering:
+      - "@DaylilyServer lowers @Query parameters into req.query.require(_:as:)"
+      - "@DaylilyServer lowers @Header parameters into req.headers.require(_:as:)"
+    decisions:
+      - "@Query and @Header are public property-wrapper markers in DaylilyCore"
+      - "runtime extraction remains the source of truth"
+      - "query parsing happens in Request initialization"
+      - "Request.path stores the route path without query text"
+      - "NIO passes the full request target to Request so query text is available"
+      - "query parsing supports &, name=value, empty values, plus-as-space, percent-decoded UTF-8, and last value wins"
+      - "missing and invalid query/header values map to source-specific 400 responses"
+      - "optional macro values, repeated query values, and cookies are deferred"
   daylily_testing_minimal_client:
     status: implemented
     epic: "0011-daylily-testing"
@@ -422,13 +453,14 @@ implemented_features:
 
 planned_features:
   typed_handler_inputs:
-    status: in-progress
+    status: implemented
     epic: "0010-typed-handler-inputs"
     completed:
       - "0010-001-typed-path-extraction-runtime"
       - "0010-002-path-macro-mvp"
       - "0010-003-body-json-macro-runtime-bridge"
-    next_task: "0010-004-query-and-header-inputs"
+      - "0010-004-query-and-header-inputs"
+    next_task: null
   daylily_testing:
     status: implemented
     epic: "0011-daylily-testing"
@@ -566,13 +598,14 @@ public_api:
         - "headers: Headers"
         - "body: Body"
         - "parameters: Parameters"
+        - "query: QueryParameters"
       methods:
-        - "public init(method:path:headers:body: Body = .bytes([]), parameters: Parameters = Parameters())"
-        - "public init(method:path:headers:body: [UInt8], parameters: Parameters = Parameters())"
+        - "public init(method:path:headers:body: Body = .bytes([]), parameters: Parameters = Parameters(), query: QueryParameters? = nil)"
+        - "public init(method:path:headers:body: [UInt8], parameters: Parameters = Parameters(), query: QueryParameters? = nil)"
         - "public func with(parameters: Parameters) -> Request"
         - "public func with(body: Body) -> Request"
         - "public func withBufferedBody<R: Sendable>(upTo limit: ByteCount, _ operation: @Sendable (Request, [UInt8]) async throws -> R) async throws -> R"
-      contract: "DaylilyNIO creates streaming Body values through transport SPI; in-process callers may use Body.bytes(...); explicit body buffering uses withBufferedBody(upTo:_:)."
+      contract: "Request initializers strip query text from path and populate query; DaylilyNIO creates streaming Body values through transport SPI; in-process callers may use Body.bytes(...); explicit body buffering uses withBufferedBody(upTo:_:)."
     Parameters:
       kind: struct
       conforms:
@@ -585,6 +618,31 @@ public_api:
         - "public func require<Value: ParameterDecodable>(_ name: String, as type: Value.Type = Value.self) throws -> Value"
         - "public func get<Value: ParameterDecodable>(_ name: String, as type: Value.Type = Value.self) throws -> Value?"
       contract: "Untyped path lookup returns optional String; typed lookup throws ParameterError for missing required or invalid values."
+    QueryParameters:
+      kind: struct
+      conforms:
+        - Equatable
+        - Sendable
+      methods:
+        - "public init(_ storage: [String: String] = [:])"
+        - "public subscript(_ name: String) -> String? { get }"
+        - "public subscript(dynamicMember name: String) -> String? { get }"
+        - "public func require<Value: ParameterDecodable>(_ name: String, as type: Value.Type = Value.self) throws -> Value"
+        - "public func get<Value: ParameterDecodable>(_ name: String, as type: Value.Type = Value.self) throws -> Value?"
+      contract: "Untyped query lookup returns optional String; typed lookup throws QueryParameterError for missing required or invalid values."
+    Headers:
+      kind: struct
+      conforms:
+        - Equatable
+        - Sendable
+        - ExpressibleByDictionaryLiteral
+      methods:
+        - "public init(_ values: [String: String] = [:])"
+        - "public subscript(_ name: String) -> String? { get set }"
+        - "public var all: [(name: String, value: String)] { get }"
+        - "public func require<Value: ParameterDecodable>(_ name: String, as type: Value.Type = Value.self) throws -> Value"
+        - "public func get<Value: ParameterDecodable>(_ name: String, as type: Value.Type = Value.self) throws -> Value?"
+      contract: "Header names are case-insensitive; typed lookup throws HeaderError for missing required or invalid values."
     ParameterDecodable:
       kind: protocol
       conforms:
@@ -607,6 +665,26 @@ public_api:
       mappings:
         missing: "400 Missing path parameter: <name>"
         invalid: "400 Invalid path parameter <name>: expected <type>"
+    QueryParameterError:
+      kind: enum
+      conforms:
+        - ResponseError
+      cases:
+        - "missing(name: String)"
+        - "invalid(name: String, expected: String)"
+      mappings:
+        missing: "400 Missing query parameter: <name>"
+        invalid: "400 Invalid query parameter <name>: expected <type>"
+    HeaderError:
+      kind: enum
+      conforms:
+        - ResponseError
+      cases:
+        - "missing(name: String)"
+        - "invalid(name: String, expected: String)"
+      mappings:
+        missing: "400 Missing header: <name>"
+        invalid: "400 Invalid header <name>: expected <type>"
     Path:
       kind: propertyWrapper
       conforms:
@@ -618,6 +696,28 @@ public_api:
         - "public init(wrappedValue: Value)"
         - "public init(wrappedValue: Value, _ name: String)"
       contract: "Marker for @DaylilyServer macro path input lowering; extraction is performed by Parameters.require(_:as:)."
+    Query:
+      kind: propertyWrapper
+      conforms:
+        - Sendable
+      generic: "Value: ParameterDecodable"
+      properties:
+        - "wrappedValue: Value"
+      initializers:
+        - "public init(wrappedValue: Value)"
+        - "public init(wrappedValue: Value, _ name: String)"
+      contract: "Marker for @DaylilyServer macro query input lowering; extraction is performed by QueryParameters.require(_:as:)."
+    Header:
+      kind: propertyWrapper
+      conforms:
+        - Sendable
+      generic: "Value: ParameterDecodable"
+      properties:
+        - "wrappedValue: Value"
+      initializers:
+        - "public init(wrappedValue: Value)"
+        - "public init(wrappedValue: Value, _ name: String)"
+      contract: "Marker for @DaylilyServer macro header input lowering; extraction is performed by Headers.require(_:as:)."
     Body:
       kind: struct
       conforms:
@@ -782,6 +882,7 @@ runtime_rules:
   path_parameter_prefix: ":"
   typed_path_parameter_policy: "Parameters.require(_:as:) and Parameters.get(_:as:) use ParameterDecodable; missing required and invalid values map to 400; UUID is deferred."
   macro_path_parameter_policy: "@Path parameters are marker wrappers; @DaylilyServer validates route membership and lowers them into Parameters.require(_:as:)."
+  query_and_header_input_policy: "Request.query uses QueryParameters; Headers has typed require/get; @Query lowers to req.query.require and @Header lowers to req.headers.require."
   macro_json_body_policy: "@JSONBody parameters are marker wrappers in DaylilyJSON; @DaylilyServer lowers them into try await req.json(Type.self). True @Body spelling is deferred because Body is the raw request body type."
   test_client_policy: "TestClient is an in-memory helper in DaylilyTesting; it calls Application.respond(to:) directly and does not use transport. TestRequest and response assertions are testing helpers, not runtime behavior."
   wildcard_prefix: "*"
@@ -845,6 +946,7 @@ aidev_files:
     - ai/tasks/0010-001-typed-path-extraction-runtime.md
     - ai/tasks/0010-002-path-macro-mvp.md
     - ai/tasks/0010-003-body-json-macro-runtime-bridge.md
+    - ai/tasks/0010-004-query-and-header-inputs.md
     - ai/tasks/0011-001-minimal-test-client.md
     - ai/tasks/0011-002-request-builders-and-json-assertions.md
   docs:
@@ -872,6 +974,8 @@ extension_playbooks:
   - add_explicit_buffered_body_helper
   - add_streaming_body
   - extend_macro_route_mvp
+  - extend_query_and_header_inputs
+  - extend_json_body_macro_injection
   - extend_daylily_testing
   - add_new_transport
   - add_checks
@@ -899,6 +1003,8 @@ verification:
     requests:
       - "curl http://127.0.0.1:8080/hello"
       - "curl http://127.0.0.1:8080/users/42"
+      - "curl 'http://127.0.0.1:8080/search?term=daylily&page=1'"
+      - "curl -H 'x-daylily: ships' http://127.0.0.1:8080/headers"
       - "curl -X POST --data 'hi' http://127.0.0.1:8080/echo"
       - "printf 'abcdef' | curl --http1.1 -H 'Transfer-Encoding: chunked' -H 'Content-Length:' --data-binary @- http://127.0.0.1:8080/upload/count"
       - "perl -e 'print \"a\" x 70000' | curl -X POST --data-binary @- http://127.0.0.1:8080/echo"
@@ -916,9 +1022,9 @@ roadmap:
       - "0004-json-system"
       - "0008-body-system"
       - "0009-middleware-system"
-    next_recommended:
       - "0010-typed-handler-inputs"
       - "0011-daylily-testing"
+    next_recommended:
       - "0012-lifecycle-server-controls"
       - "0013-observability-middleware"
       - "0014-openapi-metadata"
@@ -939,12 +1045,12 @@ roadmap:
     - "0010-001-typed-path-extraction-runtime"
     - "0010-002-path-macro-mvp"
     - "0010-003-body-json-macro-runtime-bridge"
+    - "0010-004-query-and-header-inputs"
     - "0011-001-minimal-test-client"
     - "0011-002-request-builders-and-json-assertions"
   in_progress: []
   next_recommended:
-    - "0010-004-query-and-header-inputs"
-  later:
     - "0012-001-application-lifecycle-mvp"
+  later:
     - "0013-001-request-logging-middleware"
     - "0014-001-route-metadata-runtime"

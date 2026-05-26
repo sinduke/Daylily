@@ -98,6 +98,35 @@ Rules:
 - `@Path` names must match `:name` segments in the full route path.
 - `UUID` remains deferred until the Foundation boundary is decided.
 
+## Query And Headers
+
+Runtime extraction:
+
+```swift
+let term = try request.query.require("term", as: String.self)
+let page = try request.query.get("page", as: Int.self) ?? 1
+let token = try request.headers.require("x-daylily", as: String.self)
+```
+
+Macro injection:
+
+```swift
+@GET("/search")
+func search(
+    @Query term: String,
+    @Query("page") pageNumber: Int,
+    @Header("x-daylily") token: String
+) -> String
+```
+
+Rules:
+
+- `@Query` lowers to `req.query.require(_:as:)`.
+- `@Header` lowers to `req.headers.require(_:as:)`.
+- Bare marker names use the Swift local parameter name.
+- Explicit marker names use the string literal mapping.
+- Optional macro values are future work.
+
 ## Request Body
 
 Current:

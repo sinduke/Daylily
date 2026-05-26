@@ -229,6 +229,36 @@ func account(@Path("id") accountID: Int) -> String {
 
 `@Path` names must match `:name` route segments. The marker itself does not own extraction behavior.
 
+## Query And Header Inputs
+
+Runtime query extraction:
+
+```swift
+let term = try request.query.require("term", as: String.self)
+let page = try request.query.get("page", as: Int.self) ?? 1
+```
+
+Runtime header extraction:
+
+```swift
+let token = try request.headers.require("x-daylily", as: String.self)
+```
+
+Macro `@Query` and `@Header` input injection lowers into those runtime APIs:
+
+```swift
+@GET("/search")
+func search(
+    @Query term: String,
+    @Query("page") pageNumber: Int,
+    @Header("x-daylily") token: String
+) -> String {
+    "\(term):\(pageNumber):\(token)"
+}
+```
+
+Missing or invalid query/header values map to `400 Bad Request` with source-specific messages.
+
 `UUID` support is deferred because it requires a Foundation decision for `DaylilyCore` or an extension module.
 
 ## Handler
@@ -352,6 +382,8 @@ Current macro-facing attributes:
 @POST("/path")
 @GROUP("/prefix")
 @Path
+@Query
+@Header
 @JSONBody
 ```
 
@@ -380,6 +412,14 @@ struct App {
         .created
     }
 
+    @GET("/search")
+    func search(
+        @Query term: String,
+        @Header("x-daylily") token: String
+    ) -> String {
+        "\(term):\(token)"
+    }
+
     @GROUP("/api")
     struct API {
         @GET("/health")
@@ -395,8 +435,10 @@ MVP assumptions:
 - server type can be initialized with `Self()`
 - grouped types can be initialized with `Self.GroupType()`
 - handlers are instance methods
-- handlers may have zero parameters, one `Request` parameter, `@Path` parameters, and one `@JSONBody` parameter
+- handlers may have zero parameters, one `Request` parameter, `@Path`, `@Query`, `@Header`, and one `@JSONBody` parameter
 - `@Path` lowers into `req.parameters.require(_:as:)`
+- `@Query` lowers into `req.query.require(_:as:)`
+- `@Header` lowers into `req.headers.require(_:as:)`
 - `@JSONBody` lowers into `try await req.json(Type.self)`
 - true `@Body` spelling is deferred because `Body` is already Daylily's raw request body type
 

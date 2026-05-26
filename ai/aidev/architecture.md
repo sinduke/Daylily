@@ -262,6 +262,16 @@ Implemented macro flow:
   used by @DaylilyServer
   lowers into Parameters.require(_:as:)
 
+@Query
+  parameter marker
+  used by @DaylilyServer
+  lowers into QueryParameters.require(_:as:)
+
+@Header
+  parameter marker
+  used by @DaylilyServer
+  lowers into Headers.require(_:as:)
+
 @JSONBody
   parameter marker
   used by @DaylilyServer
@@ -273,10 +283,10 @@ MVP limits:
 - server type must be default-initializable with `Self()`
 - group types must be default-initializable
 - route handlers must be instance methods
-- route handlers may have zero parameters, one `Request` parameter, `@Path` parameters, and one `@JSONBody` parameter
+- route handlers may have zero parameters, one `Request` parameter, `@Path`, `@Query`, `@Header`, and one `@JSONBody` parameter
 - `@Path` names must match `:name` route segments
 - true `@Body` spelling is deferred because `Body` is already Daylily's raw request body type
-- `@Query`, `@Header`, DI, macro middleware attributes, and OpenAPI are not part of this MVP
+- optional typed inputs, DI, macro middleware attributes, and OpenAPI are not part of this MVP
 
 Important rule:
 

@@ -309,7 +309,7 @@ private final class DaylilyHTTPHandler: ChannelInboundHandler, @unchecked Sendab
 
         return Request(
             method: HTTPMethod(head.method.rawValue) ?? .get,
-            path: Self.path(from: head.uri),
+            path: Self.requestTarget(from: head.uri),
             headers: headers,
             body: body
         )
@@ -349,9 +349,8 @@ private final class DaylilyHTTPHandler: ChannelInboundHandler, @unchecked Sendab
         }
     }
 
-    private static func path(from uri: String) -> String {
-        let path = uri.split(separator: "?", maxSplits: 1, omittingEmptySubsequences: false).first.map(String.init) ?? "/"
-        return path.isEmpty ? "/" : path
+    private static func requestTarget(from uri: String) -> String {
+        uri.isEmpty ? "/" : uri
     }
 }
 

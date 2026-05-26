@@ -167,21 +167,22 @@ Practical interleave:
 0011-001 DaylilyTesting minimal TestClient (delivered)
 0011-002 DaylilyTesting request builders and JSON assertions (delivered)
 0010-003 @JSONBody macro/runtime bridge (delivered)
-0010-004 @Query / @Header
+0010-004 @Query / @Header (delivered)
 0012 Lifecycle
 ```
 
-## Current Epic
+## Recently Completed Epic
 
 ### 0010 Typed Handler Inputs
 
-Status: in-progress
+Status: implemented
 
 Delivered:
 
 - `0010-001-typed-path-extraction-runtime`
 - `0010-002-path-macro-mvp`
 - `0010-003-body-json-macro-runtime-bridge`
+- `0010-004-query-and-header-inputs`
 
 Delivered shape:
 
@@ -191,11 +192,17 @@ func user(@Path id: Int) -> String
 
 @POST("/users")
 func create(@JSONBody input: CreateUserInput) async throws -> Status
+
+@GET("/search")
+func search(
+    @Query term: String,
+    @Header("x-daylily") token: String
+) -> String
 ```
 
 Next task:
 
-- `0010-004-query-and-header-inputs`
+- `0012-001-application-lifecycle-mvp`
 
 ### Future Epics
 

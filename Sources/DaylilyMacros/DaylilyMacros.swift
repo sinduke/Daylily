@@ -209,12 +209,12 @@ private struct RouteMethod {
         var hasBodyParameter = false
 
         for parameter in parameters {
-            if let pathAttribute = try PathAttribute(parameter) {
+            if let pathAttribute = try NamedParameterAttribute(parameter, attributeName: "Path") {
                 let pathName: String
                 if let explicitName = pathAttribute.name {
                     pathName = explicitName
                 } else {
-                    pathName = try localName(for: parameter, routeName: routeName)
+                    pathName = try localName(for: parameter, routeName: routeName, attributeName: "Path")
                 }
 
                 guard routeParameterNames.contains(pathName) else {
@@ -223,6 +223,32 @@ private struct RouteMethod {
 
                 let typeName = parameter.type.description.trimmed
                 let value = "try req.parameters.require(\(pathName.swiftStringLiteral), as: \(typeName).self)"
+                arguments.append(callArgument(for: parameter, value: value))
+                continue
+            }
+
+            if let queryAttribute = try NamedParameterAttribute(parameter, attributeName: "Query") {
+                let queryName = try inputName(
+                    for: parameter,
+                    explicitName: queryAttribute.name,
+                    routeName: routeName,
+                    attributeName: "Query"
+                )
+                let typeName = parameter.type.description.trimmed
+                let value = "try req.query.require(\(queryName.swiftStringLiteral), as: \(typeName).self)"
+                arguments.append(callArgument(for: parameter, value: value))
+                continue
+            }
+
+            if let headerAttribute = try NamedParameterAttribute(parameter, attributeName: "Header") {
+                let headerName = try inputName(
+                    for: parameter,
+                    explicitName: headerAttribute.name,
+                    routeName: routeName,
+                    attributeName: "Header"
+                )
+                let typeName = parameter.type.description.trimmed
+                let value = "try req.headers.require(\(headerName.swiftStringLiteral), as: \(typeName).self)"
                 arguments.append(callArgument(for: parameter, value: value))
                 continue
             }
@@ -249,7 +275,7 @@ private struct RouteMethod {
                 continue
             }
 
-            throw DaylilyMacroError("@\(routeName) handler parameters must be Request or annotated with @Path or @JSONBody in this MVP.")
+            throw DaylilyMacroError("@\(routeName) handler parameters must be Request or annotated with @Path, @Query, @Header, or @JSONBody in this MVP.")
         }
 
         return HandlerCall(argumentExpressions: arguments, usesRequest: true)
@@ -269,14 +295,31 @@ private struct RouteMethod {
         return "\(externalName): \(value)"
     }
 
-    private static func localName(for parameter: FunctionParameterSyntax, routeName: String) throws -> String {
+    private static func inputName(
+        for parameter: FunctionParameterSyntax,
+        explicitName: String?,
+        routeName: String,
+        attributeName: String
+    ) throws -> String {
+        if let explicitName {
+            return explicitName
+        }
+
+        return try localName(for: parameter, routeName: routeName, attributeName: attributeName)
+    }
+
+    private static func localName(
+        for parameter: FunctionParameterSyntax,
+        routeName: String,
+        attributeName: String
+    ) throws -> String {
         if let secondName = parameter.secondName?.text, secondName != "_" {
             return secondName
         }
 
         let firstName = parameter.firstName.text
         guard firstName != "_" else {
-            throw DaylilyMacroError("@\(routeName) @Path parameters must have a local name or explicit @Path(\"name\") mapping.")
+            throw DaylilyMacroError("@\(routeName) @\(attributeName) parameters must have a local name or explicit @\(attributeName)(\"name\") mapping.")
         }
 
         return firstName
@@ -334,11 +377,11 @@ private struct JSONBodyAttribute {
     }
 }
 
-private struct PathAttribute {
+private struct NamedParameterAttribute {
     let name: String?
 
-    init?(_ parameter: FunctionParameterSyntax) throws {
-        var found: PathAttribute?
+    init?(_ parameter: FunctionParameterSyntax, attributeName expectedName: String) throws {
+        var found: NamedParameterAttribute?
 
         for attributeElement in parameter.attributes {
             guard case let .attribute(attribute) = attributeElement else {
@@ -346,15 +389,15 @@ private struct PathAttribute {
             }
 
             let name = RouteAttribute.routeName(for: attribute.attributeName.description.trimmed)
-            guard name == "Path" else {
+            guard name == expectedName else {
                 continue
             }
 
             if found != nil {
-                throw DaylilyMacroError("Handler parameters may only have one @Path attribute.")
+                throw DaylilyMacroError("Handler parameters may only have one @\(expectedName) attribute.")
             }
 
-            found = PathAttribute(name: try Self.explicitName(from: attribute))
+            found = NamedParameterAttribute(name: try Self.explicitName(from: attribute, attributeName: expectedName))
         }
 
         guard let found else {
@@ -368,11 +411,11 @@ private struct PathAttribute {
         self.name = name
     }
 
-    private static func explicitName(from attribute: AttributeSyntax) throws -> String? {
+    private static func explicitName(from attribute: AttributeSyntax, attributeName: String) throws -> String? {
         let text = attribute.description
         guard let start = text.firstIndex(of: "\"") else {
             if text.contains("(") {
-                throw DaylilyMacroError("@Path arguments must be a string literal name.")
+                throw DaylilyMacroError("@\(attributeName) arguments must be a string literal name.")
             }
 
             return nil
@@ -400,7 +443,7 @@ private struct PathAttribute {
             index = text.index(after: index)
         }
 
-        throw DaylilyMacroError("@Path arguments must be a string literal name.")
+        throw DaylilyMacroError("@\(attributeName) arguments must be a string literal name.")
     }
 }
 

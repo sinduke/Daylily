@@ -32,6 +32,7 @@ Implemented today:
 - Declarative route DSL: `Get`, `Post`, `Group`.
 - Path parameters with `:name` syntax.
 - Runtime typed path parameter extraction.
+- Runtime typed query and header extraction.
 - `Request`, `Response`, `Status`, `Headers`, `Parameters`.
 - Daylily-owned `Body` request body model.
 - One-shot body consumption with `ByteChunk` and `ByteCount`.
@@ -44,6 +45,7 @@ Implemented today:
 - NIO-backed HTTP/1.1 server.
 - Macro route/group MVP: `@DaylilyServer`, `@GET`, `@POST`, `@GROUP`.
 - Macro `@Path` typed path parameter injection.
+- Macro `@Query` and `@Header` typed input injection.
 - Macro `@JSONBody` typed JSON body injection.
 - `DaylilyTesting` in-memory `TestClient`, request builders, and JSON assertions.
 - Default `swift run` example server.
@@ -52,7 +54,7 @@ Implemented today:
 
 Not implemented yet:
 
-- Macro typed input injection beyond `@Path` and `@JSONBody` (`@Query`, `@Header`, true `@Body` spelling, etc.).
+- Macro typed input injection beyond `@Path`, `@Query`, `@Header`, and `@JSONBody` (true `@Body` spelling, optional values, etc.).
 - OpenAPI generation.
 - Dependency injection.
 - Macro middleware attributes.
@@ -78,6 +80,8 @@ Try it:
 ```sh
 curl http://127.0.0.1:8080/hello
 curl http://127.0.0.1:8080/users/42
+curl 'http://127.0.0.1:8080/search?term=daylily&page=1'
+curl -H 'x-daylily: ships' http://127.0.0.1:8080/headers
 curl -X POST --data 'hi' http://127.0.0.1:8080/echo
 printf 'abcdef' | curl --http1.1 -H 'Transfer-Encoding: chunked' -H 'Content-Length:' --data-binary @- http://127.0.0.1:8080/upload/count
 curl http://127.0.0.1:8080/json/health
@@ -122,6 +126,16 @@ struct HelloDaylily {
             Get("/users/:id") { request in
                 let id = try request.parameters.require("id", as: Int.self)
                 return "User \(id)"
+            }
+
+            Get("/search") { request in
+                let term = try request.query.require("term", as: String.self)
+                let page = try request.query.get("page", as: Int.self) ?? 1
+                return "Search \(term) page \(page)"
+            }
+
+            Get("/headers") { request in
+                try request.headers.require("x-daylily", as: String.self)
             }
 
             Get("/json/health") {
@@ -280,6 +294,15 @@ struct App {
         .created
     }
 
+    @GET("/search")
+    func search(
+        @Query term: String,
+        @Query("page") pageNumber: Int,
+        @Header("x-daylily") token: String
+    ) -> String {
+        "\(term):\(pageNumber):\(token)"
+    }
+
     @GROUP("/api")
     struct API {
         @GET("/health")
@@ -296,13 +319,15 @@ MVP limits:
 
 - handlers must be instance methods;
 - the server type must be default-initializable with `Self()`;
-- handlers may use zero parameters, one `Request` parameter, `@Path` parameters, and one `@JSONBody` parameter;
+- handlers may use zero parameters, one `Request` parameter, `@Path`, `@Query`, `@Header`, and one `@JSONBody` parameter;
 - `@Path` lowers into `req.parameters.require(_:as:)`;
 - `@Path` names must match `:name` route segments;
+- `@Query` lowers into `req.query.require(_:as:)`;
+- `@Header` lowers into `req.headers.require(_:as:)`;
 - `@JSONBody` lowers into `try await req.json(Type.self)`;
 - true `@Body` spelling is deferred because `Body` is already Daylily's raw request body type;
 - grouped types must be default-initializable;
-- `@Query`, `@Header`, macro middleware attributes, DI, and OpenAPI are future work.
+- optional typed inputs, macro middleware attributes, DI, and OpenAPI are future work.
 
 ## AI-Native Development
 
@@ -373,9 +398,9 @@ The most important invariants:
 
 Near-term:
 
-1. `@Query` and `@Header` typed inputs.
-2. Lifecycle and production server controls.
-3. Observability and OpenAPI metadata before ecosystem modules.
+1. Lifecycle and production server controls.
+2. Observability middleware.
+3. OpenAPI metadata before ecosystem modules.
 
 ## License
 
