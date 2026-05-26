@@ -36,6 +36,7 @@ Daylily 不是 Vapor 或 Hummingbird 的复制品。它是在探索：如果 AI 
 - 基于 `ByteChunk` 和 `ByteCount` 的 one-shot body 消费。
 - 真正的 NIO request body streaming bridge，带有有界缓冲和实用 backpressure。
 - 支持 application、group、route 作用域的 runtime middleware。
+- 显式的 `withBufferedBody(upTo:_:)` helper，用于有界 body 检查和 replacement。
 - `String`、`Status`、`Response` 的 `ResponseConvertible` 支持。
 - 通过 `request.body.json(...)` 和 `request.json(...)` 异步解码 JSON body。
 - 通过 `JSON(...)` 返回 JSON response。
@@ -168,6 +169,21 @@ application -> router dispatch -> group -> route -> handler
 ```
 
 Middleware 可以读 `request.body`，但 `Body` 是 one-shot。middleware 消费 body 后再调用 `next`，下游看到的就是已经被消费过的 body。Daylily 不做隐藏的 body replay。
+
+如果 middleware 明确需要检查 body bytes，并且还要把等价 body 继续传给下游，就使用显式 buffering：
+
+```swift
+struct SignatureMiddleware: Middleware {
+    func handle(_ request: Request, next: Handler) async throws -> Response {
+        try await request.withBufferedBody(upTo: .megabytes(1)) { replayed, bytes in
+            try verify(bytes)
+            return try await next.respond(to: replayed)
+        }
+    }
+}
+```
+
+replacement body 依然是 one-shot，而且 helper 必须传入明确的大小限制。
 
 ## Macro API MVP
 

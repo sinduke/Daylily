@@ -204,6 +204,12 @@ public struct Request: Sendable {
     )
 
     public func with(parameters: Parameters) -> Request
+    public func with(body: Body) -> Request
+
+    public func withBufferedBody<R: Sendable>(
+        upTo limit: ByteCount,
+        _ operation: @Sendable (Request, [UInt8]) async throws -> R
+    ) async throws -> R
 }
 ```
 
@@ -212,6 +218,11 @@ Body rules:
 - `body` is a Daylily-owned `Body`.
 - The `[UInt8]` initializer converts bytes into `Body.bytes(...)`.
 - `with(parameters:)` preserves the same `Body` storage and one-shot state.
+- `with(body:)` replaces only the body and preserves method, path, headers, and parameters.
+- `withBufferedBody(upTo:_:)` consumes the current body, creates a replacement `Body.bytes(...)`, and passes both replacement request and collected bytes to the closure.
+- `withBufferedBody(upTo:_:)` requires an explicit `ByteCount` limit.
+- The replacement body from `withBufferedBody(upTo:_:)` is still one-shot.
+- Limit failures from `withBufferedBody(upTo:_:)` throw `BodyError.tooLarge`.
 - `DaylilyNIO` creates streaming bodies through transport SPI; user code still sees only `Body`.
 
 ### Body

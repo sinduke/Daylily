@@ -18,6 +18,11 @@ enum DaylilyChecks {
         try await middlewarePathParameters()
         try await middlewareBodyShortCircuit()
         try await middlewareBodyOneShot()
+        try await requestWithBodyReplacement()
+        try await withBufferedBodyMiddleware()
+        try await withBufferedBodyReplacementIsOneShot()
+        try await withBufferedBodyLimit()
+        try await withBufferedBodyLimitResponse()
         try await bodyBytes()
         try await bodyCollect()
         try await bodyCollectLimit()
@@ -304,6 +309,101 @@ enum DaylilyChecks {
 
         try expect(response.status == .internalServerError, "expected consumed body 500 response")
         try expect(response.bodyString == "Request body already consumed", "expected consumed body reason")
+    }
+
+    private static func requestWithBodyReplacement() async throws {
+        let request = Request(
+            method: .post,
+            path: "/replace",
+            headers: ["x-original": "yes"],
+            body: Array("old".utf8),
+            parameters: Parameters(["id": "42"])
+        )
+
+        let replaced = request.with(body: .bytes(Array("new".utf8)))
+        let body = try await replaced.body.string(upTo: .kilobytes(1))
+
+        try expect(replaced.method == .post, "expected replacement to preserve method")
+        try expect(replaced.path == "/replace", "expected replacement to preserve path")
+        try expect(replaced.headers["x-original"] == "yes", "expected replacement to preserve headers")
+        try expect(replaced.parameters.id == "42", "expected replacement to preserve parameters")
+        try expect(body == "new", "expected replacement body")
+    }
+
+    private static func withBufferedBodyMiddleware() async throws {
+        let app = Application {
+            Post("/signed") { request in
+                let body = try await request.body.string(upTo: .kilobytes(1))
+                return "handler saw \(body)"
+            }
+            .middleware(BufferedBodyHeaderMiddleware())
+        }
+
+        let response = await app.respond(
+            to: Request(method: .post, path: "/signed", body: Array("signed".utf8))
+        )
+
+        try expect(response.status == .ok, "expected buffered middleware response")
+        try expect(response.bodyString == "handler saw signed", "expected downstream body read")
+        try expect(response.headers["x-buffered-body"] == "signed", "expected middleware to inspect bytes")
+    }
+
+    private static func withBufferedBodyReplacementIsOneShot() async throws {
+        let request = Request(method: .post, path: "/body", body: Array("once".utf8))
+
+        try await request.withBufferedBody(upTo: .kilobytes(1)) { replayedRequest, bytes in
+            try expect(bytes == Array("once".utf8), "expected buffered body bytes")
+
+            let firstRead = try await replayedRequest.body.string(upTo: .kilobytes(1))
+            try expect(firstRead == "once", "expected first replacement body read")
+
+            do {
+                _ = try await replayedRequest.body.string(upTo: .kilobytes(1))
+                try expect(false, "expected replacement body to be one-shot")
+            } catch let error as BodyError {
+                try expect(error.status == .internalServerError, "expected already consumed status")
+                try expect(error.reason == "Request body already consumed", "expected already consumed reason")
+            }
+        }
+
+        do {
+            _ = try await request.body.string(upTo: .kilobytes(1))
+            try expect(false, "expected original body to be consumed")
+        } catch let error as BodyError {
+            try expect(error.status == .internalServerError, "expected original body consumed status")
+            try expect(error.reason == "Request body already consumed", "expected original body consumed reason")
+        }
+    }
+
+    private static func withBufferedBodyLimit() async throws {
+        let request = Request(method: .post, path: "/body", body: Array("large".utf8))
+
+        do {
+            try await request.withBufferedBody(upTo: .bytes(2)) { _, _ in
+                try expect(false, "expected buffered body limit before closure")
+            }
+            try expect(false, "expected buffered body too large error")
+        } catch let error as BodyError {
+            try expect(error.status == .payloadTooLarge, "expected buffered body 413")
+            try expect(error.reason == "Request body too large", "expected buffered body too large reason")
+        }
+    }
+
+    private static func withBufferedBodyLimitResponse() async throws {
+        let app = Application {
+            Post("/signed") { request in
+                try await request.withBufferedBody(upTo: .bytes(2)) { replayedRequest, _ in
+                    try await replayedRequest.body.string(upTo: .kilobytes(1))
+                }
+            }
+        }
+
+        let response = await app.respond(
+            to: Request(method: .post, path: "/signed", body: Array("large".utf8))
+        )
+
+        try expect(response.status == .payloadTooLarge, "expected buffered body limit response 413")
+        try expect(response.bodyString == "Request body too large", "expected buffered body limit response")
     }
 
     private static func bodyBytes() async throws {
@@ -628,5 +728,15 @@ private struct BodyConsumingMiddleware: Middleware {
     func handle(_ request: Request, next: Handler) async throws -> Response {
         _ = try await request.body.string(upTo: .kilobytes(1))
         return try await next.respond(to: request)
+    }
+}
+
+private struct BufferedBodyHeaderMiddleware: Middleware {
+    func handle(_ request: Request, next: Handler) async throws -> Response {
+        try await request.withBufferedBody(upTo: .kilobytes(1)) { replayedRequest, bytes in
+            var response = try await next.respond(to: replayedRequest)
+            response.headers["x-buffered-body"] = String(decoding: bytes, as: UTF8.self)
+            return response
+        }
     }
 }

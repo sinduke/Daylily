@@ -36,6 +36,7 @@ Implemented today:
 - One-shot body consumption with `ByteChunk` and `ByteCount`.
 - True NIO request body streaming bridge with bounded buffering and practical backpressure.
 - Runtime middleware with application, group, and route scopes.
+- Explicit `withBufferedBody(upTo:_:)` helper for bounded body inspection and replacement.
 - `ResponseConvertible` for `String`, `Status`, and `Response`.
 - Async JSON body decoding with `request.body.json(...)` and `request.json(...)`.
 - JSON responses with `JSON(...)`.
@@ -168,6 +169,21 @@ application -> router dispatch -> group -> route -> handler
 ```
 
 Middleware can read `request.body`, but `Body` is one-shot. If middleware consumes the body and then calls `next`, downstream code sees the body as already consumed. Daylily does not perform hidden body replay.
+
+When middleware intentionally needs to inspect body bytes and still pass an equivalent body downstream, use explicit buffering:
+
+```swift
+struct SignatureMiddleware: Middleware {
+    func handle(_ request: Request, next: Handler) async throws -> Response {
+        try await request.withBufferedBody(upTo: .megabytes(1)) { replayed, bytes in
+            try verify(bytes)
+            return try await next.respond(to: replayed)
+        }
+    }
+}
+```
+
+The replacement body is still one-shot, and the helper requires an explicit size limit.
 
 ## Macro API MVP
 

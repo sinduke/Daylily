@@ -19,7 +19,7 @@ struct App {
 }
 ```
 
-Current implemented surfaces are the runtime DSL, runtime middleware, the Daylily-owned `Body` model, JSON body/response helpers, and the macro route/group MVP.
+Current implemented surfaces are the runtime DSL, runtime middleware, the Daylily-owned `Body` model, explicit buffered body replacement, JSON body/response helpers, and the macro route/group MVP.
 
 Runtime DSL:
 
@@ -72,7 +72,7 @@ Middleware order is:
 application -> router dispatch -> group -> route -> handler
 ```
 
-Middleware may read `request.body`, but `Body` is one-shot. There is no hidden body replay.
+Middleware may read `request.body`, but `Body` is one-shot. There is no hidden body replay. If middleware needs to inspect bytes and pass an equivalent body downstream, use `request.withBufferedBody(upTo:_:)` with an explicit limit.
 
 Macro route/group MVP:
 
@@ -112,6 +112,7 @@ Implemented:
 - Runtime middleware at application, group, and route scope.
 - Macro route/group MVP: `@DaylilyServer`, `@GET`, `@POST`, `@GROUP`.
 - Daylily-owned `Body` model with one-shot consumption.
+- Explicit `request.withBufferedBody(upTo:_:)` helper for bounded body buffering and replacement.
 - `ByteChunk`, `BodyBytes`, `ByteCount`, `BodyError`, and `ResponseError`.
 - True NIO request body streaming bridge with bounded buffering and practical backpressure.
 - Async JSON body decoding with `request.body.json(...)` and `request.json(...)`.

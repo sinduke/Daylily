@@ -121,7 +121,27 @@ Body rules:
 2. `request.body` remains one-shot.
 3. If middleware consumes the body and calls `next`, downstream code sees the consumed body.
 4. Do not add automatic body replay in the first middleware task.
-5. If replay becomes necessary, add an explicit future helper that buffers under a clear limit and replaces the request body deliberately.
+5. If downstream code needs an equivalent body, use `request.withBufferedBody(upTo:_:)` deliberately.
+6. `withBufferedBody(upTo:_:)` buffers in memory under a required limit and creates a one-shot replacement body.
+
+## Add Explicit Buffered Body Helper
+
+Current state:
+
+- 0009-002 implemented `Request.with(body:)`.
+- 0009-002 implemented `Request.withBufferedBody(upTo:_:)`.
+- The helper lives in `DaylilyCore`.
+- The replacement body is `Body.bytes(collectedBytes)`.
+- The replacement body remains one-shot.
+- No hidden or automatic body replay exists.
+
+Rules:
+
+1. Keep `upTo:` required.
+2. Preserve `BodyError.tooLarge -> 413 Payload Too Large`.
+3. Do not move this into JSON/Content until those layers exist.
+4. Do not add file-backed buffering or multipart behavior in this helper.
+5. Keep the API name explicit about buffering.
 
 ## Add Streaming Body
 

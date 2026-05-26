@@ -123,6 +123,7 @@ Daylily/
 `Sources/DaylilyCore/Request.swift`
 
 - Method, path, headers, `Body`, parameters.
+- Request copy helpers for parameters, body replacement, and explicit buffered body replacement.
 
 `Sources/DaylilyCore/Response.swift`
 

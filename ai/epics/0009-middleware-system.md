@@ -12,6 +12,7 @@ Purpose:
 Tasks:
 
 - `ai/tasks/0009-001-middleware-runtime.md`
+- `ai/tasks/0009-002-explicit-buffered-body-helper.md`
 
 Design Direction:
 
@@ -82,7 +83,8 @@ Body Policy:
 - `request.body` remains one-shot.
 - If middleware consumes the body and then calls `next`, downstream code sees the body as already consumed.
 - 0009-001 does not add automatic body replay.
-- A middleware that wants downstream code to read an equivalent body must explicitly create and pass a request with a replacement `Body`; a dedicated replay helper can be a future task.
+- A middleware that wants downstream code to read an equivalent body must explicitly create and pass a request with a replacement `Body`.
+- 0009-002 adds an explicit `withBufferedBody` helper for this case.
 - Body consumption failures keep the existing `BodyError` mappings, including clear `413 Payload Too Large` behavior.
 
 Non-goals for the first task:
@@ -93,8 +95,27 @@ Non-goals for the first task:
 - Production middleware stack.
 - Response body streaming.
 
+Follow-up Target:
+
+```swift
+try await request.withBufferedBody(upTo: .megabytes(1)) { replayedRequest, bytes in
+    try verify(bytes)
+    return try await next.respond(to: replayedRequest)
+}
+```
+
+0009-002 rules:
+
+- The helper name is `withBufferedBody`.
+- The helper starts in `DaylilyCore`.
+- The replacement body remains one-shot.
+- The helper requires `upTo: ByteCount`.
+- The helper buffers in memory only.
+- The helper is explicit; Daylily still does not perform automatic body replay.
+
 Notes:
 
 - 0009 follows the 0008 body work because middleware/body interaction must be explicit.
 - 0009-001 proved the runtime pipeline before exposing additional syntax.
-- Future tasks can add macro middleware attributes, explicit body replay helpers, request context, and production middleware packages.
+- 0009-002 added an explicit buffered body helper without changing one-shot body semantics.
+- Future tasks can add macro middleware attributes, request context, and production middleware packages.

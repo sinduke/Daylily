@@ -193,6 +193,12 @@ Guarantees:
 
 - `with(parameters:)` returns a new request preserving method, path, headers, and body.
 - Preserved body uses shared one-shot state.
+- `with(body:)` returns a new request preserving method, path, headers, and parameters while replacing body.
+- `withBufferedBody(upTo:_:)` consumes the current body under an explicit limit.
+- `withBufferedBody(upTo:_:)` passes collected bytes and a replacement request to the operation closure.
+- The replacement request uses `Body.bytes(collectedBytes)`.
+- Replacement bodies remain one-shot.
+- Over-limit buffering throws `BodyError.tooLarge`, which renders as `413 Payload Too Large`.
 
 Transport behavior:
 

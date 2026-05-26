@@ -11,7 +11,7 @@ Epic -> Task -> Step
 - Steps live inside task files as checklists.
 - Tasks are the smallest commit/push unit.
 
-## Completed Epics
+## Epics
 
 ### 0001 Runtime Foundation
 
@@ -117,6 +117,7 @@ Status: implemented
 Tasks:
 
 - `0009-001-middleware-runtime`
+- `0009-002-explicit-buffered-body-helper`
 
 Delivered:
 
@@ -128,6 +129,11 @@ Delivered:
 - Let application middleware wrap missing-route responses.
 - Make body interaction explicit: middleware may read `Body`, but it consumes the one-shot stream.
 - Checks for ordering, same-scope order, group scope, 404 wrapping, short-circuiting, thrown errors, path parameters, and body one-shot behavior.
+- Explicit `Request.withBufferedBody(upTo:_:)`.
+- Keep helper in `DaylilyCore` first.
+- Preserve one-shot replacement bodies.
+- Require an explicit `ByteCount` limit.
+- Avoid automatic body replay and hidden middleware buffering.
 
 ## Recommended Next Epic
 
@@ -144,8 +150,6 @@ Example target:
 ```swift
 func user(@Path id: UUID) async throws -> User
 ```
-
-## Later
 
 ### Future Epics
 

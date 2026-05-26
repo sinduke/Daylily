@@ -84,6 +84,7 @@ try await request.body.collect(upTo: .megabytes(1))
 try await request.body.string(upTo: .kilobytes(64))
 try await request.body.json(UserInput.self, upTo: .megabytes(1))
 try await request.json(UserInput.self)
+try await request.withBufferedBody(upTo: .megabytes(1)) { replayed, bytes in ... }
 ```
 
 `request.body` is a one-shot `Body`. Reading bytes, collecting, decoding string, or decoding JSON consumes it.
@@ -98,7 +99,9 @@ for try await chunk in request.body.bytes { ... }
 
 `DaylilyNIO` creates streaming bodies through `@_spi(Transport)` hooks. Keep those hooks transport-only and keep user-facing APIs free of NIO types.
 
-Middleware may read `request.body`, but reading consumes the same one-shot body seen by downstream handlers. Do not add hidden body replay. If replay is needed in the future, it must be explicit and bounded.
+Middleware may read `request.body`, but reading consumes the same one-shot body seen by downstream handlers. Do not add hidden body replay.
+
+Use `withBufferedBody(upTo:_:)` only when the caller explicitly wants in-memory buffering and replacement. The replacement body is still one-shot, and `upTo:` is required.
 
 Macro future:
 

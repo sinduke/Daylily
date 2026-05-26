@@ -272,10 +272,33 @@ implemented_features:
       body_policy: "middleware may read Body, but Body remains one-shot and there is no automatic replay"
     limitations:
       - "macro middleware syntax"
-      - "automatic body replay"
       - "request context"
       - "dependency injection"
       - "production middleware stack"
+  explicit_buffered_body_helper:
+    status: implemented
+    epic: "0009-middleware-system"
+    task: "0009-002-explicit-buffered-body-helper"
+    module: DaylilyCore
+    public_api:
+      - "public func Request.with(body: Body) -> Request"
+      - "public func Request.withBufferedBody<R: Sendable>(upTo limit: ByteCount, _ operation: @Sendable (Request, [UInt8]) async throws -> R) async throws -> R"
+    decisions:
+      name: "withBufferedBody"
+      ownership: "DaylilyCore first; future JSON/Content layers may wrap higher-level body helpers"
+      replacement_body: "Body.bytes(collectedBytes)"
+      replacement_body_policy: "still one-shot"
+      limit: "required ByteCount"
+      over_limit_mapping: "BodyError.tooLarge -> 413 Payload Too Large"
+      buffering: "in-memory only for first version"
+      automatic_replay: "not allowed"
+    non_goals:
+      - "automatic body replay"
+      - "hidden middleware buffering"
+      - "file-backed buffering"
+      - "multipart parsing"
+      - "JSON/Content abstraction"
+      - "streaming replay"
 
 planned_features:
   typed_parameter_extraction:
@@ -361,7 +384,9 @@ public_api:
         - "public init(method:path:headers:body: Body = .bytes([]), parameters: Parameters = Parameters())"
         - "public init(method:path:headers:body: [UInt8], parameters: Parameters = Parameters())"
         - "public func with(parameters: Parameters) -> Request"
-      contract: "DaylilyNIO creates streaming Body values through transport SPI; in-process callers may use Body.bytes(...)."
+        - "public func with(body: Body) -> Request"
+        - "public func withBufferedBody<R: Sendable>(upTo limit: ByteCount, _ operation: @Sendable (Request, [UInt8]) async throws -> R) async throws -> R"
+      contract: "DaylilyNIO creates streaming Body values through transport SPI; in-process callers may use Body.bytes(...); explicit body buffering uses withBufferedBody(upTo:_:)."
     Body:
       kind: struct
       conforms:
@@ -518,6 +543,7 @@ runtime_rules:
   future_body_model: "response body streaming and higher-level upload helpers"
   middleware_order: "application -> router dispatch -> group -> route -> handler"
   middleware_body_policy: "middleware can read Body, but Body remains one-shot and no automatic replay occurs"
+  explicit_buffered_body_policy: "withBufferedBody consumes the original Body, buffers under an explicit limit, creates a one-shot replacement Body.bytes value, and does not enable automatic replay"
   errors:
     response_error: "status + reason"
     abort: "ResponseError conformer"
@@ -563,6 +589,7 @@ aidev_files:
     - ai/tasks/0008-001-body-model-migration.md
     - ai/tasks/0008-002-nio-true-streaming-bridge.md
     - ai/tasks/0009-001-middleware-runtime.md
+    - ai/tasks/0009-002-explicit-buffered-body-helper.md
   docs:
     - ai/aidev/project-map.md
     - ai/aidev/architecture.md
@@ -584,6 +611,7 @@ extension_playbooks:
   - extend_json_body_decoding
   - extend_json_responses
   - add_middleware_runtime
+  - add_explicit_buffered_body_helper
   - add_streaming_body
   - extend_macro_route_mvp
   - add_new_transport
@@ -644,6 +672,7 @@ roadmap:
     - "0008-001-body-model-migration"
     - "0008-002-nio-true-streaming-bridge"
     - "0009-001-middleware-runtime"
+    - "0009-002-explicit-buffered-body-helper"
   in_progress: []
   next_recommended:
     - "0010-001-typed-parameter-extraction"

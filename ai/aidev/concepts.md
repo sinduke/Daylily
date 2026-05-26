@@ -133,6 +133,17 @@ let text = try await request.body.string(upTo: .kilobytes(64))
 
 `Body` is one-shot. Reading bytes, collecting, string decoding, or JSON decoding consumes it. A second read fails with `BodyError.alreadyConsumed`.
 
+When middleware or a handler intentionally needs to inspect body bytes and pass an equivalent body downstream, use explicit buffering:
+
+```swift
+try await request.withBufferedBody(upTo: .megabytes(1)) { replayedRequest, bytes in
+    try verify(bytes)
+    return try await next.respond(to: replayedRequest)
+}
+```
+
+This consumes the original body, creates a replacement `Body.bytes(...)`, and keeps the replacement body one-shot. There is no hidden body replay.
+
 `DaylilyNIO` now creates a streaming `Body` after receiving the request head. NIO body chunks are fed into `BodyBytes` in order, request end finishes iteration, and channel/protocol errors surface as `BodyError.streamFailed`.
 
 Transport stream creation is hidden behind `@_spi(Transport)`, so user code still reads only `request.body.bytes`, `collect(upTo:)`, `string(upTo:)`, or JSON helpers.

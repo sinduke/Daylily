@@ -44,4 +44,23 @@ public struct Request: Sendable {
             parameters: parameters
         )
     }
+
+    public func with(body: Body) -> Request {
+        Request(
+            method: method,
+            path: path,
+            headers: headers,
+            body: body,
+            parameters: parameters
+        )
+    }
+
+    public func withBufferedBody<R: Sendable>(
+        upTo limit: ByteCount,
+        _ operation: @Sendable (Request, [UInt8]) async throws -> R
+    ) async throws -> R {
+        let bytes = try await body.collect(upTo: limit)
+        let replayedRequest = with(body: .bytes(bytes))
+        return try await operation(replayedRequest, bytes)
+    }
 }
