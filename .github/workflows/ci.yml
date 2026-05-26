@@ -13,9 +13,33 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    name: Build, Test, and Check
+  macos:
+    name: macOS Build, Test, and Check
     runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Show Swift Version
+        run: swift --version
+
+      - name: Resolve Dependencies
+        run: swift package resolve
+
+      - name: Build
+        run: swift build
+
+      - name: Run Swift Tests
+        run: swift test
+
+      - name: Run Daylily Checks
+        run: swift run HelloDaylily --check
+
+  linux:
+    name: Linux Build, Test, and Check
+    runs-on: ubuntu-latest
+    container: swift:6.3.2-noble
 
     steps:
       - name: Checkout

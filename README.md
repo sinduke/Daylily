@@ -18,7 +18,7 @@ Designed for humans and AI agents together.
 
 [![CI](https://github.com/sinduke/Daylily/actions/workflows/ci.yml/badge.svg)](https://github.com/sinduke/Daylily/actions/workflows/ci.yml)
 ![Swift](https://img.shields.io/badge/Swift-6-orange)
-![Platform](https://img.shields.io/badge/platform-macOS%2014%2B-blue)
+![Platform](https://img.shields.io/badge/platform-macOS%2014%2B%20%7C%20Linux%20CI-blue)
 ![Concurrency](https://img.shields.io/badge/Concurrency-Native-green)
 ![OpenAPI](https://img.shields.io/badge/OpenAPI-MVP-8A2BE2)
 ![Status](https://img.shields.io/badge/status-Experimental-red)
@@ -221,6 +221,7 @@ Dedicated beta docs are also available:
 - [Documentation hub](docs/README.md)
 - [Quick Start](docs/quickstart.md)
 - [Capability Matrix](docs/capability-matrix.md)
+- [Release Readiness](docs/release-readiness.md)
 - [JSON API Example](docs/examples/json-api.md)
 - [Middleware Example](docs/examples/middleware.md)
 - [Testing Example](docs/examples/testing.md)
@@ -690,7 +691,8 @@ The most important invariants:
 
 Near-term:
 
-1. Add release hygiene: Linux CI, CHANGELOG, semver tag, and public API registry sync.
+1. Wait for macOS/Linux CI to pass, then decide whether to tag `0.1.0-alpha.1`.
+2. Continue release hygiene with public API registry review before tagging.
 
 ## License
 

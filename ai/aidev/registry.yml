@@ -521,6 +521,18 @@ implemented_features:
       - "middleware example"
       - "testing example"
       - "capability matrix"
+  release_hygiene:
+    status: implemented
+    task: "0019-001-release-hygiene"
+    files:
+      - CHANGELOG.md
+      - docs/release-readiness.md
+      - .github/workflows/ci.yml
+    decisions:
+      - "First candidate tag is 0.1.0-alpha.1."
+      - "Do not create a tag until GitHub Actions passes on macOS and Linux."
+      - "Public API remains experimental."
+      - "Linux validation is CI-owned through the official Swift Docker image."
   macro_route_mvp:
     status: implemented
     task: "0003-001-macro-route-mvp"
@@ -870,14 +882,15 @@ planned_features:
   dependency_injection:
     status: future
   beta_closure:
-    status: in-progress
+    status: implemented
     completed:
       - "0015-001-runtime-and-testing-http-verbs"
       - "0015-002-macro-and-openapi-http-verbs"
       - "0016-001-formal-test-target"
       - "0017-001-true-body-input"
       - "0018-001-beta-docs"
-    next_task: "0019-001-release-hygiene"
+      - "0019-001-release-hygiene"
+    next_task: null
     sequence:
       - "0015-001-runtime-and-testing-http-verbs"
       - "0015-002-macro-and-openapi-http-verbs"
@@ -1716,6 +1729,7 @@ aidev_files:
     - ai/epics/0014-openapi-metadata.md
     - ai/epics/0015-http-verbs-beta-closure.md
     - ai/epics/0018-beta-docs.md
+    - ai/epics/0019-release-hygiene.md
   tasks:
     - ai/tasks/0001-001-minimal-http-server.md
     - ai/tasks/0002-001-aidev-project-contract.md
@@ -1749,10 +1763,13 @@ aidev_files:
     - ai/tasks/0016-001-formal-test-target.md
     - ai/tasks/0017-001-true-body-input.md
     - ai/tasks/0018-001-beta-docs.md
+    - ai/tasks/0019-001-release-hygiene.md
   docs:
+    - CHANGELOG.md
     - docs/README.md
     - docs/quickstart.md
     - docs/capability-matrix.md
+    - docs/release-readiness.md
     - docs/examples/json-api.md
     - docs/examples/middleware.md
     - docs/examples/testing.md
@@ -1798,7 +1815,9 @@ verification:
       - push_to_main
       - pull_request_to_main
       - workflow_dispatch
-    runner: macos-latest
+    runners:
+      macos: "macos-latest"
+      linux: "ubuntu-latest with swift:6.3.2-noble container"
     steps:
       - "swift --version"
       - "swift package resolve"
@@ -1830,7 +1849,7 @@ verification:
     cleanup: "stop the HelloDaylily process"
 
 roadmap:
-  current_task: "0019-001-release-hygiene"
+  current_task: null
   epics:
     completed:
       - "0001-runtime-foundation"
@@ -1845,8 +1864,9 @@ roadmap:
       - "0014-openapi-metadata"
       - "0015-http-verbs-beta-closure"
       - "0018-beta-docs"
+      - "0019-release-hygiene"
     next_recommended:
-      - "0019-001-release-hygiene"
+      - "wait-for-ci-then-tag-0.1.0-alpha.1-if-green"
   completed:
     - "0001-001-minimal-http-server"
     - "0002-001-aidev-project-contract"
@@ -1880,8 +1900,9 @@ roadmap:
     - "0016-001-formal-test-target"
     - "0017-001-true-body-input"
     - "0018-001-beta-docs"
+    - "0019-001-release-hygiene"
   in_progress: []
   next_recommended:
-    - "0019-001-release-hygiene"
+    - "wait-for-ci-then-tag-0.1.0-alpha.1-if-green"
   later:
     - "0013-003-observability-hooks"

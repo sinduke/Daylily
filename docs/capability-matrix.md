@@ -7,7 +7,8 @@ This matrix tracks the current beta-facing capability surface. It is intentional
 | Capability | Status | Notes |
 | --- | --- | --- |
 | Swift package | Implemented | Swift tools version 6.0. |
-| Platform declaration | Implemented | macOS 14+ today. Linux CI is release-hygiene work. |
+| Platform declaration | Implemented | macOS 14+ for local package development today. |
+| Linux CI | Implemented | GitHub Actions validates with `swift:6.3.2-noble`. |
 | Runtime application | Implemented | `Application` owns route dispatch and middleware execution. |
 | HTTP transport | Implemented | NIO-backed HTTP/1.1 server. |
 | Route DSL | Implemented | `Get`, `Post`, `Put`, `Patch`, `Delete`, `Head`, `Options`, `Group`. |
@@ -65,5 +66,5 @@ This matrix tracks the current beta-facing capability surface. It is intentional
 | ORM/database module | Future | Explicitly out of current beta closure. |
 | Queue/background jobs | Future | Ecosystem direction. |
 | WebSocket/realtime | Future | Ecosystem direction. |
-| Deployment tooling | Future | Release/deploy story comes after core beta docs and hygiene. |
+| Deployment tooling | Future | Release/deploy story comes after alpha release hygiene. |
 | Benchmarks | Planned | To publish after runtime and beta docs stabilize. |

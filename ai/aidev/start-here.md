@@ -299,6 +299,7 @@ Implemented:
 - Formal Swift Testing target.
 - AIDEV project contract.
 - Beta docs in `docs/`, including quickstart, capability matrix, JSON API example, middleware example, and testing example.
+- Release hygiene docs, including `CHANGELOG.md` and `docs/release-readiness.md`.
 
 Not implemented:
 
@@ -314,13 +315,14 @@ Read these before planning or modifying:
 1. `AIDEV.md`
 2. `ai/aidev/start-here.md`
 3. `docs/README.md`
-4. `ai/aidev/invariants.md`
-5. `ai/aidev/architecture.md`
-6. `ai/aidev/runtime-contracts.md`
-7. `ai/aidev/api-registry.md`
-8. `ai/aidev/extension-playbooks.md`
-9. `ai/aidev/task-protocol.md`
-10. `ai/aidev/registry.yml`
+4. `docs/release-readiness.md`
+5. `ai/aidev/invariants.md`
+6. `ai/aidev/architecture.md`
+7. `ai/aidev/runtime-contracts.md`
+8. `ai/aidev/api-registry.md`
+9. `ai/aidev/extension-playbooks.md`
+10. `ai/aidev/task-protocol.md`
+11. `ai/aidev/registry.yml`
 
 For implementation work, also read the relevant epic in `ai/epics/` and task file in `ai/tasks/`.
 
@@ -384,4 +386,5 @@ Do not start with:
 
 Current strategic order:
 
-1. Add release hygiene: Linux CI, CHANGELOG, semver tag, and public API registry sync.
+1. Wait for macOS/Linux CI to pass, then decide whether to tag `0.1.0-alpha.1`.
+2. Review public API registry before any tag.

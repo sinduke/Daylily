@@ -218,13 +218,15 @@ Triggers:
 - pull request to `main`
 - manual `workflow_dispatch`
 
-CI mirrors the required local validation:
+CI mirrors the required local validation on macOS and Linux:
 
 ```sh
 swift build
 swift test
 swift run HelloDaylily --check
 ```
+
+The Linux job runs on `ubuntu-latest` inside the official `swift:6.3.2-noble` container. The macOS job runs on `macos-latest`.
 
 ## Epic and Task Files
 

@@ -18,7 +18,7 @@
 
 [![CI](https://github.com/sinduke/Daylily/actions/workflows/ci.yml/badge.svg)](https://github.com/sinduke/Daylily/actions/workflows/ci.yml)
 ![Swift](https://img.shields.io/badge/Swift-6-orange)
-![Platform](https://img.shields.io/badge/platform-macOS%2014%2B-blue)
+![Platform](https://img.shields.io/badge/platform-macOS%2014%2B%20%7C%20Linux%20CI-blue)
 ![Concurrency](https://img.shields.io/badge/Concurrency-Native-green)
 ![OpenAPI](https://img.shields.io/badge/OpenAPI-MVP-8A2BE2)
 ![Status](https://img.shields.io/badge/status-Experimental-red)
@@ -221,6 +221,7 @@ README 后半部分就是详细使用教程入口，保留了可以直接复制�
 - [Documentation hub](docs/README.md)
 - [Quick Start](docs/quickstart.md)
 - [Capability Matrix](docs/capability-matrix.md)
+- [Release Readiness](docs/release-readiness.md)
 - [JSON API Example](docs/examples/json-api.md)
 - [Middleware Example](docs/examples/middleware.md)
 - [Testing Example](docs/examples/testing.md)
@@ -690,7 +691,8 @@ Daylily/
 
 近期：
 
-1. 补齐 release hygiene：Linux CI、CHANGELOG、semver tag 和 public API registry 同步。
+1. 等待 macOS/Linux CI 通过，然后决定是否创建 `0.1.0-alpha.1` tag。
+2. tag 前继续做 public API registry review。
 
 ## License
 

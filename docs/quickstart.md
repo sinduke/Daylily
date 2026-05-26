@@ -5,7 +5,8 @@ This guide uses the Daylily repository checkout directly. Package installation d
 ## Requirements
 
 - Swift 6 toolchain.
-- macOS 14+ for the current package declaration.
+- macOS 14+ for local package development today.
+- Linux is validated in GitHub Actions with the official Swift Docker image.
 - Xcode toolchain for Swift Testing if Command Line Tools cannot find the `Testing` module.
 
 ## Clone and Build
@@ -105,3 +106,4 @@ struct App {
 - Read the [middleware example](examples/middleware.md).
 - Read the [testing example](examples/testing.md).
 - Check the [capability matrix](capability-matrix.md).
+- Check [release readiness](release-readiness.md).

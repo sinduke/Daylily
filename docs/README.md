@@ -8,6 +8,7 @@ This directory contains beta-facing docs: practical guides for trying the curren
 
 - [Quick Start](quickstart.md): build, test, run, and make the first requests.
 - [Capability Matrix](capability-matrix.md): current features, MVP surfaces, and planned work.
+- [Release Readiness](release-readiness.md): CI, changelog, tag strategy, and known release limits.
 
 ## Examples
 
@@ -21,10 +22,12 @@ This directory contains beta-facing docs: practical guides for trying the curren
 - [Project Map](../ai/aidev/project-map.md): modules and file responsibilities.
 - [Runtime Contracts](../ai/aidev/runtime-contracts.md): guarantees and extension points.
 - [API Registry](../ai/aidev/api-registry.md): current public API surface.
+- [Changelog](../CHANGELOG.md): release notes.
 
 ## Current Support
 
 - Swift tools version: Swift 6.0.
 - Platform declared by the package today: macOS 14+.
+- CI validation: macOS and Linux.
 - Transport: NIO-backed HTTP/1.1.
 - Status: experimental beta-closure work.

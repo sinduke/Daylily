@@ -7,12 +7,14 @@ Daylily/
 ├── AIDEV.md
 ├── DAYLILY_NOTES.md
 ├── Package.swift
+├── CHANGELOG.md
 ├── README.md
 ├── README.zh-CN.md
 ├── docs/
 │   ├── README.md
 │   ├── quickstart.md
 │   ├── capability-matrix.md
+│   ├── release-readiness.md
 │   └── examples/
 ├── Sources/
 │   ├── Daylily/
@@ -50,9 +52,18 @@ Daylily/
 
 - Conservative status matrix for implemented, MVP, planned, and future capabilities.
 
+`docs/release-readiness.md`
+
+- Current release status, CI coverage, tag strategy, and known release limitations.
+
 `docs/examples/`
 
 - Focused beta examples for JSON APIs, middleware, and transport-free testing.
+
+`CHANGELOG.md`
+
+- Human-facing release notes.
+- Tracks unreleased changes and candidate tag guidance.
 
 ## Package Products and Targets
 

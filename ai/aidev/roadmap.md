@@ -311,7 +311,7 @@ Macro typed inputs now lower into route metadata:
 
 Suggested next task:
 
-- `0019-001-release-hygiene`
+- Wait for macOS/Linux CI to pass, then tag `0.1.0-alpha.1` if green.
 
 ## Beta Closure Sequence
 
@@ -327,7 +327,7 @@ Recommended sequence:
 0016-001 Formal test target (delivered)
 0017-001 True @Body input spelling (delivered)
 0018-001 Beta docs: quickstart, examples, capability matrix (delivered)
-0019-001 Release hygiene: Linux CI, CHANGELOG, semver tag, public API registry sync
+0019-001 Release hygiene: Linux CI, CHANGELOG, semver tag strategy, public API registry sync (delivered)
 ```
 
 ### 0015 HTTP Verbs Beta Closure
@@ -351,7 +351,7 @@ Options("/health") { Status.noContent }
 
 Remaining:
 
-- Release hygiene starts with `0019-001-release-hygiene`.
+- Wait for CI, then tag `0.1.0-alpha.1` if macOS and Linux are green.
 
 ### Future Epics
 
