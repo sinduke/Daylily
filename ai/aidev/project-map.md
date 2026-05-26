@@ -9,6 +9,11 @@ Daylily/
 ├── Package.swift
 ├── README.md
 ├── README.zh-CN.md
+├── docs/
+│   ├── README.md
+│   ├── quickstart.md
+│   ├── capability-matrix.md
+│   └── examples/
 ├── Sources/
 │   ├── Daylily/
 │   ├── DaylilyCore/
@@ -28,6 +33,26 @@ Daylily/
     ├── prompts/
     └── tasks/
 ```
+
+## User-Facing Docs
+
+`docs/README.md`
+
+- Beta documentation hub.
+- Links quickstart, capability matrix, examples, and deeper AIDEV documents.
+
+`docs/quickstart.md`
+
+- Repository checkout quickstart for the current experimental phase.
+- Covers build, checks, tests, running the example server, and first requests.
+
+`docs/capability-matrix.md`
+
+- Conservative status matrix for implemented, MVP, planned, and future capabilities.
+
+`docs/examples/`
+
+- Focused beta examples for JSON APIs, middleware, and transport-free testing.
 
 ## Package Products and Targets
 

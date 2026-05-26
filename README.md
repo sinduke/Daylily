@@ -9,6 +9,7 @@ Designed for humans and AI agents together.
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
+[Documentation](docs/README.md) •
 [Quick Start](#quick-start) •
 [Detailed Usage Guide](#detailed-usage-guide) •
 [AI-Native](#ai-native-by-design) •
@@ -213,7 +214,18 @@ curl -X POST -H 'content-type: application/json' --data '{"message":"hi"}' http:
 
 ## Detailed Usage Guide
 
-The rest of this README is the detailed usage guide. It keeps the concrete, copy-pasteable examples close to the project entry point:
+The rest of this README is the detailed usage guide. It keeps the concrete, copy-pasteable examples close to the project entry point.
+
+Dedicated beta docs are also available:
+
+- [Documentation hub](docs/README.md)
+- [Quick Start](docs/quickstart.md)
+- [Capability Matrix](docs/capability-matrix.md)
+- [JSON API Example](docs/examples/json-api.md)
+- [Middleware Example](docs/examples/middleware.md)
+- [Testing Example](docs/examples/testing.md)
+
+README sections:
 
 - [Current API](#current-api): runtime routes, typed parameters, JSON, lifecycle, and server configuration.
 - [Runtime Middleware](#runtime-middleware): application, group, and route middleware with one-shot body rules.
@@ -642,6 +654,7 @@ Daylily/
 ├── Package.swift
 ├── README.md
 ├── README.zh-CN.md
+├── docs/
 ├── Sources/
 │   ├── Daylily/
 │   ├── DaylilyCore/
@@ -677,8 +690,7 @@ The most important invariants:
 
 Near-term:
 
-1. Add beta docs: quickstart, examples, and capability matrix.
-2. Add release hygiene: Linux CI, CHANGELOG, semver tag, and public API registry sync.
+1. Add release hygiene: Linux CI, CHANGELOG, semver tag, and public API registry sync.
 
 ## License
 

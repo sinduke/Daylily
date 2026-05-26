@@ -9,6 +9,7 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
+[Documentation](docs/README.md) •
 [快速开始](#快速开始) •
 [详细使用教程](#详细使用教程) •
 [AI-Native](#ai-native-by-design) •
@@ -213,7 +214,18 @@ curl -X POST -H 'content-type: application/json' --data '{"message":"hi"}' http:
 
 ## 详细使用教程
 
-README 后半部分就是详细使用教程入口，保留了可以直接复制的示例：
+README 后半部分就是详细使用教程入口，保留了可以直接复制的示例。
+
+独立 beta docs 也已经可用：
+
+- [Documentation hub](docs/README.md)
+- [Quick Start](docs/quickstart.md)
+- [Capability Matrix](docs/capability-matrix.md)
+- [JSON API Example](docs/examples/json-api.md)
+- [Middleware Example](docs/examples/middleware.md)
+- [Testing Example](docs/examples/testing.md)
+
+README 里的详细章节：
 
 - [当前 API](#当前-api)：runtime routes、typed parameters、JSON、lifecycle 和 server configuration。
 - [Runtime Middleware](#runtime-middleware)：application、group、route 三层 middleware，以及 one-shot body 规则。
@@ -642,6 +654,7 @@ Daylily/
 ├── Package.swift
 ├── README.md
 ├── README.zh-CN.md
+├── docs/
 ├── Sources/
 │   ├── Daylily/
 │   ├── DaylilyCore/
@@ -677,8 +690,7 @@ Daylily/
 
 近期：
 
-1. 补齐 beta docs：quickstart、examples、capability matrix。
-2. 补齐 release hygiene：Linux CI、CHANGELOG、semver tag 和 public API registry 同步。
+1. 补齐 release hygiene：Linux CI、CHANGELOG、semver tag 和 public API registry 同步。
 
 ## License
 

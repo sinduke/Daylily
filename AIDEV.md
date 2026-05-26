@@ -25,6 +25,7 @@ Daylily 的开发方式：
 ## 必读地图
 
 - [Start Here](ai/aidev/start-here.md): AI 接手项目的第一入口。
+- [Documentation](docs/README.md): 面向用户的 beta docs 入口，包含 quickstart、examples 和 capability matrix。
 - [Project Map](ai/aidev/project-map.md): 当前目录、模块、文件职责。
 - [Architecture](ai/aidev/architecture.md): 架构边界、依赖方向、transport 规则。
 - [Concepts](ai/aidev/concepts.md): Daylily 的核心概念和心智模型。

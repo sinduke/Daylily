@@ -505,6 +505,22 @@ implemented_features:
     files:
       - README.md
       - README.zh-CN.md
+  beta_docs:
+    status: implemented
+    task: "0018-001-beta-docs"
+    files:
+      - docs/README.md
+      - docs/quickstart.md
+      - docs/capability-matrix.md
+      - docs/examples/json-api.md
+      - docs/examples/middleware.md
+      - docs/examples/testing.md
+    contents:
+      - "quickstart"
+      - "JSON API example"
+      - "middleware example"
+      - "testing example"
+      - "capability matrix"
   macro_route_mvp:
     status: implemented
     task: "0003-001-macro-route-mvp"
@@ -860,7 +876,8 @@ planned_features:
       - "0015-002-macro-and-openapi-http-verbs"
       - "0016-001-formal-test-target"
       - "0017-001-true-body-input"
-    next_task: "0018-001-beta-docs"
+      - "0018-001-beta-docs"
+    next_task: "0019-001-release-hygiene"
     sequence:
       - "0015-001-runtime-and-testing-http-verbs"
       - "0015-002-macro-and-openapi-http-verbs"
@@ -1698,6 +1715,7 @@ aidev_files:
     - ai/epics/0013-observability-middleware.md
     - ai/epics/0014-openapi-metadata.md
     - ai/epics/0015-http-verbs-beta-closure.md
+    - ai/epics/0018-beta-docs.md
   tasks:
     - ai/tasks/0001-001-minimal-http-server.md
     - ai/tasks/0002-001-aidev-project-contract.md
@@ -1729,7 +1747,15 @@ aidev_files:
     - ai/tasks/0015-001-runtime-and-testing-http-verbs.md
     - ai/tasks/0015-002-macro-and-openapi-http-verbs.md
     - ai/tasks/0016-001-formal-test-target.md
+    - ai/tasks/0017-001-true-body-input.md
+    - ai/tasks/0018-001-beta-docs.md
   docs:
+    - docs/README.md
+    - docs/quickstart.md
+    - docs/capability-matrix.md
+    - docs/examples/json-api.md
+    - docs/examples/middleware.md
+    - docs/examples/testing.md
     - ai/aidev/project-map.md
     - ai/aidev/architecture.md
     - ai/aidev/concepts.md
@@ -1804,7 +1830,7 @@ verification:
     cleanup: "stop the HelloDaylily process"
 
 roadmap:
-  current_task: "0018-001-beta-docs"
+  current_task: "0019-001-release-hygiene"
   epics:
     completed:
       - "0001-runtime-foundation"
@@ -1818,8 +1844,9 @@ roadmap:
       - "0012-lifecycle-server-controls"
       - "0014-openapi-metadata"
       - "0015-http-verbs-beta-closure"
+      - "0018-beta-docs"
     next_recommended:
-      - "0018-001-beta-docs"
+      - "0019-001-release-hygiene"
   completed:
     - "0001-001-minimal-http-server"
     - "0002-001-aidev-project-contract"
@@ -1852,9 +1879,9 @@ roadmap:
     - "0015-002-macro-and-openapi-http-verbs"
     - "0016-001-formal-test-target"
     - "0017-001-true-body-input"
+    - "0018-001-beta-docs"
   in_progress: []
   next_recommended:
-    - "0018-001-beta-docs"
-  later:
     - "0019-001-release-hygiene"
+  later:
     - "0013-003-observability-hooks"

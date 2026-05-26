@@ -311,7 +311,7 @@ Macro typed inputs now lower into route metadata:
 
 Suggested next task:
 
-- `0018-001-beta-docs`
+- `0019-001-release-hygiene`
 
 ## Beta Closure Sequence
 
@@ -326,7 +326,7 @@ Recommended sequence:
 0015-002 Macro and OpenAPI HTTP verbs: @PUT / @PATCH / @DELETE / @HEAD / @OPTIONS (delivered)
 0016-001 Formal test target (delivered)
 0017-001 True @Body input spelling (delivered)
-0018-001 Beta docs: quickstart, examples, capability matrix
+0018-001 Beta docs: quickstart, examples, capability matrix (delivered)
 0019-001 Release hygiene: Linux CI, CHANGELOG, semver tag, public API registry sync
 ```
 
@@ -351,7 +351,7 @@ Options("/health") { Status.noContent }
 
 Remaining:
 
-- Beta docs and release hygiene start with `0018-001-beta-docs`.
+- Release hygiene starts with `0019-001-release-hygiene`.
 
 ### Future Epics
 

@@ -1,0 +1,30 @@
+# Daylily Documentation
+
+Daylily is an experimental AI-first Swift web framework built around Swift Concurrency, explicit runtime contracts, and AI-readable project documentation.
+
+This directory contains beta-facing docs: practical guides for trying the current framework and evaluating what is implemented today.
+
+## Start Here
+
+- [Quick Start](quickstart.md): build, test, run, and make the first requests.
+- [Capability Matrix](capability-matrix.md): current features, MVP surfaces, and planned work.
+
+## Examples
+
+- [JSON API](examples/json-api.md): request decoding, JSON responses, and macro `@Body` input.
+- [Middleware](examples/middleware.md): application/group/route middleware, observability, and one-shot body rules.
+- [Testing](examples/testing.md): transport-free tests with `DaylilyTesting`.
+
+## Deeper Project Docs
+
+- [AIDEV](../AIDEV.md): AI development entry point.
+- [Project Map](../ai/aidev/project-map.md): modules and file responsibilities.
+- [Runtime Contracts](../ai/aidev/runtime-contracts.md): guarantees and extension points.
+- [API Registry](../ai/aidev/api-registry.md): current public API surface.
+
+## Current Support
+
+- Swift tools version: Swift 6.0.
+- Platform declared by the package today: macOS 14+.
+- Transport: NIO-backed HTTP/1.1.
+- Status: experimental beta-closure work.
