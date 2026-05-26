@@ -196,6 +196,13 @@ swift run HelloDaylily --check
 swift run
 ```
 
+如果要从一个全新的外部 SwiftPM package 验证 Daylily：
+
+```sh
+scripts/consumer-smoke-test.sh --mode path
+scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.1
+```
+
 Daylily 使用 Swift Testing 作为正式 test target。如果 `swift test` 报 `no such module 'Testing'`，并且 `xcode-select -p` 指向 Command Line Tools，可以显式指定 Xcode developer directory：
 
 ```sh

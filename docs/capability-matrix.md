@@ -9,6 +9,7 @@ This matrix tracks the current beta-facing capability surface. It is intentional
 | Swift package | Implemented | Swift tools version 6.0. |
 | Platform declaration | Implemented | macOS 14+ for local package development today. |
 | Linux CI | Implemented | GitHub Actions validates with `swift:6.3.2-noble`. |
+| External consumer smoke | Implemented | Fresh SwiftPM package validates local path and released package dependency modes. |
 | Runtime application | Implemented | `Application` owns route dispatch and middleware execution. |
 | HTTP transport | Implemented | NIO-backed HTTP/1.1 server. |
 | Route DSL | Implemented | `Get`, `Post`, `Put`, `Patch`, `Delete`, `Head`, `Options`, `Group`. |

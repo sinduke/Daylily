@@ -6,7 +6,9 @@ Daylily is currently experimental. Public APIs may change before beta or stable 
 
 ## Unreleased
 
-No changes yet.
+### Added
+
+- External SwiftPM consumer smoke test script and CI coverage for local path and released package consumption.
 
 ## 0.1.0-alpha.1 - 2026-05-26
 

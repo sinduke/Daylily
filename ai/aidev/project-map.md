@@ -10,6 +10,8 @@ Daylily/
 ├── CHANGELOG.md
 ├── README.md
 ├── README.zh-CN.md
+├── scripts/
+│   └── consumer-smoke-test.sh
 ├── docs/
 │   ├── README.md
 │   ├── quickstart.md
@@ -45,8 +47,8 @@ Daylily/
 
 `docs/quickstart.md`
 
-- Repository checkout quickstart for the current experimental phase.
-- Covers build, checks, tests, running the example server, and first requests.
+- SwiftPM package and repository checkout quickstart for the current experimental phase.
+- Covers package installation, build, checks, tests, running the example server, first requests, and external consumer smoke validation.
 
 `docs/capability-matrix.md`
 
@@ -64,6 +66,15 @@ Daylily/
 
 - Human-facing release notes.
 - Tracks unreleased changes and candidate tag guidance.
+
+## Scripts
+
+`scripts/consumer-smoke-test.sh`
+
+- Generates a fresh external SwiftPM package outside the repository.
+- Validates `Daylily` as a local path dependency or released package dependency.
+- Builds runtime and macro executable targets.
+- Runs a Swift Testing target that imports `DaylilyTesting`.
 
 ## Package Products and Targets
 

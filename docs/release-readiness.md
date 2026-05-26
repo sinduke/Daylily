@@ -16,6 +16,8 @@ Local validation:
 swift build
 DEVELOPER_DIR=/Applications/Xcode-26.5.0.app/Contents/Developer swift test
 swift run HelloDaylily --check
+scripts/consumer-smoke-test.sh --mode path
+scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.1
 ```
 
 GitHub Actions validation:
@@ -23,6 +25,7 @@ GitHub Actions validation:
 - macOS runner: `macos-latest`
 - Linux runner: `ubuntu-latest` with the official `swift:6.3.2-noble` container
 - Commands: `swift package resolve`, `swift build`, `swift test`, `swift run HelloDaylily --check`
+- External consumer smoke: fresh SwiftPM package using both local path dependency and released package dependency
 
 Linux validation is CI-owned for now. Local development has been verified on macOS with Xcode 26.5 and Swift 6.3.2.
 
@@ -36,6 +39,7 @@ Linux validation is CI-owned for now. Local development has been verified on mac
 - Minimal OpenAPI document generation from explicit route metadata.
 - Macro route/group MVP and typed handler inputs.
 - Transport-free testing helpers.
+- External SwiftPM consumer smoke coverage for runtime, macro, and testing package shapes.
 - AI-readable AIDEV project handoff.
 - Beta documentation set.
 
@@ -55,5 +59,6 @@ Before creating a tag:
 - GitHub Actions passes on macOS and Linux.
 - `CHANGELOG.md` has a section for the tag.
 - README and docs state the correct support level.
+- External consumer smoke passes for local path and release dependency modes.
 - `ai/aidev/api-registry.md` and `ai/aidev/registry.yml` match public API.
 - The tag name follows semver pre-release form, such as `0.1.0-alpha.1`.

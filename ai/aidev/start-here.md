@@ -300,6 +300,7 @@ Implemented:
 - AIDEV project contract.
 - Beta docs in `docs/`, including quickstart, capability matrix, JSON API example, middleware example, and testing example.
 - Release hygiene docs, including `CHANGELOG.md` and `docs/release-readiness.md`.
+- External SwiftPM consumer smoke script and CI coverage for local path and released package dependency modes.
 
 Not implemented:
 
@@ -355,6 +356,7 @@ Always verify with:
 swift build
 swift test
 swift run HelloDaylily --check
+scripts/consumer-smoke-test.sh --mode path
 ```
 
 If `swift test` reports `no such module 'Testing'` because the active developer directory is Command Line Tools, run it with the installed Xcode toolchain:
@@ -386,5 +388,6 @@ Do not start with:
 
 Current strategic order:
 
-1. Publish `0.1.0-alpha.1` only after macOS/Linux CI is green.
-2. Then stabilize dependency injection design.
+1. Finish Package Consumer Experience.
+2. Add the minimal app template.
+3. Then stabilize dependency injection design from the external app shape.

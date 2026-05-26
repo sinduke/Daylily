@@ -5,7 +5,7 @@ project:
   license: MIT
   license_file: LICENSE
   swift_tools_version: "6.0"
-  current_phase: "beta_closure"
+  current_phase: "package_consumer_experience"
   authoritative_ai_entry:
     - AIDEV.md
     - ai/aidev/start-here.md
@@ -534,6 +534,23 @@ implemented_features:
       - "Tag only after GitHub Actions passes on macOS and Linux."
       - "Public API remains experimental."
       - "Linux validation is CI-owned through the official Swift Docker image."
+  package_consumer_experience:
+    status: in-progress
+    epic: "0020-package-consumer-experience"
+    completed:
+      - "0020-001-external-consumer-smoke-test"
+    next_task: "0020-002-minimal-app-template"
+    files:
+      - scripts/consumer-smoke-test.sh
+      - .github/workflows/ci.yml
+    smoke_modes:
+      path: "validates current checkout as an external SwiftPM dependency"
+      release: "validates published package dependency from 0.1.0-alpha.1"
+    coverage:
+      - "fresh external SwiftPM package"
+      - "runtime DSL executable"
+      - "macro executable with @main @DaylilyServer"
+      - "Swift Testing target importing DaylilyTesting"
   macro_route_mvp:
     status: implemented
     task: "0003-001-macro-route-mvp"
@@ -901,6 +918,12 @@ planned_features:
       - "0018-001-beta-docs"
       - "0019-001-release-hygiene"
       - "0019-002-alpha-release"
+  package_consumer_experience:
+    status: in-progress
+    epic: "0020-package-consumer-experience"
+    completed:
+      - "0020-001-external-consumer-smoke-test"
+    next_task: "0020-002-minimal-app-template"
 
 public_api:
   Daylily:
@@ -1733,6 +1756,7 @@ aidev_files:
     - ai/epics/0015-http-verbs-beta-closure.md
     - ai/epics/0018-beta-docs.md
     - ai/epics/0019-release-hygiene.md
+    - ai/epics/0020-package-consumer-experience.md
   tasks:
     - ai/tasks/0001-001-minimal-http-server.md
     - ai/tasks/0002-001-aidev-project-contract.md
@@ -1767,6 +1791,8 @@ aidev_files:
     - ai/tasks/0017-001-true-body-input.md
     - ai/tasks/0018-001-beta-docs.md
     - ai/tasks/0019-001-release-hygiene.md
+    - ai/tasks/0019-002-alpha-release.md
+    - ai/tasks/0020-001-external-consumer-smoke-test.md
   docs:
     - CHANGELOG.md
     - docs/README.md
@@ -1868,8 +1894,10 @@ roadmap:
       - "0015-http-verbs-beta-closure"
       - "0018-beta-docs"
       - "0019-release-hygiene"
+    in_progress:
+      - "0020-package-consumer-experience"
     next_recommended:
-      - "stabilize-dependency-injection-design"
+      - "0020-002-minimal-app-template"
   completed:
     - "0001-001-minimal-http-server"
     - "0002-001-aidev-project-contract"
@@ -1905,8 +1933,9 @@ roadmap:
     - "0018-001-beta-docs"
     - "0019-001-release-hygiene"
     - "0019-002-alpha-release"
+    - "0020-001-external-consumer-smoke-test"
   in_progress: []
   next_recommended:
-    - "stabilize-dependency-injection-design"
+    - "0020-002-minimal-app-template"
   later:
     - "0013-003-observability-hooks"

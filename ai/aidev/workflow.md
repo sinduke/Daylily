@@ -224,9 +224,13 @@ CI mirrors the required local validation on macOS and Linux:
 swift build
 swift test
 swift run HelloDaylily --check
+scripts/consumer-smoke-test.sh --mode path
+scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.1
 ```
 
 The Linux job runs on `ubuntu-latest` inside the official `swift:6.3.2-noble` container. The macOS job runs on `macos-latest`.
+
+The consumer smoke script creates a fresh SwiftPM package outside the Daylily repository. Path mode validates the current checkout before release. Release mode validates the published SwiftPM dependency shape from `0.1.0-alpha.1`.
 
 ## Epic and Task Files
 

@@ -23,6 +23,12 @@ Add the product to your target:
 .product(name: "Daylily", package: "Daylily")
 ```
 
+Daylily validates this external package path with a generated consumer smoke package:
+
+```sh
+scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.1
+```
+
 ## Clone and Build
 
 For local framework development or examples, use the repository checkout:
@@ -31,6 +37,12 @@ For local framework development or examples, use the repository checkout:
 git clone https://github.com/sinduke/Daylily.git
 cd Daylily
 swift build
+```
+
+To validate a local checkout as an external package dependency:
+
+```sh
+scripts/consumer-smoke-test.sh --mode path
 ```
 
 ## Run Checks

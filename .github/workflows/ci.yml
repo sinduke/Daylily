@@ -36,6 +36,12 @@ jobs:
       - name: Run Daylily Checks
         run: swift run HelloDaylily --check
 
+      - name: Run Path Consumer Smoke
+        run: scripts/consumer-smoke-test.sh --mode path
+
+      - name: Run Release Consumer Smoke
+        run: scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.1
+
   linux:
     name: Linux Build, Test, and Check
     runs-on: ubuntu-latest
@@ -59,3 +65,9 @@ jobs:
 
       - name: Run Daylily Checks
         run: swift run HelloDaylily --check
+
+      - name: Run Path Consumer Smoke
+        run: scripts/consumer-smoke-test.sh --mode path
+
+      - name: Run Release Consumer Smoke
+        run: scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.1

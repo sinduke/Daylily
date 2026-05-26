@@ -6,7 +6,7 @@ This directory contains beta-facing docs: practical guides for trying the curren
 
 ## Start Here
 
-- [Quick Start](quickstart.md): build, test, run, and make the first requests.
+- [Quick Start](quickstart.md): install, build, test, run, and validate external package consumption.
 - [Capability Matrix](capability-matrix.md): current features, MVP surfaces, and planned work.
 - [Release Readiness](release-readiness.md): CI, changelog, tag strategy, and known release limits.
 
@@ -29,5 +29,6 @@ This directory contains beta-facing docs: practical guides for trying the curren
 - Swift tools version: Swift 6.0.
 - Platform declared by the package today: macOS 14+.
 - CI validation: macOS and Linux.
+- External consumer validation: fresh SwiftPM package in path and release modes.
 - Transport: NIO-backed HTTP/1.1.
 - Status: experimental beta-closure work.

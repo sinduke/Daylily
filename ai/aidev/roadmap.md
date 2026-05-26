@@ -311,7 +311,7 @@ Macro typed inputs now lower into route metadata:
 
 Suggested next task:
 
-- After `0.1.0-alpha.1`, stabilize dependency injection design.
+- Continue Package Consumer Experience with the minimal app template.
 
 ## Beta Closure Sequence
 
@@ -328,6 +328,8 @@ Recommended sequence:
 0017-001 True @Body input spelling (delivered)
 0018-001 Beta docs: quickstart, examples, capability matrix (delivered)
 0019-001 Release hygiene: Linux CI, CHANGELOG, semver tag strategy, public API registry sync (delivered)
+0019-002 Alpha release: first public SwiftPM prerelease (delivered)
+0020-001 External consumer smoke test: path and release package modes (delivered)
 ```
 
 ### 0015 HTTP Verbs Beta Closure
@@ -352,7 +354,31 @@ Options("/health") { Status.noContent }
 Remaining:
 
 - `0.1.0-alpha.1` is the first public alpha release after macOS and Linux CI are green.
-- Next major capability area is dependency injection.
+- Next package consumer slice is a minimal app template.
+
+## Package Consumer Experience
+
+Goal:
+
+- Make Daylily reliable and comfortable as a third-party SwiftPM dependency.
+
+Sequence:
+
+```text
+0020-001 External SwiftPM consumer smoke test (delivered)
+0020-002 Minimal app template (planned)
+0020-003 First real API example (planned)
+0020-004 Dependency injection design (planned)
+0020-005 DI runtime MVP (planned)
+```
+
+Delivered:
+
+- `scripts/consumer-smoke-test.sh` creates a fresh external SwiftPM package.
+- Path mode validates the current checkout as a pre-release gate.
+- Release mode validates the published `0.1.0-alpha.1` package path.
+- The generated consumer package compiles runtime DSL and macro executable targets.
+- The generated consumer package runs Swift Testing with `DaylilyTesting`.
 
 ### Future Epics
 

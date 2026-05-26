@@ -196,6 +196,13 @@ swift run HelloDaylily --check
 swift run
 ```
 
+To verify Daylily from a fresh external SwiftPM package:
+
+```sh
+scripts/consumer-smoke-test.sh --mode path
+scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.1
+```
+
 Daylily uses Swift Testing for the formal test target. If `swift test` reports `no such module 'Testing'` while `xcode-select -p` points at Command Line Tools, run it with an Xcode developer directory, for example:
 
 ```sh
