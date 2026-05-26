@@ -39,6 +39,7 @@ Implemented today:
 - True NIO request body streaming bridge with bounded buffering and practical backpressure.
 - Runtime middleware with application, group, and route scopes.
 - `DaylilyObservability` request logging middleware.
+- Route metadata runtime for future OpenAPI generation.
 - Application lifecycle hooks: `configure`, `boot`, `started`, `shutdown`, `cleanup`.
 - Default SIGINT/SIGTERM graceful server shutdown.
 - Explicit `ServerConfiguration` for host, port, backlog, address reuse, read batching, and shutdown signals.
@@ -260,6 +261,33 @@ let app = Application {
 ```
 
 `RequestLoggingMiddleware` records method, path, and final status. `InMemoryRequestLogSink` is available for behavior checks and early tests.
+
+## Route Metadata
+
+Routes can carry runtime metadata without requiring the OpenAPI generator to guess from source code:
+
+```swift
+let app = Application {
+    Post("/users") {
+        Status.created
+    }
+    .describe(
+        summary: "Create user",
+        tags: ["Users"],
+        inputs: [
+            .header("x-daylily", type: "String"),
+        ],
+        requestBody: .json("CreateUserInput"),
+        responses: [
+            .response(.created, contentType: "application/json", type: "UserResponse"),
+        ]
+    )
+}
+
+let routes = app.describeRoutes()
+```
+
+This is metadata only. Full OpenAPI document generation is still a later task.
 
 ## DaylilyTesting
 

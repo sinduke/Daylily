@@ -104,6 +104,7 @@ products:
     responsibility:
       - application_runtime
       - route_model
+      - route_metadata
       - router_matching
       - request_response_models
       - body_model
@@ -565,6 +566,29 @@ implemented_features:
       - "OpenTelemetry"
       - "structured logging framework commitment"
       - "metrics backend integration"
+  route_metadata_runtime:
+    status: implemented
+    epic: "0014-openapi-metadata"
+    task: "0014-001-route-metadata-runtime"
+    module: DaylilyCore
+    public_api:
+      - RouteMetadata
+      - RouteInputLocation
+      - RouteInputMetadata
+      - RouteBodyMetadata
+      - RouteResponseMetadata
+      - RouteDescription
+      - "Route.metadata"
+      - "Route.withMetadata(_:)"
+      - "Route.describe(...)"
+      - "Router.describeRoutes()"
+      - "Application.describeRoutes()"
+    decisions:
+      - "OpenAPI metadata starts in the runtime route model"
+      - "Metadata describes routes but does not affect matching or handler execution"
+      - "Group prefixing and middleware attachment preserve route metadata"
+      - "Type names are strings in the first route metadata slice"
+      - "Schema derivation, OpenAPI document generation, and macro metadata lowering are separate tasks"
 
 planned_features:
   typed_handler_inputs:
@@ -601,9 +625,11 @@ planned_features:
       - "0013-002-request-id-and-timing"
       - "0013-003-observability-hooks"
   openapi:
-    status: next
+    status: in-progress
     epic: "0014-openapi-metadata"
-    next_task: "0014-001-route-metadata-runtime"
+    completed:
+      - "0014-001-route-metadata-runtime"
+    next_task: "0014-002-openapi-schema-mvp"
   dependency_injection:
     status: future
 
@@ -744,8 +770,9 @@ public_api:
         - "public func shutdown(_ operation: @escaping LifecycleOperation) -> Application"
         - "public func cleanup(_ operation: @escaping LifecycleOperation) -> Application"
         - "public func runLifecycle(_ phase: LifecyclePhase) async throws"
+        - "public func describeRoutes() -> [RouteDescription]"
         - "public func respond(to request: Request) async -> Response"
-      contract: "Always returns a Response; runs application middleware around router dispatch; converts ResponseError and unknown errors; lifecycle hooks are explicit and not run by respond(to:)."
+      contract: "Always returns a Response; runs application middleware around router dispatch; converts ResponseError and unknown errors; lifecycle hooks are explicit and not run by respond(to:); describeRoutes exposes route metadata without invoking handlers."
     LifecyclePhase:
       kind: enum
       conforms:
@@ -782,10 +809,81 @@ public_api:
         - "method: HTTPMethod"
         - "path: String"
         - "handler: Handler"
+        - "metadata: RouteMetadata"
       methods:
         - "public func prefixed(with prefix: String) -> Route"
         - "public func middleware<M: Middleware>(_ middleware: M) -> Route"
-      contract: "Normalizes paths and stores route handler plus route middleware."
+        - "public func withMetadata(_ metadata: RouteMetadata) -> Route"
+        - "public func describe(summary:description:tags:operationID:inputs:requestBody:responses:) -> Route"
+      contract: "Normalizes paths and stores route handler, route middleware, and route metadata."
+    RouteMetadata:
+      kind: struct
+      conforms:
+        - Equatable
+        - Sendable
+      properties:
+        - "summary: String?"
+        - "description: String?"
+        - "tags: [String]"
+        - "operationID: String?"
+        - "inputs: [RouteInputMetadata]"
+        - "requestBody: RouteBodyMetadata?"
+        - "responses: [RouteResponseMetadata]"
+      contract: "Runtime-owned descriptive metadata for future OpenAPI generation."
+    RouteInputLocation:
+      kind: enum
+      conforms:
+        - Equatable
+        - Sendable
+      cases:
+        - path
+        - query
+        - header
+    RouteInputMetadata:
+      kind: struct
+      conforms:
+        - Equatable
+        - Sendable
+      properties:
+        - "location: RouteInputLocation"
+        - "name: String"
+        - "typeName: String"
+        - "required: Bool"
+      factories:
+        - "path(_:type:required:)"
+        - "query(_:type:required:)"
+        - "header(_:type:required:)"
+    RouteBodyMetadata:
+      kind: struct
+      conforms:
+        - Equatable
+        - Sendable
+      properties:
+        - "contentType: String"
+        - "typeName: String"
+        - "required: Bool"
+      factories:
+        - "json(_:required:)"
+    RouteResponseMetadata:
+      kind: struct
+      conforms:
+        - Equatable
+        - Sendable
+      properties:
+        - "status: Status"
+        - "contentType: String?"
+        - "typeName: String?"
+      factories:
+        - "response(_:contentType:type:)"
+    RouteDescription:
+      kind: struct
+      conforms:
+        - Equatable
+        - Sendable
+      properties:
+        - "method: HTTPMethod"
+        - "path: String"
+        - "metadata: RouteMetadata"
     Routes:
       kind: struct
       conforms:
@@ -1105,6 +1203,7 @@ runtime_rules:
   lifecycle_policy: "Application lifecycle phases are configure, boot, started, shutdown, cleanup. Application.run binds lifecycle to transport; Application.respond(to:) does not run lifecycle. The default NIO server closes on SIGINT/SIGTERM."
   server_configuration_policy: "ServerConfiguration is the NIO-free user-facing server control type. Application.run(configuration:) bridges it into DaylilyNIO."
   test_client_policy: "TestClient is an in-memory helper in DaylilyTesting; it calls Application.respond(to:) directly and does not use transport. TestRequest and response assertions are testing helpers, not runtime behavior."
+  route_metadata_policy: "Route metadata lives in DaylilyCore and is exposed through Route.describe(...) and Application.describeRoutes(); it does not affect routing and is the source of truth for future OpenAPI generation."
   wildcard_prefix: "*"
   current_body_model: "Body one-shot API with NIO true streaming bridge and in-process buffered Body.bytes support"
   future_body_model: "response body streaming and higher-level upload helpers"
@@ -1174,6 +1273,7 @@ aidev_files:
     - ai/tasks/0012-002-graceful-shutdown.md
     - ai/tasks/0012-003-server-configuration.md
     - ai/tasks/0013-001-request-logging-middleware.md
+    - ai/tasks/0014-001-route-metadata-runtime.md
   docs:
     - ai/aidev/project-map.md
     - ai/aidev/architecture.md
@@ -1203,6 +1303,7 @@ extension_playbooks:
   - extend_macro_route_mvp
   - extend_query_and_header_inputs
   - extend_json_body_macro_injection
+  - extend_openapi_metadata
   - extend_daylily_testing
   - add_new_transport
   - add_checks
@@ -1240,7 +1341,7 @@ verification:
     cleanup: "stop the HelloDaylily process"
 
 roadmap:
-  current_task: "0014-001-route-metadata-runtime"
+  current_task: "0014-002-openapi-schema-mvp"
   epics:
     completed:
       - "0001-runtime-foundation"
@@ -1278,9 +1379,11 @@ roadmap:
     - "0012-002-graceful-shutdown"
     - "0012-003-server-configuration"
     - "0013-001-request-logging-middleware"
+    - "0014-001-route-metadata-runtime"
   in_progress: []
   next_recommended:
-    - "0014-001-route-metadata-runtime"
+    - "0014-002-openapi-schema-mvp"
   later:
     - "0013-002-request-id-and-timing"
     - "0013-003-observability-hooks"
+    - "0014-003-macro-metadata-bridge"

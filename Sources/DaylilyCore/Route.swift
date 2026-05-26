@@ -2,58 +2,91 @@ public struct Route: Sendable {
     public let method: HTTPMethod
     public let path: String
     public let handler: Handler
+    public let metadata: RouteMetadata
     let middlewares: [AnyMiddleware]
 
-    public init(method: HTTPMethod, path: String, handler: Handler) {
-        self.init(method: method, path: path, handler: handler, middlewares: [])
+    public init(method: HTTPMethod, path: String, handler: Handler, metadata: RouteMetadata = .empty) {
+        self.init(method: method, path: path, handler: handler, metadata: metadata, middlewares: [])
     }
 
     init(
         method: HTTPMethod,
         path: String,
         handler: Handler,
+        metadata: RouteMetadata,
         middlewares: [AnyMiddleware]
     ) {
         self.method = method
         self.path = Route.normalize(path)
         self.handler = handler
+        self.metadata = metadata
         self.middlewares = middlewares
     }
 
     public init<R: ResponseConvertible>(
         method: HTTPMethod,
         path: String,
-        handler: @escaping @Sendable (Request) async throws -> R
+        handler: @escaping @Sendable (Request) async throws -> R,
+        metadata: RouteMetadata = .empty
     ) {
         self.init(
             method: method,
             path: path,
             handler: Handler { request in
                 try await handler(request).toResponse()
-            }
+            },
+            metadata: metadata
         )
     }
 
     public init<R: ResponseConvertible>(
         method: HTTPMethod,
         path: String,
-        handler: @escaping @Sendable () async throws -> R
+        handler: @escaping @Sendable () async throws -> R,
+        metadata: RouteMetadata = .empty
     ) {
         self.init(
             method: method,
             path: path,
             handler: Handler { _ in
                 try await handler().toResponse()
-            }
+            },
+            metadata: metadata
         )
     }
 
     public func prefixed(with prefix: String) -> Route {
-        Route(method: method, path: Self.join(prefix, path), handler: handler, middlewares: middlewares)
+        Route(method: method, path: Self.join(prefix, path), handler: handler, metadata: metadata, middlewares: middlewares)
     }
 
     public func middleware<M: Middleware>(_ middleware: M) -> Route {
         addingMiddlewares([AnyMiddleware(middleware)], placement: .append)
+    }
+
+    public func withMetadata(_ metadata: RouteMetadata) -> Route {
+        Route(method: method, path: path, handler: handler, metadata: metadata, middlewares: middlewares)
+    }
+
+    public func describe(
+        summary: String? = nil,
+        description: String? = nil,
+        tags: [String] = [],
+        operationID: String? = nil,
+        inputs: [RouteInputMetadata] = [],
+        requestBody: RouteBodyMetadata? = nil,
+        responses: [RouteResponseMetadata] = []
+    ) -> Route {
+        withMetadata(
+            RouteMetadata(
+                summary: summary,
+                description: description,
+                tags: tags,
+                operationID: operationID,
+                inputs: inputs,
+                requestBody: requestBody,
+                responses: responses
+            )
+        )
     }
 
     func addingGroupMiddlewares(_ middlewares: [AnyMiddleware]) -> Route {
@@ -77,7 +110,7 @@ public struct Route: Sendable {
             combined = middlewares + newMiddlewares
         }
 
-        return Route(method: method, path: path, handler: handler, middlewares: combined)
+        return Route(method: method, path: path, handler: handler, metadata: metadata, middlewares: combined)
     }
 
     private static func normalize(_ path: String) -> String {

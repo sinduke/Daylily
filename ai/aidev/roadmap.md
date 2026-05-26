@@ -172,7 +172,8 @@ Practical interleave:
 0012-002 Graceful shutdown (delivered)
 0012-003 Server configuration (delivered)
 0013-001 Request logging middleware (delivered)
-0014-001 Route metadata runtime
+0014-001 Route metadata runtime (delivered)
+0014-002 OpenAPI schema MVP
 ```
 
 ## Recently Completed Epic
@@ -228,7 +229,7 @@ let app = Application {
 
 Next task:
 
-- `0014-001-route-metadata-runtime`
+- `0014-002-openapi-schema-mvp`
 
 ### 0013 Observability Middleware
 
@@ -252,6 +253,33 @@ Remaining future slices:
 - request id and timing
 - observability hooks
 
+### 0014 OpenAPI Metadata
+
+Status: in-progress
+
+Delivered:
+
+- `0014-001-route-metadata-runtime`
+
+Delivered shape:
+
+```swift
+Get("/users/:id") {
+    "ok"
+}
+.describe(
+    summary: "Show user",
+    tags: ["Users"],
+    inputs: [.path("id", type: "Int")]
+)
+
+let descriptions = app.describeRoutes()
+```
+
+Next task:
+
+- `0014-002-openapi-schema-mvp`
+
 ### Future Epics
 
-- `0014` OpenAPI metadata.
+- Future ecosystem packages after Daylily's core experience stabilizes.

@@ -217,6 +217,20 @@ RequestLogSink
 
 Request logging is a normal middleware and follows the same ordering, short-circuiting, and error mapping rules as other middleware. It records the final response status for successful downstream responses, `ResponseError.status` for framework errors, and `500 Internal Server Error` for unknown thrown errors.
 
+0014-001 route metadata runtime:
+
+```text
+Route.describe(...)
+  ↓
+RouteMetadata
+  ↓
+Application.describeRoutes()
+  ↓
+[RouteDescription]
+```
+
+OpenAPI metadata starts in the runtime route model. Macros and generators must lower into or read this runtime metadata instead of inventing a parallel source of truth. Route metadata is descriptive only; it does not change matching, middleware order, lifecycle behavior, or handler execution.
+
 ## Router Rules
 
 Current router is simple array-based matching with scoring.

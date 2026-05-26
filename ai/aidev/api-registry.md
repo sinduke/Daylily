@@ -246,6 +246,7 @@ public struct Application: Sendable {
     public func shutdown(_ operation: @escaping LifecycleOperation) -> Application
     public func cleanup(_ operation: @escaping LifecycleOperation) -> Application
     public func runLifecycle(_ phase: LifecyclePhase) async throws
+    public func describeRoutes() -> [RouteDescription]
     public func respond(to request: Request) async -> Response
 }
 ```
@@ -257,6 +258,7 @@ Rules:
 - Application middleware wraps every request, including missing routes and error responses produced by router dispatch.
 - Lifecycle hooks are async, throwing, and run in registration order within each phase.
 - `respond(to:)` does not run lifecycle hooks.
+- `describeRoutes()` returns normalized route descriptions and route metadata without invoking handlers.
 
 ### Lifecycle
 
@@ -315,23 +317,36 @@ public struct Route: Sendable {
     public let method: HTTPMethod
     public let path: String
     public let handler: Handler
+    public let metadata: RouteMetadata
 
-    public init(method: HTTPMethod, path: String, handler: Handler)
+    public init(method: HTTPMethod, path: String, handler: Handler, metadata: RouteMetadata = .empty)
 
     public init<R: ResponseConvertible>(
         method: HTTPMethod,
         path: String,
-        handler: @escaping @Sendable (Request) async throws -> R
+        handler: @escaping @Sendable (Request) async throws -> R,
+        metadata: RouteMetadata = .empty
     )
 
     public init<R: ResponseConvertible>(
         method: HTTPMethod,
         path: String,
-        handler: @escaping @Sendable () async throws -> R
+        handler: @escaping @Sendable () async throws -> R,
+        metadata: RouteMetadata = .empty
     )
 
     public func prefixed(with prefix: String) -> Route
     public func middleware<M: Middleware>(_ middleware: M) -> Route
+    public func withMetadata(_ metadata: RouteMetadata) -> Route
+    public func describe(
+        summary: String? = nil,
+        description: String? = nil,
+        tags: [String] = [],
+        operationID: String? = nil,
+        inputs: [RouteInputMetadata] = [],
+        requestBody: RouteBodyMetadata? = nil,
+        responses: [RouteResponseMetadata] = []
+    ) -> Route
 }
 ```
 
@@ -342,6 +357,86 @@ Path rules:
 - Group prefixes are joined without duplicate slashes.
 - Route middleware runs after application and group middleware.
 - Route middleware preserves declaration order.
+- Route metadata is preserved by `prefixed(with:)`, group routing, and middleware attachment.
+- Route metadata does not affect matching or response behavior.
+
+### Route Metadata
+
+```swift
+public struct RouteMetadata: Equatable, Sendable {
+    public var summary: String?
+    public var description: String?
+    public var tags: [String]
+    public var operationID: String?
+    public var inputs: [RouteInputMetadata]
+    public var requestBody: RouteBodyMetadata?
+    public var responses: [RouteResponseMetadata]
+
+    public init(
+        summary: String? = nil,
+        description: String? = nil,
+        tags: [String] = [],
+        operationID: String? = nil,
+        inputs: [RouteInputMetadata] = [],
+        requestBody: RouteBodyMetadata? = nil,
+        responses: [RouteResponseMetadata] = []
+    )
+
+    public static let empty: RouteMetadata
+}
+
+public enum RouteInputLocation: String, Equatable, Sendable {
+    case path
+    case query
+    case header
+}
+
+public struct RouteInputMetadata: Equatable, Sendable {
+    public var location: RouteInputLocation
+    public var name: String
+    public var typeName: String
+    public var required: Bool
+
+    public init(location: RouteInputLocation, name: String, typeName: String, required: Bool = true)
+    public static func path(_ name: String, type typeName: String, required: Bool = true) -> RouteInputMetadata
+    public static func query(_ name: String, type typeName: String, required: Bool = true) -> RouteInputMetadata
+    public static func header(_ name: String, type typeName: String, required: Bool = true) -> RouteInputMetadata
+}
+
+public struct RouteBodyMetadata: Equatable, Sendable {
+    public var contentType: String
+    public var typeName: String
+    public var required: Bool
+
+    public init(contentType: String, typeName: String, required: Bool = true)
+    public static func json(_ typeName: String, required: Bool = true) -> RouteBodyMetadata
+}
+
+public struct RouteResponseMetadata: Equatable, Sendable {
+    public var status: Status
+    public var contentType: String?
+    public var typeName: String?
+
+    public init(status: Status = .ok, contentType: String? = nil, typeName: String? = nil)
+    public static func response(_ status: Status = .ok, contentType: String? = nil, type typeName: String? = nil) -> RouteResponseMetadata
+}
+
+public struct RouteDescription: Equatable, Sendable {
+    public var method: HTTPMethod
+    public var path: String
+    public var metadata: RouteMetadata
+
+    public init(method: HTTPMethod, path: String, metadata: RouteMetadata = .empty)
+}
+```
+
+Rules:
+
+- Runtime route metadata is the source of truth for future OpenAPI generation.
+- Metadata describes routes but does not change routing, middleware, lifecycle, body, or response behavior.
+- `Application.describeRoutes()` returns route descriptions without invoking handlers.
+- Path/query/header/body/response metadata uses Swift type names as strings in the first slice.
+- Schema derivation is deferred.
 
 ### Route DSL
 

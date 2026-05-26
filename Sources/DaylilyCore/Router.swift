@@ -5,6 +5,12 @@ public struct Router: Sendable {
         self.routes = routes
     }
 
+    public func describeRoutes() -> [RouteDescription] {
+        routes.map { route in
+            RouteDescription(method: route.method, path: route.path, metadata: route.metadata)
+        }
+    }
+
     public func respond(to request: Request) async throws -> Response {
         guard let match = match(request) else {
             throw Abort(.notFound)

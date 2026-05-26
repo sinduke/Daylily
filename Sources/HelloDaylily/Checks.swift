@@ -9,6 +9,8 @@ enum DaylilyChecks {
         try await lifecycleHooks()
         try await lifecycleErrors()
         try serverConfiguration()
+        try routeMetadata()
+        try groupedRouteMetadata()
         try await testClientGet()
         try await testClientPostBody()
         try await testClientRespondToRequest()
@@ -163,6 +165,75 @@ enum DaylilyChecks {
         try expect(!nio.reuseAddress, "expected custom NIO reuseAddress")
         try expect(nio.maxMessagesPerRead == 4, "expected custom NIO maxMessagesPerRead")
         try expect(!nio.gracefulShutdownSignals, "expected custom NIO gracefulShutdownSignals")
+    }
+
+    private static func routeMetadata() throws {
+        let metadata = RouteMetadata(
+            summary: "Create user",
+            description: "Creates one user.",
+            tags: ["Users"],
+            operationID: "createUser",
+            inputs: [
+                .header("x-daylily", type: "String"),
+            ],
+            requestBody: .json("CreateUserInput"),
+            responses: [
+                .response(.created, contentType: "application/json", type: "UserResponse"),
+            ]
+        )
+        let app = Application {
+            Post("/users") {
+                Status.created
+            }
+            .withMetadata(metadata)
+        }
+
+        let routes = app.describeRoutes()
+
+        try expect(
+            routes == [RouteDescription(method: .post, path: "/users", metadata: metadata)],
+            "expected route metadata description"
+        )
+    }
+
+    private static func groupedRouteMetadata() throws {
+        let app = Application {
+            Group("/api") {
+                Get("/users/:id") {
+                    "ok"
+                }
+                .describe(
+                    summary: "Show user",
+                    tags: ["Users"],
+                    inputs: [
+                        .path("id", type: "Int"),
+                        .query("includePosts", type: "Bool", required: false),
+                    ],
+                    responses: [
+                        .response(.ok, contentType: "application/json", type: "UserResponse"),
+                    ]
+                )
+            }
+            .middleware(HeaderMiddleware(name: "x-scope", value: "api"))
+        }
+
+        let routes = app.describeRoutes()
+        let expectedMetadata = RouteMetadata(
+            summary: "Show user",
+            tags: ["Users"],
+            inputs: [
+                .path("id", type: "Int"),
+                .query("includePosts", type: "Bool", required: false),
+            ],
+            responses: [
+                .response(.ok, contentType: "application/json", type: "UserResponse"),
+            ]
+        )
+
+        try expect(
+            routes == [RouteDescription(method: .get, path: "/api/users/:id", metadata: expectedMetadata)],
+            "expected grouped route metadata to survive prefix and middleware"
+        )
     }
 
     private static func testClientGet() async throws {

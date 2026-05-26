@@ -19,7 +19,7 @@ struct App {
 }
 ```
 
-Current implemented surfaces are the runtime DSL, runtime middleware, `DaylilyObservability` request logging middleware, application lifecycle hooks, the Daylily-owned `Body` model, explicit buffered body replacement, JSON body/response helpers, the macro route/group MVP, macro `@Path`, `@Query`, `@Header`, and `@JSONBody` typed input injection, and `DaylilyTesting` in-memory request/response helpers.
+Current implemented surfaces are the runtime DSL, runtime route metadata, runtime middleware, `DaylilyObservability` request logging middleware, application lifecycle hooks, the Daylily-owned `Body` model, explicit buffered body replacement, JSON body/response helpers, the macro route/group MVP, macro `@Path`, `@Query`, `@Header`, and `@JSONBody` typed input injection, and `DaylilyTesting` in-memory request/response helpers.
 
 Runtime DSL:
 
@@ -51,6 +51,16 @@ let app = Application {
         let id = try request.parameters.require("id", as: Int.self)
         return "User \(id)"
     }
+    .describe(
+        summary: "Show user",
+        tags: ["Users"],
+        inputs: [
+            .path("id", type: "Int"),
+        ],
+        responses: [
+            .response(.ok, contentType: "text/plain", type: "String"),
+        ]
+    )
 
     Get("/search") { request in
         let term = try request.query.require("term", as: String.self)
@@ -109,6 +119,14 @@ let app = Application {
 ```
 
 `RequestLoggingMiddleware` records method, path, and final status. The module depends on `DaylilyCore`, is re-exported by `Daylily`, and must not force logging or tracing dependencies into the core runtime.
+
+Route metadata is runtime-owned:
+
+```swift
+let descriptions = app.describeRoutes()
+```
+
+`Route.describe(...)` stores summary, description, tags, operation ID, path/query/header inputs, request body metadata, and response metadata. It is metadata only; full OpenAPI document generation is a later task.
 
 Macro route/group MVP:
 
@@ -190,6 +208,7 @@ Implemented:
 - Swift package.
 - Core runtime.
 - Basic route DSL: `Get`, `Post`, `Group`.
+- Runtime route metadata and `Application.describeRoutes()`.
 - Runtime middleware at application, group, and route scope.
 - `DaylilyObservability` request logging middleware.
 - Application lifecycle hooks: `configure`, `boot`, `started`, `shutdown`, `cleanup`.
@@ -292,5 +311,6 @@ Do not start with:
 Current strategic order:
 
 1. Keep AIDEV self-contained.
-2. Add OpenAPI metadata.
-3. Return to request id, timing, and observability hooks.
+2. Add the OpenAPI schema/document MVP.
+3. Add macro metadata lowering.
+4. Return to request id, timing, and observability hooks.

@@ -197,6 +197,8 @@ Guarantees:
 - `prefixed(with:)` joins group prefix and route path without duplicate slashes.
 - Route middleware runs after application and group middleware.
 - Route middleware preserves declaration order.
+- Route metadata is preserved when routes are prefixed, grouped, or wrapped with middleware.
+- Route metadata does not affect matching or handler execution.
 
 Extension points:
 
@@ -204,6 +206,47 @@ Extension points:
 - route metadata
 - OpenAPI metadata
 - middleware metadata
+
+## Route Metadata Contract
+
+Owner:
+
+- `DaylilyCore`
+
+Implemented by:
+
+- `ai/tasks/0014-001-route-metadata-runtime.md`
+
+Shape:
+
+```swift
+Route.describe(
+    summary: "Show user",
+    tags: ["Users"],
+    inputs: [.path("id", type: "Int")],
+    responses: [.response(.ok, contentType: "application/json", type: "UserResponse")]
+)
+
+let descriptions = app.describeRoutes()
+```
+
+Guarantees:
+
+- `RouteMetadata` stores summary, description, tags, operation ID, inputs, request body metadata, and response metadata.
+- `RouteInputMetadata` supports path, query, and header locations.
+- `RouteBodyMetadata` supports explicit content type and Swift type name.
+- `RouteResponseMetadata` supports status, optional content type, and optional Swift type name.
+- `Application.describeRoutes()` returns route descriptions without invoking handlers.
+- Group prefixes are visible in described route paths.
+- Group and route middleware do not erase metadata.
+- Metadata is runtime-owned and does not require macros.
+
+Non-goals:
+
+- Full OpenAPI document generation.
+- Schema derivation for Swift types.
+- Macro metadata lowering.
+- Documentation UI.
 
 ## Routes Contract
 

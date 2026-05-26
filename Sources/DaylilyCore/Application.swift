@@ -68,6 +68,10 @@ public struct Application: Sendable {
         }
     }
 
+    public func describeRoutes() -> [RouteDescription] {
+        router.describeRoutes()
+    }
+
     public func respond(to request: Request) async -> Response {
         let terminal = Handler { request in
             await Self.render {

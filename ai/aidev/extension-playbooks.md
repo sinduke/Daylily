@@ -353,6 +353,38 @@ Rules:
 5. Do not rename this to `@Body` until the raw `Body` type naming decision is revisited.
 6. Add macro smoke coverage for top-level and grouped handlers.
 
+## Extend OpenAPI Metadata
+
+Current shape:
+
+```swift
+Get("/users/:id") {
+    "ok"
+}
+.describe(
+    summary: "Show user",
+    tags: ["Users"],
+    inputs: [.path("id", type: "Int")],
+    responses: [.response(.ok, contentType: "text/plain", type: "String")]
+)
+```
+
+Rules:
+
+1. Keep route metadata in `DaylilyCore`.
+2. Use `Route.describe(...)` and `Application.describeRoutes()` as the runtime source of truth.
+3. Do not make OpenAPI generation inspect handler source code.
+4. Preserve metadata across group prefixing and middleware attachment.
+5. Keep schema derivation separate from route metadata storage.
+6. Macro metadata bridge must lower into runtime metadata.
+7. Add behavior checks for metadata preservation.
+
+Next steps:
+
+- Generate a minimal OpenAPI document from route descriptions.
+- Lower macro typed inputs into `RouteInputMetadata` and `RouteBodyMetadata`.
+- Add schema hooks after JSON/body conventions mature.
+
 ## Add a New Transport
 
 Examples:

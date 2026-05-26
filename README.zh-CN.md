@@ -39,6 +39,7 @@ Daylily 不是 Vapor 或 Hummingbird 的复制品。它是在探索：如果 AI 
 - 真正的 NIO request body streaming bridge，带有有界缓冲和实用 backpressure。
 - 支持 application、group、route 作用域的 runtime middleware。
 - `DaylilyObservability` request logging middleware。
+- 面向未来 OpenAPI generation 的 route metadata runtime。
 - Application lifecycle hooks：`configure`、`boot`、`started`、`shutdown`、`cleanup`。
 - 默认 SIGINT/SIGTERM graceful server shutdown。
 - 显式 `ServerConfiguration`，用于 host、port、backlog、address reuse、read batching 和 shutdown signals。
@@ -260,6 +261,33 @@ let app = Application {
 ```
 
 `RequestLoggingMiddleware` 会记录 method、path 和最终 status。`InMemoryRequestLogSink` 可用于行为检查和早期测试。
+
+## Route Metadata
+
+Route 现在可以携带 runtime metadata，后续 OpenAPI generator 不需要从源码里猜：
+
+```swift
+let app = Application {
+    Post("/users") {
+        Status.created
+    }
+    .describe(
+        summary: "Create user",
+        tags: ["Users"],
+        inputs: [
+            .header("x-daylily", type: "String"),
+        ],
+        requestBody: .json("CreateUserInput"),
+        responses: [
+            .response(.created, contentType: "application/json", type: "UserResponse"),
+        ]
+    )
+}
+
+let routes = app.describeRoutes()
+```
+
+这一步只提供 metadata。完整 OpenAPI document generation 仍然是后续任务。
 
 ## DaylilyTesting
 
