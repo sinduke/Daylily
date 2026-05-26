@@ -56,9 +56,9 @@ This task defines the public/runtime body API. It does not claim true transport-
 
 `DaylilyNIO`:
 
-- May continue buffering the full body for 0008A.
-- Must create `Request.body` as `Body.bytes(...)`.
-- True chunk feeding is deferred to 0008B.
+- For 0008A, could continue buffering the full body.
+- For 0008A, had to create `Request.body` as `Body.bytes(...)`.
+- 0008B later replaced this transport buffering with true chunk feeding.
 
 `HelloDaylily`:
 
@@ -293,4 +293,4 @@ Checks to add:
 
 - 0008A is the API and runtime body model migration.
 - 0008A intentionally does not claim true transport-level streaming.
-- 0008B is responsible for the NIO true streaming bridge and backpressure work.
+- 0008B implemented the NIO true streaming bridge and backpressure work.

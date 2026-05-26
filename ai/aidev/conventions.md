@@ -85,13 +85,11 @@ Collection helpers must use explicit limits. `request.json(Type.self)` is conven
 
 `ByteCount.kilobytes`, `.megabytes`, and `.gigabytes` are 1024-based.
 
-0008A still allows `DaylilyNIO` to buffer internally before creating `Request`. Do not claim true transport streaming or backpressure until 0008B is implemented.
-
-Future:
-
 ```swift
 for try await chunk in request.body.bytes { ... }
 ```
+
+`DaylilyNIO` creates streaming bodies through `@_spi(Transport)` hooks. Keep those hooks transport-only and keep user-facing APIs free of NIO types.
 
 Macro future:
 

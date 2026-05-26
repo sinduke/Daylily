@@ -93,7 +93,9 @@ let text = try await request.body.string(upTo: .kilobytes(64))
 
 `Body` is one-shot. Reading bytes, collecting, string decoding, or JSON decoding consumes it. A second read fails with `BodyError.alreadyConsumed`.
 
-0008A still lets `DaylilyNIO` buffer internally before creating `Request`; true transport-level streaming is planned for 0008B.
+`DaylilyNIO` now creates a streaming `Body` after receiving the request head. NIO body chunks are fed into `BodyBytes` in order, request end finishes iteration, and channel/protocol errors surface as `BodyError.streamFailed`.
+
+Transport stream creation is hidden behind `@_spi(Transport)`, so user code still reads only `request.body.bytes`, `collect(upTo:)`, `string(upTo:)`, or JSON helpers.
 
 JSON body decoding is provided by `DaylilyJSON`:
 

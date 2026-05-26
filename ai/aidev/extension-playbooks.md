@@ -118,24 +118,23 @@ Rules:
 
 1. Do not expose `ByteBuffer` publicly by default.
 2. Preserve backpressure.
-3. Do not claim true streaming while the transport still buffers.
-4. Do not keep buffering large bodies in memory in the final streaming bridge.
+3. Keep transport stream construction behind `@_spi(Transport)`.
+4. Do not keep buffering large bodies in memory.
 5. Define cancellation behavior.
 6. Preserve one-shot consumption behavior.
 
-Current split:
+Current state:
 
 - 0008A introduced the Daylily-owned `Body` model.
-- 0008B must implement true NIO chunk feeding, bounded buffering, and backpressure.
+- 0008B implemented true NIO chunk feeding, bounded buffering, cancellation, and practical backpressure.
 
-0008B likely steps:
+Extension steps:
 
-1. Create request after NIO request head.
-2. Feed NIO body chunks into `BodyBytes`.
-3. Finish stream on request end.
-4. Fail stream on channel/protocol error.
-5. Add checks with chunked input.
-6. Update AIDEV thoroughly.
+1. Reuse `request.body.bytes` as the public surface.
+2. Add helpers on top of `Body` rather than exposing transport details.
+3. Preserve `BodyError.tooLarge` and `BodyError.streamFailed` mappings.
+4. Add checks with chunked input when changing transport behavior.
+5. Update AIDEV thoroughly.
 
 ## Extend Macro Route MVP
 

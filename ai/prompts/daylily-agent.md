@@ -78,6 +78,6 @@ let input = try await request.json(CreateUser.self)
 return JSON(User(...))
 ```
 
-0008A body model migration is implemented. `Request.body` is `Body`, body consumption is one-shot, and true NIO streaming/backpressure is deferred to 0008B.
+0008A body model migration is implemented. `Request.body` is `Body`, body consumption is one-shot, and JSON body decoding is async.
 
-Next major feature is the NIO true streaming body bridge. It must not expose NIO types through public user APIs.
+0008B NIO true streaming bridge is implemented. `DaylilyNIO` creates a streaming `Body` after request head, feeds body chunks into `BodyBytes`, finishes on request end, fails on channel/protocol errors, and uses bounded buffering plus NIO `autoRead` for practical backpressure. It must not expose NIO types through public user APIs.

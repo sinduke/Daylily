@@ -94,6 +94,7 @@ Implemented:
 - Macro route/group MVP: `@DaylilyServer`, `@GET`, `@POST`, `@GROUP`.
 - Daylily-owned `Body` model with one-shot consumption.
 - `ByteChunk`, `BodyBytes`, `ByteCount`, `BodyError`, and `ResponseError`.
+- True NIO request body streaming bridge with bounded buffering and practical backpressure.
 - Async JSON body decoding with `request.body.json(...)` and `request.json(...)`.
 - JSON responses with `JSON(...)`.
 - Request and response types.
@@ -106,7 +107,6 @@ Implemented:
 Not implemented:
 
 - Middleware.
-- True NIO request body streaming and backpressure.
 - Typed parameter injection.
 - OpenAPI.
 - Dependency injection.
@@ -177,6 +177,6 @@ Do not start with:
 Current strategic order:
 
 1. Keep AIDEV self-contained.
-2. Add NIO true streaming bridge.
-3. Add middleware.
-4. Add typed parameter extraction.
+2. Add middleware.
+3. Add typed parameter extraction.
+4. Add OpenAPI metadata.

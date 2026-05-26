@@ -173,7 +173,7 @@ Body rules:
 - `body` is a Daylily-owned `Body`.
 - The `[UInt8]` initializer converts bytes into `Body.bytes(...)`.
 - `with(parameters:)` preserves the same `Body` storage and one-shot state.
-- True NIO streaming is deferred to 0008B.
+- `DaylilyNIO` creates streaming bodies through transport SPI; user code still sees only `Body`.
 
 ### Body
 
@@ -193,6 +193,7 @@ Rules:
 - A second read throws `BodyError.alreadyConsumed`.
 - `Body` is a public value type backed by shared storage.
 - Copying `Body` does not reset one-shot state.
+- Transport-owned streaming construction exists behind `@_spi(Transport)` and is not normal user API.
 
 ### BodyBytes
 
@@ -205,8 +206,39 @@ public struct BodyBytes: AsyncSequence, Sendable {
 
 Rules:
 
-- 0008A buffered bodies yield at most one `ByteChunk`.
-- True transport chunk streaming is deferred to 0008B.
+- Buffered bodies yield at most one `ByteChunk`.
+- Streaming transport bodies yield `ByteChunk` values in receive order.
+- Stream finish ends async iteration cleanly.
+- Stream failure throws `BodyError.streamFailed`.
+
+### Body Transport SPI
+
+```swift
+@_spi(Transport)
+public static func Body.stream(bufferLimit: ByteCount = .megabytes(1)) -> BodyStream
+
+@_spi(Transport)
+public struct BodyStream: Sendable {
+    public let body: Body
+    public let writer: BodyStreamWriter
+}
+
+@_spi(Transport)
+public struct BodyStreamWriter: Sendable {
+    public func write(_ chunk: ByteChunk) async -> Bool
+    public func finish() async
+    public func fail() async
+    public func cancel() async
+}
+```
+
+Rules:
+
+- This SPI is for transports such as `DaylilyNIO`.
+- Normal user code should not call it.
+- `write(_:)` awaits bounded-buffer capacity and returns `false` if the stream is already terminal.
+- `finish()` ends iteration, `fail()` maps readers to `BodyError.streamFailed`, and `cancel()` unblocks readers without surfacing a transport error.
+- `DaylilyCore` still does not import NIO.
 
 ### ByteChunk
 
@@ -495,6 +527,10 @@ Rules:
 
 - This is transport infrastructure.
 - Most users should call `Application.run(...)` instead.
+- Creates `Request` after NIO request head with a streaming `Body`.
+- Feeds NIO request body chunks into `BodyBytes`.
+- Uses bounded buffering and NIO `autoRead` control for practical backpressure.
+- Does not expose `ByteBuffer`, `HTTPServerRequestPart`, `Channel`, or `ChannelHandlerContext` through user APIs.
 
 ## Module DaylilyMacros
 

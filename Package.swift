@@ -54,7 +54,7 @@ let package = Package(
         ),
         .executableTarget(
             name: "HelloDaylily",
-            dependencies: ["Daylily"]
+            dependencies: ["Daylily", "DaylilyCore"]
         ),
     ]
 )

@@ -34,6 +34,7 @@ Daylily 不是 Vapor 或 Hummingbird 的复制品。它是在探索：如果 AI 
 - `Request`、`Response`、`Status`、`Headers`、`Parameters`。
 - Daylily 自有的 `Body` request body 模型。
 - 基于 `ByteChunk` 和 `ByteCount` 的 one-shot body 消费。
+- 真正的 NIO request body streaming bridge，带有有界缓冲和实用 backpressure。
 - `String`、`Status`、`Response` 的 `ResponseConvertible` 支持。
 - 通过 `request.body.json(...)` 和 `request.json(...)` 异步解码 JSON body。
 - 通过 `JSON(...)` 返回 JSON response。
@@ -45,7 +46,6 @@ Daylily 不是 Vapor 或 Hummingbird 的复制品。它是在探索：如果 AI 
 
 还没有实现：
 
-- 真正的 NIO request body streaming 和 backpressure。
 - Middleware。
 - 类型化参数注入。
 - OpenAPI 生成。
@@ -73,6 +73,7 @@ http://127.0.0.1:8080
 curl http://127.0.0.1:8080/hello
 curl http://127.0.0.1:8080/users/42
 curl -X POST --data 'hi' http://127.0.0.1:8080/echo
+printf 'abcdef' | curl --http1.1 -H 'Transfer-Encoding: chunked' -H 'Content-Length:' --data-binary @- http://127.0.0.1:8080/upload/count
 curl http://127.0.0.1:8080/json/health
 curl -X POST -H 'content-type: application/json' --data '{"message":"hi"}' http://127.0.0.1:8080/json/echo
 ```
@@ -245,10 +246,10 @@ Daylily/
 
 近期：
 
-1. NIO 真 streaming body bridge。
-2. Middleware runtime。
-3. 类型化参数提取。
-4. OpenAPI metadata。
+1. Middleware runtime。
+2. 类型化参数提取。
+3. OpenAPI metadata。
+4. Request context 和生产级 server 控制。
 
 ## License
 

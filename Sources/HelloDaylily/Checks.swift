@@ -1,3 +1,4 @@
+@_spi(Transport) import DaylilyCore
 import Daylily
 import Foundation
 
@@ -11,6 +12,9 @@ enum DaylilyChecks {
         try await bodyCollect()
         try await bodyCollectLimit()
         try await bodyStringHelper()
+        try await streamingBodyChunksInOrder()
+        try await streamingBodyFailure()
+        try await streamingBodyCancellation()
         try await invalidUTF8Body()
         try await bodyOneShot()
         try await copiedBodyIsOneShot()
@@ -120,6 +124,51 @@ enum DaylilyChecks {
         let text = try await body.string(upTo: .kilobytes(1))
 
         try expect(text == "hello", "expected body string")
+    }
+
+    private static func streamingBodyChunksInOrder() async throws {
+        let stream = Body.stream(bufferLimit: .bytes(2))
+        let writer = stream.writer
+
+        let producer = Task {
+            await writer.write(ByteChunk(Array("ab".utf8)))
+            await writer.write(ByteChunk(Array("cd".utf8)))
+            await writer.finish()
+        }
+
+        var chunks: [[UInt8]] = []
+        for try await chunk in stream.body.bytes {
+            chunks.append(chunk.bytes)
+        }
+
+        await producer.value
+
+        try expect(chunks == [Array("ab".utf8), Array("cd".utf8)], "expected streaming chunks in order")
+    }
+
+    private static func streamingBodyFailure() async throws {
+        let stream = Body.stream()
+        await stream.writer.fail()
+
+        do {
+            _ = try await stream.body.collect(upTo: .kilobytes(1))
+            try expect(false, "expected stream failure")
+        } catch let error as BodyError {
+            try expect(error.status == .badRequest, "expected stream failure 400")
+            try expect(error.reason == "Request body stream failed", "expected stream failure reason")
+        }
+    }
+
+    private static func streamingBodyCancellation() async throws {
+        let stream = Body.stream()
+        let reader = Task {
+            try await stream.body.collect(upTo: .kilobytes(1))
+        }
+
+        await stream.writer.cancel()
+        let bytes = try await reader.value
+
+        try expect(bytes.isEmpty, "expected cancelled stream to unblock reader")
     }
 
     private static func invalidUTF8Body() async throws {

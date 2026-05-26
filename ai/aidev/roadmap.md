@@ -131,7 +131,7 @@ Key direction:
 - JSON body decoding becomes async.
 - `request.json(...)` remains convenience sugar with a default 1 MB limit.
 - Body limit failures map to `413 Payload Too Large`.
-- True NIO streaming is deferred to 0008B.
+- True NIO streaming is implemented by 0008B.
 - Checks cover one-shot behavior, copied body one-shot behavior, limits, UTF-8 errors, JSON migration, and 413 mapping.
 
 Task:
@@ -140,7 +140,7 @@ Task:
 
 ### 0008B NIO True Streaming Bridge
 
-Status: proposed
+Status: implemented
 
 Bridge NIO HTTP request chunks into Daylily `Body` without exposing NIO types.
 
@@ -150,8 +150,9 @@ Key direction:
 - Feed NIO body chunks into `BodyBytes`.
 - Finish stream on request end.
 - Fail stream on channel/protocol errors.
-- Implement bounded buffering and practical backpressure.
+- Implemented bounded buffering and practical backpressure with Daylily-owned stream storage plus NIO `autoRead` control.
 - Preserve the public API created in 0008A.
+- Added in-process stream checks and chunked upload smoke coverage.
 
 Task:
 

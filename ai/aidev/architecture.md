@@ -139,7 +139,7 @@ DaylilyCore.Response
 NIO HTTP response parts
 ```
 
-Current body handling is buffered. Streaming body is a planned runtime capability and must be designed before large upload support.
+Current body handling uses the Daylily `Body` abstraction. In-process requests may still use `Body.bytes(...)`, while `DaylilyNIO` creates a streaming `Body` as soon as it receives the request head.
 
 0008A body model:
 
@@ -150,7 +150,18 @@ BodyBytes.Element -> ByteChunk
 collect/string/json helpers require limits
 ```
 
-`Body` is one-shot and backed by shared storage, so copying `Body` does not allow a second read. True transport-level chunk streaming and backpressure remain planned for 0008B.
+`Body` is one-shot and backed by shared storage, so copying `Body` does not allow a second read.
+
+0008B NIO streaming bridge:
+
+```text
+NIO head -> Request(body: streaming Body) -> route handler starts
+NIO body chunk -> BodyStreamWriter -> BodyBytes -> ByteChunk
+NIO end -> finish BodyBytes
+NIO error/close -> BodyError.streamFailed
+```
+
+`DaylilyCore` owns the stream model and exposes transport hooks through `@_spi(Transport)`. Public user APIs still do not expose NIO types.
 
 ## Router Rules
 

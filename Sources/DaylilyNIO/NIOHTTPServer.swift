@@ -1,4 +1,4 @@
-import DaylilyCore
+@_spi(Transport) import DaylilyCore
 import NIOCore
 import NIOHTTP1
 import NIOPosix
@@ -59,8 +59,7 @@ private final class DaylilyHTTPHandler: ChannelInboundHandler, @unchecked Sendab
     typealias OutboundOut = HTTPServerResponsePart
 
     private let responder: @Sendable (Request) async -> Response
-    private var head: HTTPRequestHead?
-    private var body: [UInt8] = []
+    private var currentRequest: CurrentRequest?
 
     init(responder: @escaping @Sendable (Request) async -> Response) {
         self.responder = responder
@@ -69,48 +68,240 @@ private final class DaylilyHTTPHandler: ChannelInboundHandler, @unchecked Sendab
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
         switch unwrapInboundIn(data) {
         case .head(let head):
-            self.head = head
-            self.body.removeAll(keepingCapacity: true)
+            startRequest(head: head, context: context)
 
         case .body(var buffer):
             if let bytes = buffer.readBytes(length: buffer.readableBytes) {
-                self.body.append(contentsOf: bytes)
+                receiveBodyChunk(ByteChunk(bytes), context: context)
             }
 
         case .end:
-            guard let head else {
-                writeResponse(.text("Bad Request", status: .badRequest), context: context, keepAlive: false)
-                return
-            }
-
-            let request = makeRequest(head: head, body: body)
-            let keepAlive = head.isKeepAlive
-            let responder = responder
-            let loopBoundContext = context.loopBound
-
-            context.eventLoop.makeFutureWithTask {
-                await responder(request)
-            }.whenComplete { [weak self] result in
-                guard let self else {
-                    loopBoundContext.value.close(promise: nil)
-                    return
-                }
-
-                switch result {
-                case .success(let response):
-                    self.writeResponse(response, context: loopBoundContext.value, keepAlive: keepAlive)
-                case .failure:
-                    self.writeResponse(
-                        .text("Internal Server Error", status: .internalServerError),
-                        context: loopBoundContext.value,
-                        keepAlive: keepAlive
-                    )
-                }
-            }
+            finishRequestBody(context: context)
         }
     }
 
-    private func makeRequest(head: HTTPRequestHead, body: [UInt8]) -> Request {
+    func errorCaught(context: ChannelHandlerContext, error: any Error) {
+        failBodyStream()
+        context.close(promise: nil)
+    }
+
+    func channelInactive(context: ChannelHandlerContext) {
+        failBodyStream()
+        currentRequest = nil
+    }
+
+    private func startRequest(head: HTTPRequestHead, context: ChannelHandlerContext) {
+        guard currentRequest == nil else {
+            failBodyStream()
+            writeResponse(.text("Bad Request", status: .badRequest), context: context, keepAlive: false)
+            return
+        }
+
+        let stream = Body.stream()
+        let request = makeRequest(head: head, body: stream.body)
+        let current = CurrentRequest(head: head, writer: stream.writer)
+        currentRequest = current
+
+        let responder = responder
+        let loopBoundContext = context.loopBound
+
+        context.eventLoop.makeFutureWithTask {
+            await responder(request)
+        }.whenComplete { [weak self] result in
+            guard let self else {
+                loopBoundContext.value.close(promise: nil)
+                return
+            }
+
+            let response: Response
+            switch result {
+            case .success(let value):
+                response = value
+            case .failure:
+                response = .text("Internal Server Error", status: .internalServerError)
+            }
+
+            self.responderFinished(response, context: loopBoundContext.value)
+        }
+    }
+
+    private func receiveBodyChunk(_ chunk: ByteChunk, context: ChannelHandlerContext) {
+        guard let current = currentRequest, !current.responseWritten else {
+            return
+        }
+
+        current.pendingChunks.append(chunk)
+        pumpBodyWrites(context: context)
+    }
+
+    private func finishRequestBody(context: ChannelHandlerContext) {
+        guard let current = currentRequest else {
+            writeResponse(.text("Bad Request", status: .badRequest), context: context, keepAlive: false)
+            return
+        }
+
+        current.didReceiveEnd = true
+        finishBodyWriterIfReady(context: context)
+        writeReadyResponseIfPossible(context: context)
+    }
+
+    private func pumpBodyWrites(context: ChannelHandlerContext) {
+        guard let current = currentRequest else {
+            return
+        }
+
+        guard !current.isWritingBody, !current.pendingChunks.isEmpty, !current.responseWritten else {
+            finishBodyWriterIfReady(context: context)
+            return
+        }
+
+        let chunk = current.pendingChunks.removeFirst()
+        current.isWritingBody = true
+        pauseReads(context: context)
+
+        let writer = current.writer
+        let loopBoundContext = context.loopBound
+
+        context.eventLoop.makeFutureWithTask {
+            await writer.write(chunk)
+        }.whenComplete { [weak self] result in
+            guard let self else {
+                loopBoundContext.value.close(promise: nil)
+                return
+            }
+
+            self.bodyWriteFinished(result: result, context: loopBoundContext.value)
+        }
+    }
+
+    private func bodyWriteFinished(result: Result<Bool, any Error>, context: ChannelHandlerContext) {
+        guard let current = currentRequest else {
+            return
+        }
+
+        current.isWritingBody = false
+
+        switch result {
+        case .success:
+            break
+        case .failure:
+            failBodyStream()
+            writeResponse(.text("Bad Request", status: .badRequest), context: context, keepAlive: false)
+            return
+        }
+
+        if current.pendingChunks.isEmpty, !current.responseWritten {
+            resumeReads(context: context)
+        }
+
+        finishBodyWriterIfReady(context: context)
+        pumpBodyWrites(context: context)
+    }
+
+    private func finishBodyWriterIfReady(context: ChannelHandlerContext) {
+        guard let current = currentRequest,
+              current.didReceiveEnd,
+              !current.didFinishWriter,
+              !current.isWritingBody,
+              current.pendingChunks.isEmpty
+        else {
+            return
+        }
+
+        current.didFinishWriter = true
+        let writer = current.writer
+
+        context.eventLoop.makeFutureWithTask {
+            await writer.finish()
+        }.whenComplete { _ in }
+    }
+
+    private func responderFinished(_ response: Response, context: ChannelHandlerContext) {
+        guard let current = currentRequest else {
+            writeResponse(response, context: context, keepAlive: false)
+            return
+        }
+
+        current.readyResponse = response
+
+        if !current.didReceiveEnd, !current.mayHaveBody {
+            return
+        }
+
+        writeReadyResponseIfPossible(context: context)
+    }
+
+    private func writeReadyResponseIfPossible(context: ChannelHandlerContext) {
+        guard let current = currentRequest,
+              let response = current.readyResponse,
+              !current.responseWritten
+        else {
+            return
+        }
+
+        current.responseWritten = true
+
+        if !current.didReceiveEnd {
+            let writer = current.writer
+            context.eventLoop.makeFutureWithTask {
+                await writer.cancel()
+            }.whenComplete { _ in }
+        } else if !current.didFinishWriter {
+            current.pendingChunks.removeAll(keepingCapacity: false)
+            current.didFinishWriter = true
+
+            let writer = current.writer
+            context.eventLoop.makeFutureWithTask {
+                await writer.cancel()
+            }.whenComplete { _ in }
+        }
+
+        let keepAlive = current.keepAlive && current.didReceiveEnd
+        writeResponse(response, context: context, keepAlive: keepAlive)
+
+        if keepAlive {
+            currentRequest = nil
+        }
+    }
+
+    private func failBodyStream() {
+        guard let current = currentRequest else {
+            return
+        }
+
+        let writer = current.writer
+        Task {
+            await writer.fail()
+        }
+    }
+
+    private func pauseReads(context: ChannelHandlerContext) {
+        guard let current = currentRequest, !current.readsPaused else {
+            return
+        }
+
+        current.readsPaused = true
+        let loopBoundContext = context.loopBound
+
+        context.channel.setOption(ChannelOptions.autoRead, value: false).whenFailure { _ in
+            loopBoundContext.value.close(promise: nil)
+        }
+    }
+
+    private func resumeReads(context: ChannelHandlerContext) {
+        guard let current = currentRequest, current.readsPaused, !current.responseWritten else {
+            return
+        }
+
+        current.readsPaused = false
+        let loopBoundContext = context.loopBound
+
+        context.channel.setOption(ChannelOptions.autoRead, value: true).whenComplete { _ in
+            loopBoundContext.value.read()
+        }
+    }
+
+    private func makeRequest(head: HTTPRequestHead, body: Body) -> Request {
         var headers = Headers()
         for (name, value) in head.headers {
             headers[name] = value
@@ -161,5 +352,34 @@ private final class DaylilyHTTPHandler: ChannelInboundHandler, @unchecked Sendab
     private static func path(from uri: String) -> String {
         let path = uri.split(separator: "?", maxSplits: 1, omittingEmptySubsequences: false).first.map(String.init) ?? "/"
         return path.isEmpty ? "/" : path
+    }
+}
+
+private final class CurrentRequest {
+    let writer: BodyStreamWriter
+    let keepAlive: Bool
+    var pendingChunks: [ByteChunk] = []
+    var isWritingBody = false
+    var didReceiveEnd = false
+    var didFinishWriter = false
+    var readsPaused = false
+    var responseWritten = false
+    var readyResponse: Response?
+    let mayHaveBody: Bool
+
+    init(head: HTTPRequestHead, writer: BodyStreamWriter) {
+        self.writer = writer
+        self.keepAlive = head.isKeepAlive
+        self.mayHaveBody = Self.requestMayHaveBody(head)
+    }
+
+    private static func requestMayHaveBody(_ head: HTTPRequestHead) -> Bool {
+        if head.headers.contains(name: "transfer-encoding") {
+            return true
+        }
+
+        return head.headers["content-length"].contains { value in
+            (Int(value) ?? 0) > 0
+        }
     }
 }

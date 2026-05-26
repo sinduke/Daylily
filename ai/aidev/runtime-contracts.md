@@ -119,10 +119,11 @@ Guarantees:
 - `with(parameters:)` returns a new request preserving method, path, headers, and body.
 - Preserved body uses shared one-shot state.
 
-Known limitation:
+Transport behavior:
 
-- `DaylilyNIO` still buffers body bytes before creating `Request` in 0008A.
-- True transport streaming and backpressure are deferred to 0008B.
+- `DaylilyNIO` creates `Request` after receiving the request head.
+- Network requests use a streaming `Body` fed by NIO body chunks.
+- In-process callers may still construct buffered bodies with `Body.bytes(...)`.
 
 Extension points:
 
@@ -160,7 +161,9 @@ Guarantees:
 - `Body.collect(upTo:)` requires an explicit `ByteCount` limit.
 - `Body.string(upTo:)` requires an explicit `ByteCount` limit.
 - `Body.string(upTo:)` is strict UTF-8 and throws `BodyError.invalidEncoding` on invalid bytes.
-- Buffered bodies yield at most one `ByteChunk` in 0008A.
+- Buffered bodies yield at most one `ByteChunk`.
+- Streaming bodies yield transport-fed `ByteChunk` values in order.
+- Transport-only stream creation and writing uses `@_spi(Transport)` hooks, not normal user API.
 
 Error mapping:
 
@@ -168,10 +171,6 @@ Error mapping:
 - `BodyError.alreadyConsumed` maps to `500 Internal Server Error` with `Request body already consumed`.
 - `BodyError.streamFailed` maps to `400 Bad Request` with `Request body stream failed`.
 - `BodyError.invalidEncoding` maps to `400 Bad Request` with `Invalid UTF-8 body`.
-
-Known limitation:
-
-- 0008A does not implement true NIO request streaming or backpressure.
 
 ## Response Contract
 
@@ -281,7 +280,12 @@ Guarantees:
 
 - Converts request head into Daylily method, path, headers.
 - Removes query string from `Request.path`.
-- Buffers body bytes and creates `Request.body` as `Body.bytes(...)` in 0008A.
+- Creates `Request` after the request head with a streaming `Body`.
+- Starts the route handler before the entire request body is received.
+- Feeds NIO body chunks into Daylily `BodyBytes` in order.
+- Finishes `BodyBytes` when NIO receives request end.
+- Fails `BodyBytes` with `BodyError.streamFailed` on channel/protocol errors.
+- Uses bounded Daylily buffering plus NIO `autoRead` control for practical backpressure.
 - Calls responder asynchronously.
 - Writes response status, headers, body, and content length.
 
@@ -289,13 +293,12 @@ Known limitations:
 
 - No TLS.
 - No HTTP/2.
-- No true request body streaming yet; 0008B owns the bridge.
 - No graceful signal handling.
 - No configurable backlog or worker count beyond current defaults.
 
 Extension points:
 
-- streaming request body
+- response body streaming
 - graceful shutdown
 - TLS
 - HTTP/2

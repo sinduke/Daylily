@@ -34,6 +34,7 @@ Implemented today:
 - `Request`, `Response`, `Status`, `Headers`, `Parameters`.
 - Daylily-owned `Body` request body model.
 - One-shot body consumption with `ByteChunk` and `ByteCount`.
+- True NIO request body streaming bridge with bounded buffering and practical backpressure.
 - `ResponseConvertible` for `String`, `Status`, and `Response`.
 - Async JSON body decoding with `request.body.json(...)` and `request.json(...)`.
 - JSON responses with `JSON(...)`.
@@ -45,7 +46,6 @@ Implemented today:
 
 Not implemented yet:
 
-- True NIO request body streaming and backpressure.
 - Middleware.
 - Typed parameter injection.
 - OpenAPI generation.
@@ -73,6 +73,7 @@ Try it:
 curl http://127.0.0.1:8080/hello
 curl http://127.0.0.1:8080/users/42
 curl -X POST --data 'hi' http://127.0.0.1:8080/echo
+printf 'abcdef' | curl --http1.1 -H 'Transfer-Encoding: chunked' -H 'Content-Length:' --data-binary @- http://127.0.0.1:8080/upload/count
 curl http://127.0.0.1:8080/json/health
 curl -X POST -H 'content-type: application/json' --data '{"message":"hi"}' http://127.0.0.1:8080/json/echo
 ```
@@ -245,10 +246,10 @@ The most important invariants:
 
 Near-term:
 
-1. NIO true streaming body bridge.
-2. Middleware runtime.
-3. Typed parameter extraction.
-4. OpenAPI metadata.
+1. Middleware runtime.
+2. Typed parameter extraction.
+3. OpenAPI metadata.
+4. Request context and production server controls.
 
 ## License
 

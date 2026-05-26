@@ -57,6 +57,15 @@ public struct Body: Sendable {
         Body(storage: BodyStorage(source: .buffered(bytes)))
     }
 
+    @_spi(Transport)
+    public static func stream(bufferLimit: ByteCount = .megabytes(1)) -> BodyStream {
+        let storage = BodyStreamStorage(bufferLimit: bufferLimit)
+        return BodyStream(
+            body: Body(storage: BodyStorage(source: .stream(storage))),
+            writer: BodyStreamWriter(storage: storage)
+        )
+    }
+
     public var bytes: BodyBytes {
         BodyBytes(storage: storage)
     }
@@ -86,6 +95,38 @@ public struct Body: Sendable {
     }
 }
 
+@_spi(Transport)
+public struct BodyStream: Sendable {
+    public let body: Body
+    public let writer: BodyStreamWriter
+}
+
+@_spi(Transport)
+public struct BodyStreamWriter: Sendable {
+    private let storage: BodyStreamStorage
+
+    fileprivate init(storage: BodyStreamStorage) {
+        self.storage = storage
+    }
+
+    @discardableResult
+    public func write(_ chunk: ByteChunk) async -> Bool {
+        await storage.write(chunk)
+    }
+
+    public func finish() async {
+        await storage.finish()
+    }
+
+    public func fail() async {
+        await storage.fail()
+    }
+
+    public func cancel() async {
+        await storage.cancel()
+    }
+}
+
 public struct BodyBytes: AsyncSequence, Sendable {
     public typealias Element = ByteChunk
 
@@ -101,26 +142,19 @@ public struct BodyBytes: AsyncSequence, Sendable {
 
     public struct AsyncIterator: AsyncIteratorProtocol {
         private var storage: BodyStorage?
-        private var chunks: [ByteChunk] = []
-        private var index = 0
+        private var consumer: BodyConsumer?
 
         fileprivate init(storage: BodyStorage) {
             self.storage = storage
         }
 
         public mutating func next() async throws -> ByteChunk? {
-            if chunks.isEmpty, let storage {
-                chunks = try await storage.consume()
+            if consumer == nil, let storage {
+                consumer = try await storage.consume()
                 self.storage = nil
             }
 
-            guard index < chunks.count else {
-                return nil
-            }
-
-            let chunk = chunks[index]
-            index += 1
-            return chunk
+            return try await consumer?.next()
         }
     }
 }
@@ -161,6 +195,7 @@ public enum BodyError: ResponseError {
 private actor BodyStorage {
     enum Source: Sendable {
         case buffered([UInt8])
+        case stream(BodyStreamStorage)
     }
 
     private var source: Source?
@@ -169,7 +204,7 @@ private actor BodyStorage {
         self.source = source
     }
 
-    func consume() throws -> [ByteChunk] {
+    func consume() throws -> BodyConsumer {
         guard let source else {
             throw BodyError.alreadyConsumed
         }
@@ -178,7 +213,180 @@ private actor BodyStorage {
 
         switch source {
         case .buffered(let bytes):
-            return bytes.isEmpty ? [] : [ByteChunk(bytes)]
+            return BodyConsumer(buffered: bytes.isEmpty ? [] : [ByteChunk(bytes)])
+        case .stream(let stream):
+            return BodyConsumer(stream: stream)
+        }
+    }
+}
+
+private struct BodyConsumer: Sendable {
+    private var buffered: [ByteChunk]?
+    private var bufferedIndex = 0
+    private let stream: BodyStreamStorage?
+
+    init(buffered: [ByteChunk]) {
+        self.buffered = buffered
+        self.stream = nil
+    }
+
+    init(stream: BodyStreamStorage) {
+        self.buffered = nil
+        self.stream = stream
+    }
+
+    mutating func next() async throws -> ByteChunk? {
+        if let buffered {
+            guard bufferedIndex < buffered.count else {
+                return nil
+            }
+
+            let chunk = buffered[bufferedIndex]
+            bufferedIndex += 1
+            return chunk
+        }
+
+        return try await stream?.next()
+    }
+}
+
+private actor BodyStreamStorage {
+    private let bufferLimit: ByteCount
+    private var buffer: [ByteChunk] = []
+    private var bufferedBytes = 0
+    private var isFinished = false
+    private var isFailed = false
+    private var isCancelled = false
+    private var consumerContinuation: CheckedContinuation<ByteChunk?, Error>?
+    private var producerContinuations: [CheckedContinuation<Bool, Never>] = []
+
+    init(bufferLimit: ByteCount) {
+        self.bufferLimit = bufferLimit
+    }
+
+    func write(_ chunk: ByteChunk) async -> Bool {
+        guard !isTerminal else {
+            return false
+        }
+
+        while !hasCapacity(for: chunk), !isTerminal {
+            let shouldContinue = await waitForCapacity()
+            guard shouldContinue else {
+                return false
+            }
+        }
+
+        guard !isTerminal else {
+            return false
+        }
+
+        if let consumerContinuation, buffer.isEmpty {
+            self.consumerContinuation = nil
+            consumerContinuation.resume(returning: chunk)
+            return true
+        }
+
+        buffer.append(chunk)
+        bufferedBytes += chunk.count
+        return true
+    }
+
+    func finish() {
+        guard !isTerminal else {
+            return
+        }
+
+        isFinished = true
+        resumeWaitingProducers(shouldContinue: false)
+
+        if buffer.isEmpty, let consumerContinuation {
+            self.consumerContinuation = nil
+            consumerContinuation.resume(returning: nil)
+        }
+    }
+
+    func fail() {
+        guard !isTerminal else {
+            return
+        }
+
+        isFailed = true
+        buffer.removeAll(keepingCapacity: false)
+        bufferedBytes = 0
+        resumeWaitingProducers(shouldContinue: false)
+
+        if let consumerContinuation {
+            self.consumerContinuation = nil
+            consumerContinuation.resume(throwing: BodyError.streamFailed)
+        }
+    }
+
+    func cancel() {
+        guard !isTerminal else {
+            return
+        }
+
+        isCancelled = true
+        buffer.removeAll(keepingCapacity: false)
+        bufferedBytes = 0
+        resumeWaitingProducers(shouldContinue: false)
+
+        if let consumerContinuation {
+            self.consumerContinuation = nil
+            consumerContinuation.resume(returning: nil)
+        }
+    }
+
+    func next() async throws -> ByteChunk? {
+        if !buffer.isEmpty {
+            let chunk = buffer.removeFirst()
+            bufferedBytes -= chunk.count
+            resumeWaitingProducersIfPossible()
+            return chunk
+        }
+
+        if isFailed {
+            throw BodyError.streamFailed
+        }
+
+        if isFinished || isCancelled {
+            return nil
+        }
+
+        return try await withCheckedThrowingContinuation { continuation in
+            precondition(consumerContinuation == nil, "Body stream cannot have multiple active consumers")
+            consumerContinuation = continuation
+        }
+    }
+
+    private var isTerminal: Bool {
+        isFinished || isFailed || isCancelled
+    }
+
+    private func hasCapacity(for chunk: ByteChunk) -> Bool {
+        buffer.isEmpty || bufferedBytes + chunk.count <= bufferLimit.bytes
+    }
+
+    private func waitForCapacity() async -> Bool {
+        await withCheckedContinuation { continuation in
+            producerContinuations.append(continuation)
+        }
+    }
+
+    private func resumeWaitingProducersIfPossible() {
+        guard buffer.isEmpty || bufferedBytes < bufferLimit.bytes else {
+            return
+        }
+
+        resumeWaitingProducers(shouldContinue: true)
+    }
+
+    private func resumeWaitingProducers(shouldContinue: Bool) {
+        let continuations = producerContinuations
+        producerContinuations.removeAll(keepingCapacity: true)
+
+        for continuation in continuations {
+            continuation.resume(returning: shouldContinue)
         }
     }
 }

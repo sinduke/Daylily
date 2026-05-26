@@ -54,7 +54,9 @@ Daylily/
 `DaylilyNIO`
 
 - NIO-backed HTTP transport.
-- Converts NIO HTTP request parts into Daylily `Request`.
+- Creates Daylily `Request` after NIO request head with a streaming `Body`.
+- Feeds NIO body chunks into `BodyBytes` without exposing NIO types.
+- Uses bounded buffering and practical backpressure for request bodies.
 - Converts Daylily `Response` into NIO HTTP response parts.
 
 `HelloDaylily`
@@ -62,6 +64,7 @@ Daylily/
 - Example executable and current smoke-check host.
 - Default `swift run` launches the HTTP server.
 - `swift run HelloDaylily --check` runs in-process runtime checks.
+- Includes `/upload/count` for chunked upload smoke checks.
 
 ## Source Files
 

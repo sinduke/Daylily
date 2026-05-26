@@ -9,3 +9,8 @@ struct EchoPayload: Codable, Equatable, Sendable {
 struct EchoResponse: Codable, Equatable, Sendable {
     let echo: String
 }
+
+struct UploadCountPayload: Codable, Equatable, Sendable {
+    let bytes: Int
+    let chunks: Int
+}

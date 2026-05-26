@@ -37,6 +37,18 @@ struct HelloDaylily {
             Post("/echo") { request in
                 try await request.body.string(upTo: .kilobytes(64))
             }
+
+            Post("/upload/count") { request in
+                var bytes = 0
+                var chunks = 0
+
+                for try await chunk in request.body.bytes {
+                    bytes += chunk.count
+                    chunks += 1
+                }
+
+                return JSON(UploadCountPayload(bytes: bytes, chunks: chunks))
+            }
         }
 
         return app

@@ -1,6 +1,6 @@
 # 0008B NIO True Streaming Bridge
 
-Status: proposed
+Status: implemented
 
 ## Goal
 
@@ -45,6 +45,14 @@ This task depends on 0008A.
 
 0008B should not redesign those public APIs unless review finds a serious flaw.
 
+0008B was implemented without changing normal user-facing body APIs. The only new construction/writer surface is transport SPI:
+
+```swift
+@_spi(Transport) Body.stream(bufferLimit:)
+@_spi(Transport) BodyStream
+@_spi(Transport) BodyStreamWriter
+```
+
 ## Architecture Impact
 
 `DaylilyNIO` changes from:
@@ -88,6 +96,11 @@ Ideally none beyond 0008A.
 
 If implementation reveals missing hooks, update 0008A/0008B docs before changing public API.
 
+Implemented hook:
+
+- `Body.stream(bufferLimit:)` is exposed through `@_spi(Transport)` for `DaylilyNIO`.
+- The normal public user API remains `request.body.bytes`, `collect(upTo:)`, `string(upTo:)`, and JSON helpers.
+
 ## Backpressure Rules
 
 Do not use unbounded buffering as the final design.
@@ -104,9 +117,9 @@ Requirements:
 
 Implementation options to evaluate in build mode:
 
-- Daylily-owned bounded async byte channel.
-- NIO `autoRead` control.
-- High-water and low-water buffering thresholds.
+- Daylily-owned bounded async byte channel: selected.
+- NIO `autoRead` control: selected.
+- High-water and low-water buffering thresholds: deferred beyond the initial bounded writer model.
 
 ## Cancellation Rules
 
@@ -123,6 +136,14 @@ Expected behavior:
 - Pending body consumers should unblock.
 - Transport resources should be released.
 - No public NIO types should leak.
+
+Implemented behavior:
+
+- `finish()` ends async iteration cleanly.
+- `fail()` resumes pending consumers with `BodyError.streamFailed`.
+- `cancel()` clears buffered chunks and unblocks pending consumers without surfacing a transport error.
+- If a handler returns before a body-bearing request ends, `DaylilyNIO` cancels the body stream and closes the response connection instead of keeping the connection alive.
+- Client close and channel errors fail the body stream.
 
 ## Error Mapping
 
@@ -164,6 +185,19 @@ swift build
 swift run HelloDaylily --check
 ```
 
+Completed validation:
+
+- `swift build`
+- `swift run HelloDaylily --check`
+- `registry.yml` YAML parse check
+- `git diff --check`
+- Server smoke:
+  - `GET /hello` returned `200 OK`
+  - `POST /echo` with regular body returned `200 OK`
+  - `POST /json/echo` returned `200 OK`
+  - chunked `POST /upload/count` returned `{"bytes":6,"chunks":1}`
+  - 70 KB `POST /echo` returned `413 Payload Too Large`
+
 ## AIDEV Updates Required
 
 - `ai/aidev/architecture.md`
@@ -177,5 +211,6 @@ swift run HelloDaylily --check
 ## Notes
 
 - 0008B is the transport-hard part.
-- 0008B should not start until 0008A is implemented and reviewed.
-- Backpressure is part of the task, not a future nice-to-have.
+- 0008B started after 0008A was implemented and reviewed through build/check/smoke.
+- Backpressure is implemented with bounded `BodyStreamStorage` buffering plus NIO `autoRead` pause/resume.
+- Response body streaming, multipart, upload-to-file helpers, and richer server configuration remain future work.
