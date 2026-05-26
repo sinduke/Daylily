@@ -244,6 +244,11 @@ Implemented macro flow:
   marker macro on nested structs
   contributes a path prefix
   used by @DaylilyServer
+
+@Path
+  parameter marker
+  used by @DaylilyServer
+  lowers into Parameters.require(_:as:)
 ```
 
 MVP limits:
@@ -251,8 +256,9 @@ MVP limits:
 - server type must be default-initializable with `Self()`
 - group types must be default-initializable
 - route handlers must be instance methods
-- route handlers may have zero parameters or one `Request` parameter
-- `@Path`, `@Body`, DI, macro middleware attributes, and OpenAPI are not part of this MVP
+- route handlers may have zero parameters, one `Request` parameter, and `@Path` parameters
+- `@Path` names must match `:name` route segments
+- `@Body`, `@Query`, `@Header`, DI, macro middleware attributes, and OpenAPI are not part of this MVP
 
 Important rule:
 

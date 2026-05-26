@@ -213,6 +213,22 @@ First supported types:
 
 Missing or invalid typed path parameters throw `ParameterError` and render as `400 Bad Request`.
 
+Macro `@Path` input injection lowers into the same runtime extraction:
+
+```swift
+@GET("/users/:id")
+func user(@Path id: Int) -> String {
+    "User \(id)"
+}
+
+@GET("/accounts/:id")
+func account(@Path("id") accountID: Int) -> String {
+    "Account \(accountID)"
+}
+```
+
+`@Path` names must match `:name` route segments. The marker itself does not own extraction behavior.
+
 `UUID` support is deferred because it requires a Foundation decision for `DaylilyCore` or an extension module.
 
 ## Handler
@@ -299,13 +315,14 @@ Transport details must not leak into `DaylilyCore` or user-facing handler APIs.
 
 Macro route MVP is implemented.
 
-Current macros:
+Current macro-facing attributes:
 
 ```swift
 @DaylilyServer
 @GET("/path")
 @POST("/path")
 @GROUP("/prefix")
+@Path
 ```
 
 Example:
@@ -320,8 +337,8 @@ struct App {
     }
 
     @GET("/users/:id")
-    func user(req: Request) -> String {
-        "User \(req.parameters.id ?? "unknown")"
+    func user(@Path id: Int) -> String {
+        "User \(id)"
     }
 
     @GROUP("/api")
@@ -339,7 +356,8 @@ MVP assumptions:
 - server type can be initialized with `Self()`
 - grouped types can be initialized with `Self.GroupType()`
 - handlers are instance methods
-- handlers have zero parameters or one `Request` parameter
+- handlers may have zero parameters, one `Request` parameter, and `@Path` parameters
+- `@Path` lowers into `req.parameters.require(_:as:)`
 
 Macros create or expose the same route graph the runtime DSL creates.
 

@@ -43,13 +43,14 @@ Implemented today:
 - JSON responses with `JSON(...)`.
 - NIO-backed HTTP/1.1 server.
 - Macro route/group MVP: `@DaylilyServer`, `@GET`, `@POST`, `@GROUP`.
+- Macro `@Path` typed path parameter injection.
 - Default `swift run` example server.
 - Lightweight behavior checks.
 - AIDEV project handoff system.
 
 Not implemented yet:
 
-- Macro typed parameter injection (`@Path`, `@Body`, etc.).
+- Macro typed input injection beyond `@Path` (`@Body`, `@Query`, `@Header`, etc.).
 - OpenAPI generation.
 - Dependency injection.
 - Macro middleware attributes.
@@ -207,8 +208,13 @@ struct App {
     }
 
     @GET("/users/:id")
-    func user(req: Request) -> String {
-        "User \(req.parameters.id ?? "unknown")"
+    func user(@Path id: Int) -> String {
+        "User \(id)"
+    }
+
+    @GET("/accounts/:id")
+    func account(@Path("id") accountID: Int) -> String {
+        "Account \(accountID)"
     }
 
     @GET("/health")
@@ -232,9 +238,11 @@ MVP limits:
 
 - handlers must be instance methods;
 - the server type must be default-initializable with `Self()`;
-- handlers may have zero parameters or one `Request` parameter;
+- handlers may use zero parameters, one `Request` parameter, and `@Path` parameters;
+- `@Path` lowers into `req.parameters.require(_:as:)`;
+- `@Path` names must match `:name` route segments;
 - grouped types must be default-initializable;
-- `@Path`, `@Body`, macro middleware attributes, DI, and OpenAPI are future work.
+- `@Body`, `@Query`, `@Header`, macro middleware attributes, DI, and OpenAPI are future work.
 
 ## AI-Native Development
 
@@ -304,8 +312,8 @@ The most important invariants:
 
 Near-term:
 
-1. `@Path` macro MVP on top of runtime typed path extraction.
-2. `DaylilyTesting` minimal test client.
+1. `DaylilyTesting` minimal test client.
+2. `@Body` JSON macro/runtime bridge.
 3. Lifecycle and production server controls before ecosystem modules.
 
 ## License

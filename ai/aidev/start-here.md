@@ -19,7 +19,7 @@ struct App {
 }
 ```
 
-Current implemented surfaces are the runtime DSL, runtime middleware, the Daylily-owned `Body` model, explicit buffered body replacement, JSON body/response helpers, and the macro route/group MVP.
+Current implemented surfaces are the runtime DSL, runtime middleware, the Daylily-owned `Body` model, explicit buffered body replacement, JSON body/response helpers, the macro route/group MVP, and macro `@Path` typed input injection.
 
 Runtime DSL:
 
@@ -87,8 +87,8 @@ struct App {
     }
 
     @GET("/users/:id")
-    func user(req: Request) -> String {
-        "User \(req.parameters.id ?? "unknown")"
+    func user(@Path id: Int) -> String {
+        "User \(id)"
     }
 
     @GROUP("/api")
@@ -112,6 +112,7 @@ Implemented:
 - Basic route DSL: `Get`, `Post`, `Group`.
 - Runtime middleware at application, group, and route scope.
 - Macro route/group MVP: `@DaylilyServer`, `@GET`, `@POST`, `@GROUP`.
+- Macro `@Path` typed path parameter injection.
 - Runtime typed path parameter extraction.
 - Daylily-owned `Body` model with one-shot consumption.
 - Explicit `request.withBufferedBody(upTo:_:)` helper for bounded body buffering and replacement.
@@ -128,7 +129,7 @@ Implemented:
 
 Not implemented:
 
-- Macro typed parameter injection (`@Path`, `@Body`, etc.).
+- Macro typed input injection beyond `@Path` (`@Body`, `@Query`, `@Header`, etc.).
 - OpenAPI.
 - Dependency injection.
 - Macro middleware attributes.
@@ -205,5 +206,5 @@ Do not start with:
 Current strategic order:
 
 1. Keep AIDEV self-contained.
-2. Add `@Path` macro MVP on top of runtime typed path extraction.
-3. Add `DaylilyTesting` minimal test client.
+2. Add `DaylilyTesting` minimal test client.
+3. Add `@Body` JSON macro/runtime bridge.

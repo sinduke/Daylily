@@ -33,10 +33,14 @@ Rules:
 - `@DaylilyServer` generates `static func main() async throws`.
 - The generated main creates `let server = Self()`.
 - Route handlers must be instance methods.
-- Route handlers may have zero parameters or one `Request` parameter.
+- Route handlers may have zero parameters, one `Request` parameter, and `@Path` parameters.
 - `@GET` lowers to runtime `Get`.
 - `@POST` lowers to runtime `Post`.
 - `@GROUP` marks a nested struct as a route group and contributes a path prefix.
+- `@Path` lowers into `req.parameters.require(_:as:)`.
+- Bare `@Path` uses the Swift local parameter name.
+- `@Path("name")` maps to an explicit path parameter name.
+- `@Path` names must match `:name` segments in the full route path.
 - Grouped types are instantiated with `Self.GroupType()`.
 
 ### Application.run
@@ -511,6 +515,26 @@ Mappings:
 
 - `.missing`: `400 Bad Request`, `Missing path parameter: <name>`
 - `.invalid`: `400 Bad Request`, `Invalid path parameter <name>: expected <type>`
+
+### Path
+
+```swift
+@propertyWrapper
+public struct Path<Value: ParameterDecodable>: Sendable {
+    public var wrappedValue: Value
+    public init(wrappedValue: Value)
+    public init(wrappedValue: Value, _ name: String)
+}
+```
+
+Rules:
+
+- `Path` is a parameter marker used by `@DaylilyServer`.
+- It is public so users can write `func user(@Path id: Int)`.
+- It does not perform extraction by itself.
+- Macro lowering calls `Parameters.require(_:as:)`.
+- Supported value types are the current `ParameterDecodable` conformers.
+- `UUID` is not supported yet.
 
 ### ResponseError
 

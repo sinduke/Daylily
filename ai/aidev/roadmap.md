@@ -163,7 +163,7 @@ Practical interleave:
 
 ```text
 0010-001 Typed path extraction runtime (delivered)
-0010-002 @Path macro MVP
+0010-002 @Path macro MVP (delivered)
 0011-001 DaylilyTesting minimal TestClient
 0010-003 @Body JSON
 0010-004 @Query / @Header
@@ -179,15 +179,16 @@ Status: in-progress
 Delivered:
 
 - `0010-001-typed-path-extraction-runtime`
+- `0010-002-path-macro-mvp`
 
 Next task:
 
-- `0010-002-path-macro-mvp`
+- `0011-001-minimal-test-client`
 
 Example target:
 
 ```swift
-func user(@Path id: UUID) async throws -> User
+let response = try await TestClient(app).get("/hello")
 ```
 
 ### Future Epics

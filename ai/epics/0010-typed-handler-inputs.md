@@ -25,7 +25,7 @@ func create(@Body input: CreateUserInput) async throws -> Status {
 Recommended tasks:
 
 - `0010-001-typed-path-extraction-runtime` (implemented)
-- `0010-002-path-macro-mvp`
+- `0010-002-path-macro-mvp` (implemented)
 - `0010-003-body-json-macro-runtime-bridge`
 - `0010-004-query-and-header-inputs`
 
@@ -40,6 +40,7 @@ Order:
 Design notes:
 
 - `0010-001` delivered the runtime API: `ParameterDecodable`, `Parameters.require(_:as:)`, `Parameters.get(_:as:)`, and `ParameterError`.
+- `0010-002` delivered macro `@Path` input injection by lowering into `Parameters.require(_:as:)`.
 - First runtime step should avoid query/header/body scope creep.
 - `DaylilyCore` should stay small.
 - Foundation-backed types such as `UUID` need a deliberate decision before being added to core.

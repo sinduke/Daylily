@@ -411,7 +411,9 @@ Guarantees:
 - `@POST` lowers to runtime `Post`.
 - `@GROUP` contributes a path prefix for nested route methods.
 - Zero-parameter handlers are called as `server.method()`.
-- One-parameter handlers must take `Request` and are called with the route request.
+- `Request` parameters are called with the route request.
+- `@Path` parameters lower into `req.parameters.require(_:as:)`.
+- `@Path` names must match `:name` route segments in the full route path.
 - Grouped handlers are called on default-initialized group instances.
 
 Known limitations:
@@ -419,11 +421,11 @@ Known limitations:
 - Server type must be default-initializable.
 - Group types must be default-initializable.
 - Static route handlers are not supported.
-- `@Path`, `@Body`, macro middleware attributes, DI, and OpenAPI metadata are not supported yet.
+- `@Body`, `@Query`, `@Header`, macro middleware attributes, DI, and OpenAPI metadata are not supported yet.
 
 Extension points:
 
-- macro typed parameter injection
+- more macro typed input families
 - macro middleware attributes
 - route metadata
 - better diagnostics

@@ -41,6 +41,27 @@ To add a new standard-library parameter type:
 2. Add checks for success and invalid input.
 3. Update `api-registry.md` and `registry.yml`.
 
+## Extend Path Macro Injection
+
+Current shape:
+
+```swift
+@GET("/users/:id")
+func user(@Path id: Int) -> String
+
+@GET("/accounts/:id")
+func account(@Path("id") accountID: Int) -> String
+```
+
+Rules:
+
+1. Keep `@Path` as a marker. Extraction stays in `Parameters.require(_:as:)`.
+2. Keep `@DaylilyServer` responsible for lowering handler parameters.
+3. Validate that every `@Path` name exists as a `:name` segment in the full route path.
+4. Preserve existing zero-parameter and `Request` handler support.
+5. Add compile-time macro smoke coverage for new handler shapes.
+6. Do not add `@Body`, `@Query`, `@Header`, or optional path values in this playbook.
+
 ## Extend JSON Body Decoding
 
 Current shape:
@@ -230,8 +251,9 @@ When extending:
 
 Still non-goals until separate tasks:
 
-- `@Path`
 - `@Body`
+- `@Query`
+- `@Header`
 - OpenAPI
 - DI
 

@@ -5,7 +5,7 @@ project:
   license: MIT
   license_file: LICENSE
   swift_tools_version: "6.0"
-  current_phase: "path_macro_mvp"
+  current_phase: "daylily_testing_mvp"
   authoritative_ai_entry:
     - AIDEV.md
     - ai/aidev/start-here.md
@@ -179,6 +179,27 @@ implemented_features:
       - "missing required path parameter maps to 400 Bad Request"
       - "invalid typed path parameter maps to 400 Bad Request"
       - "UUID is deferred to avoid a Foundation dependency in DaylilyCore"
+  path_macro_mvp:
+    status: implemented
+    epic: "0010-typed-handler-inputs"
+    task: "0010-002-path-macro-mvp"
+    module: DaylilyMacros
+    public_api:
+      - "@Path"
+    lowering:
+      - "bare @Path uses the Swift local parameter name"
+      - "@Path(\"name\") maps to an explicit route parameter name"
+      - "@DaylilyServer lowers @Path parameters into Parameters.require(_:as:)"
+    supported_with:
+      - "@GET"
+      - "@POST"
+      - "@GROUP"
+      - "optional Request parameter"
+    decisions:
+      - "@Path is a public property-wrapper marker in DaylilyCore"
+      - "@Path names must match :name route segments in the full route path"
+      - "missing and invalid values keep ParameterError 400 mappings"
+      - "@Body, @Query, @Header, optional path values, and UUID remain out of scope"
   nio_http_server:
     status: implemented
     protocol: HTTP/1.1
@@ -204,7 +225,7 @@ implemented_features:
     limitations:
       - "server type must be default-initializable with Self()"
       - "handlers must be instance methods"
-      - "handlers may have zero parameters or one Request parameter"
+      - "handlers may have zero parameters, one Request parameter, and @Path parameters"
   group_macro:
     status: implemented
     task: "0003-002-group-macro-mvp"
@@ -212,7 +233,7 @@ implemented_features:
       - "@GROUP"
     limitations:
       - "group types must be default-initializable"
-      - "group handlers follow route macro MVP handler limits"
+      - "group handlers support the current route macro handler limits, including @Path"
   json_body_and_response:
     status: implemented
     task: "0004-001-json-body-and-response"
@@ -326,7 +347,9 @@ planned_features:
     epic: "0010-typed-handler-inputs"
     completed:
       - "0010-001-typed-path-extraction-runtime"
-    next_task: "0010-002-path-macro-mvp"
+      - "0010-002-path-macro-mvp"
+    next_task: "0010-003-body-json-macro-runtime-bridge"
+    recommended_interleave_next: "0011-001-minimal-test-client"
   openapi:
     status: future
   dependency_injection:
@@ -445,6 +468,17 @@ public_api:
       mappings:
         missing: "400 Missing path parameter: <name>"
         invalid: "400 Invalid path parameter <name>: expected <type>"
+    Path:
+      kind: propertyWrapper
+      conforms:
+        - Sendable
+      generic: "Value: ParameterDecodable"
+      properties:
+        - "wrappedValue: Value"
+      initializers:
+        - "public init(wrappedValue: Value)"
+        - "public init(wrappedValue: Value, _ name: String)"
+      contract: "Marker for @DaylilyServer macro path input lowering; extraction is performed by Parameters.require(_:as:)."
     Body:
       kind: struct
       conforms:
@@ -598,6 +632,7 @@ runtime_rules:
     - wildcard
   path_parameter_prefix: ":"
   typed_path_parameter_policy: "Parameters.require(_:as:) and Parameters.get(_:as:) use ParameterDecodable; missing required and invalid values map to 400; UUID is deferred."
+  macro_path_parameter_policy: "@Path parameters are marker wrappers; @DaylilyServer validates route membership and lowers them into Parameters.require(_:as:)."
   wildcard_prefix: "*"
   current_body_model: "Body one-shot API with NIO true streaming bridge and in-process buffered Body.bytes support"
   future_body_model: "response body streaming and higher-level upload helpers"
@@ -657,6 +692,7 @@ aidev_files:
     - ai/tasks/0009-001-middleware-runtime.md
     - ai/tasks/0009-002-explicit-buffered-body-helper.md
     - ai/tasks/0010-001-typed-path-extraction-runtime.md
+    - ai/tasks/0010-002-path-macro-mvp.md
   docs:
     - ai/aidev/project-map.md
     - ai/aidev/architecture.md
@@ -746,11 +782,11 @@ roadmap:
     - "0009-001-middleware-runtime"
     - "0009-002-explicit-buffered-body-helper"
     - "0010-001-typed-path-extraction-runtime"
+    - "0010-002-path-macro-mvp"
   in_progress: []
   next_recommended:
-    - "0010-002-path-macro-mvp"
-  later:
     - "0011-001-minimal-test-client"
+  later:
     - "0010-003-body-json-macro-runtime-bridge"
     - "0010-004-query-and-header-inputs"
     - "0012-001-application-lifecycle-mvp"

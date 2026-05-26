@@ -80,12 +80,23 @@ Missing or invalid typed path parameters map to `400 Bad Request`.
 
 `UUID` is not supported in `DaylilyCore` yet because Foundation support needs a separate design decision.
 
-Future macro typed injection:
+Macro `@Path` injection:
 
 ```swift
 @GET("/users/:id")
-func user(@Path id: UUID) async throws -> User
+func user(@Path id: Int) async throws -> User
+
+@GET("/accounts/:id")
+func account(@Path("id") accountID: Int) async throws -> Account
 ```
+
+Rules:
+
+- `@Path` lowers to `req.parameters.require(_:as:)`.
+- Bare `@Path` uses the Swift local parameter name.
+- `@Path("name")` maps to an explicit route parameter name.
+- `@Path` names must match `:name` segments in the full route path.
+- `UUID` remains deferred until the Foundation boundary is decided.
 
 ## Request Body
 

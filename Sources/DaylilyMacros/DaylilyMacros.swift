@@ -135,7 +135,7 @@ private struct RouteMethod {
     let receiver: String
     let functionName: String
     let callPrefix: String
-    let callArguments: String?
+    let call: HandlerCall
 
     init?(_ function: FunctionDeclSyntax, pathPrefix: String, receiver: String) throws {
         guard let routeAttribute = try RouteAttribute(function) else {
@@ -149,19 +149,21 @@ private struct RouteMethod {
             throw DaylilyMacroError("@\(routeAttribute.name) handlers must be instance methods in this MVP.")
         }
 
+        let path = RouteCollector.join(pathPrefix, routeAttribute.path)
+
         self.routeFunction = routeAttribute.routeFunction
-        self.path = RouteCollector.join(pathPrefix, routeAttribute.path)
+        self.path = path
         self.receiver = receiver
         self.functionName = function.name.text
         self.callPrefix = Self.callPrefix(for: function)
-        self.callArguments = try Self.callArguments(for: function, routeName: routeAttribute.name)
+        self.call = try Self.call(for: function, routeName: routeAttribute.name, routePath: path)
     }
 
     var routeDeclaration: String {
-        if let callArguments {
+        if call.usesRequest {
             return """
             \(routeFunction)(\(path.swiftStringLiteral)) { req in
-                \(callPrefix)\(receiver).\(functionName)(\(callArguments))
+                \(callPrefix)\(receiver).\(functionName)(\(call.arguments))
             }
             """
         }
@@ -190,27 +192,170 @@ private struct RouteMethod {
         }
     }
 
-    private static func callArguments(for function: FunctionDeclSyntax, routeName: String) throws -> String? {
+    private static func call(
+        for function: FunctionDeclSyntax,
+        routeName: String,
+        routePath: String
+    ) throws -> HandlerCall {
         let parameters = Array(function.signature.parameterClause.parameters)
 
         if parameters.isEmpty {
+            return HandlerCall(argumentExpressions: [], usesRequest: false)
+        }
+
+        let routeParameterNames = pathParameterNames(in: routePath)
+        var arguments: [String] = []
+        var hasRequestParameter = false
+
+        for parameter in parameters {
+            if let pathAttribute = try PathAttribute(parameter) {
+                let pathName: String
+                if let explicitName = pathAttribute.name {
+                    pathName = explicitName
+                } else {
+                    pathName = try localName(for: parameter, routeName: routeName)
+                }
+
+                guard routeParameterNames.contains(pathName) else {
+                    throw DaylilyMacroError("@Path(\(pathName.swiftStringLiteral)) must match a :\(pathName) segment in \(routePath.swiftStringLiteral).")
+                }
+
+                let typeName = parameter.type.description.trimmed
+                let value = "try req.parameters.require(\(pathName.swiftStringLiteral), as: \(typeName).self)"
+                arguments.append(callArgument(for: parameter, value: value))
+                continue
+            }
+
+            if isRequestParameter(parameter) {
+                guard !hasRequestParameter else {
+                    throw DaylilyMacroError("@\(routeName) handlers may only have one Request parameter.")
+                }
+
+                hasRequestParameter = true
+                arguments.append(callArgument(for: parameter, value: "req"))
+                continue
+            }
+
+            throw DaylilyMacroError("@\(routeName) handler parameters must be Request or annotated with @Path in this MVP.")
+        }
+
+        return HandlerCall(argumentExpressions: arguments, usesRequest: true)
+    }
+
+    private static func isRequestParameter(_ parameter: FunctionParameterSyntax) -> Bool {
+        let typeName = parameter.type.description.trimmed
+        return typeName == "Request" || typeName == "Daylily.Request" || typeName == "DaylilyCore.Request"
+    }
+
+    private static func callArgument(for parameter: FunctionParameterSyntax, value: String) -> String {
+        let externalName = parameter.firstName.text
+        if externalName == "_" {
+            return value
+        }
+
+        return "\(externalName): \(value)"
+    }
+
+    private static func localName(for parameter: FunctionParameterSyntax, routeName: String) throws -> String {
+        if let secondName = parameter.secondName?.text, secondName != "_" {
+            return secondName
+        }
+
+        let firstName = parameter.firstName.text
+        guard firstName != "_" else {
+            throw DaylilyMacroError("@\(routeName) @Path parameters must have a local name or explicit @Path(\"name\") mapping.")
+        }
+
+        return firstName
+    }
+
+    private static func pathParameterNames(in path: String) -> Set<String> {
+        Set(path.split(separator: "/").compactMap { segment in
+            guard segment.hasPrefix(":"), segment.count > 1 else {
+                return nil
+            }
+
+            return String(segment.dropFirst())
+        })
+    }
+}
+
+private struct HandlerCall {
+    let argumentExpressions: [String]
+    let usesRequest: Bool
+
+    var arguments: String {
+        argumentExpressions.joined(separator: ", ")
+    }
+}
+
+private struct PathAttribute {
+    let name: String?
+
+    init?(_ parameter: FunctionParameterSyntax) throws {
+        var found: PathAttribute?
+
+        for attributeElement in parameter.attributes {
+            guard case let .attribute(attribute) = attributeElement else {
+                continue
+            }
+
+            let name = RouteAttribute.routeName(for: attribute.attributeName.description.trimmed)
+            guard name == "Path" else {
+                continue
+            }
+
+            if found != nil {
+                throw DaylilyMacroError("Handler parameters may only have one @Path attribute.")
+            }
+
+            found = PathAttribute(name: try Self.explicitName(from: attribute))
+        }
+
+        guard let found else {
             return nil
         }
 
-        guard parameters.count == 1, let parameter = parameters.first else {
-            throw DaylilyMacroError("@\(routeName) handlers only support zero parameters or one Request parameter in this MVP.")
+        self = found
+    }
+
+    private init(name: String?) {
+        self.name = name
+    }
+
+    private static func explicitName(from attribute: AttributeSyntax) throws -> String? {
+        let text = attribute.description
+        guard let start = text.firstIndex(of: "\"") else {
+            if text.contains("(") {
+                throw DaylilyMacroError("@Path arguments must be a string literal name.")
+            }
+
+            return nil
         }
 
-        let typeName = parameter.type.description.trimmed
-        guard typeName == "Request" || typeName == "Daylily.Request" || typeName == "DaylilyCore.Request" else {
-            throw DaylilyMacroError("@\(routeName) handler parameter must be Request in this MVP.")
+        var index = text.index(after: start)
+        var value = ""
+        var isEscaped = false
+
+        while index < text.endIndex {
+            let character = text[index]
+
+            if isEscaped {
+                value.append(character)
+                isEscaped = false
+            } else if character == "\\" {
+                value.append(character)
+                isEscaped = true
+            } else if character == "\"" {
+                return value
+            } else {
+                value.append(character)
+            }
+
+            index = text.index(after: index)
         }
 
-        let externalName = parameter.firstName.text
-        if externalName == "_" {
-            return "req"
-        }
-        return "\(externalName): req"
+        throw DaylilyMacroError("@Path arguments must be a string literal name.")
     }
 }
 

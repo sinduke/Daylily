@@ -12,6 +12,21 @@ struct MacroSmoke {
         "Macro user \(req.parameters.id ?? "unknown")"
     }
 
+    @GET("/macro/typed-users/:id")
+    func typedUser(@Path id: Int) -> String {
+        "Macro typed user \(id)"
+    }
+
+    @GET("/macro/accounts/:id")
+    func account(@Path("id") accountID: Int) -> String {
+        "Macro account \(accountID)"
+    }
+
+    @GET("/macro/request-users/:id")
+    func requestUser(req: Request, @Path id: Int) -> String {
+        "Macro request user \(req.path):\(id)"
+    }
+
     @POST("/macro/echo")
     func echo(req: Request) async throws -> String {
         try await req.body.string(upTo: .kilobytes(64))
@@ -32,6 +47,11 @@ struct MacroSmoke {
         @GET("/users/:id")
         func user(req: Request) -> String {
             "Macro group user \(req.parameters.id ?? "unknown")"
+        }
+
+        @GET("/typed-users/:id")
+        func typedUser(@Path id: Int) -> String {
+            "Macro group typed user \(id)"
         }
 
         @POST("/echo")

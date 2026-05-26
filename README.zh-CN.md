@@ -43,13 +43,14 @@ Daylily 不是 Vapor 或 Hummingbird 的复制品。它是在探索：如果 AI 
 - 通过 `JSON(...)` 返回 JSON response。
 - 基于 NIO 的 HTTP/1.1 server。
 - Macro route/group MVP：`@DaylilyServer`、`@GET`、`@POST`、`@GROUP`。
+- Macro `@Path` 类型化路径参数注入。
 - 默认 `swift run` 示例服务。
 - 轻量行为检查。
 - AIDEV 项目接管系统。
 
 还没有实现：
 
-- 宏级类型化参数注入（`@Path`、`@Body` 等）。
+- `@Path` 之外的宏级类型化输入注入（`@Body`、`@Query`、`@Header` 等）。
 - OpenAPI 生成。
 - 依赖注入。
 - Macro middleware attributes。
@@ -207,8 +208,13 @@ struct App {
     }
 
     @GET("/users/:id")
-    func user(req: Request) -> String {
-        "User \(req.parameters.id ?? "unknown")"
+    func user(@Path id: Int) -> String {
+        "User \(id)"
+    }
+
+    @GET("/accounts/:id")
+    func account(@Path("id") accountID: Int) -> String {
+        "Account \(accountID)"
     }
 
     @GET("/health")
@@ -232,9 +238,11 @@ MVP 限制：
 
 - handler 必须是 instance method；
 - server type 必须可以通过 `Self()` 默认初始化；
-- handler 可以没有参数，或者只有一个 `Request` 参数；
+- handler 可以没有参数，可以有一个 `Request` 参数，也可以有 `@Path` 参数；
+- `@Path` 会降级到 `req.parameters.require(_:as:)`；
+- `@Path` 名称必须匹配 `:name` route segment；
 - group type 必须可以默认初始化；
-- `@Path`、`@Body`、macro middleware attributes、DI、OpenAPI 都是后续工作。
+- `@Body`、`@Query`、`@Header`、macro middleware attributes、DI、OpenAPI 都是后续工作。
 
 ## AI-Native 开发
 
@@ -304,8 +312,8 @@ Daylily/
 
 近期：
 
-1. 基于运行时类型化路径参数提取实现 `@Path` macro MVP。
-2. `DaylilyTesting` 最小 TestClient。
+1. `DaylilyTesting` 最小 TestClient。
+2. `@Body` JSON macro/runtime bridge。
 3. 先做 lifecycle 和生产级 server 控制，再扩生态模块。
 
 ## License

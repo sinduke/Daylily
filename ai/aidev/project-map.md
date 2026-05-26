@@ -122,6 +122,11 @@ Daylily/
 - Typed path extraction through `ParameterDecodable`.
 - `ParameterError` response mapping for missing and invalid typed parameters.
 
+`Sources/DaylilyCore/Path.swift`
+
+- Public `@Path` parameter marker used by `@DaylilyServer`.
+- Keeps macro syntax valid while extraction remains in `Parameters.require(_:as:)`.
+
 `Sources/DaylilyCore/Request.swift`
 
 - Method, path, headers, `Body`, parameters.
