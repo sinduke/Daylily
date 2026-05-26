@@ -253,6 +253,20 @@ OpenAPIDocument
 
 The generator maps Daylily route paths such as `/users/:id` into OpenAPI paths such as `/users/{id}`. It maps known scalar Swift type names into simple OpenAPI schema types and preserves unknown Swift type names through `x-swift-type`.
 
+0014-003 macro metadata bridge:
+
+```text
+@Path / @Query / @Header / @JSONBody
+  ↓
+@DaylilyServer generated Get/Post route
+  ↓
+Route.describe(inputs:requestBody:)
+  ↓
+DaylilyOpenAPI
+```
+
+The macro layer does not own a separate metadata model. It lowers handler input annotations into the same runtime metadata used by handwritten routes.
+
 ## Router Rules
 
 Current router is simple array-based matching with scoring.
@@ -339,6 +353,11 @@ Implemented macro flow:
   used by @DaylilyServer
   lowers into Request.json(_:upTo:) through request.json(Type.self)
 ```
+
+Typed macro inputs lower twice:
+
+- into runtime extraction calls used by handlers
+- into `Route.describe(...)` metadata used by OpenAPI
 
 MVP limits:
 

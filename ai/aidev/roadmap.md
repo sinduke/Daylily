@@ -174,7 +174,7 @@ Practical interleave:
 0013-001 Request logging middleware (delivered)
 0014-001 Route metadata runtime (delivered)
 0014-002 OpenAPI schema MVP (delivered)
-0014-003 Macro metadata bridge
+0014-003 Macro metadata bridge (delivered)
 ```
 
 ## Recently Completed Epic
@@ -230,7 +230,7 @@ let app = Application {
 
 Next task:
 
-- `0014-003-macro-metadata-bridge`
+- `0013-002-request-id-and-timing`
 
 ### 0013 Observability Middleware
 
@@ -256,12 +256,13 @@ Remaining future slices:
 
 ### 0014 OpenAPI Metadata
 
-Status: in-progress
+Status: implemented
 
 Delivered:
 
 - `0014-001-route-metadata-runtime`
 - `0014-002-openapi-schema-mvp`
+- `0014-003-macro-metadata-bridge`
 
 Delivered shape:
 
@@ -275,13 +276,21 @@ Get("/users/:id") {
     inputs: [.path("id", type: "Int")]
 )
 
-let descriptions = app.describeRoutes()
 let document = app.openAPI(title: "Daylily Demo", version: "0.1.0")
 ```
 
-Next task:
+Macro typed inputs now lower into route metadata:
 
-- `0014-003-macro-metadata-bridge`
+```text
+@Path -> RouteInputMetadata.path(...)
+@Query -> RouteInputMetadata.query(...)
+@Header -> RouteInputMetadata.header(...)
+@JSONBody -> RouteBodyMetadata.json(...)
+```
+
+Suggested next task:
+
+- `0013-002-request-id-and-timing`
 
 ### Future Epics
 

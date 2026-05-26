@@ -53,6 +53,7 @@ Implemented today:
 - Macro `@Path` typed path parameter injection.
 - Macro `@Query` and `@Header` typed input injection.
 - Macro `@JSONBody` typed JSON body injection.
+- Macro typed inputs lower into route metadata for OpenAPI.
 - `DaylilyTesting` in-memory `TestClient`, request builders, and JSON assertions.
 - Default `swift run` example server.
 - Lightweight behavior checks.
@@ -404,6 +405,8 @@ struct App {
 ```
 
 The rule is simple: macros must lower into the runtime route system. The runtime remains the source of truth.
+
+Typed macro inputs also lower into runtime route metadata. `@Path`, `@Query`, `@Header`, and `@JSONBody` contribute OpenAPI-ready metadata through the same `Route.describe(...)` model used by handwritten routes.
 
 MVP limits:
 

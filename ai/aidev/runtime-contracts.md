@@ -240,6 +240,7 @@ Guarantees:
 - Group prefixes are visible in described route paths.
 - Group and route middleware do not erase metadata.
 - Metadata is runtime-owned and does not require macros.
+- `@DaylilyServer` may generate route metadata, but it must use the same runtime metadata types as handwritten routes.
 
 Non-goals:
 
@@ -277,6 +278,7 @@ Guarantees:
 - Routes without response metadata get a default `200 OK` response.
 - Known scalar Swift type names map to simple OpenAPI schemas.
 - Unknown Swift type names map to object schemas with `x-swift-type`.
+- Macro-generated typed input metadata is consumed the same way as handwritten route metadata.
 
 Non-goals:
 

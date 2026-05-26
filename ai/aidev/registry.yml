@@ -5,7 +5,7 @@ project:
   license: MIT
   license_file: LICENSE
   swift_tools_version: "6.0"
-  current_phase: "openapi_metadata"
+  current_phase: "observability_request_id_timing"
   authoritative_ai_entry:
     - AIDEV.md
     - ai/aidev/start-here.md
@@ -95,6 +95,7 @@ products:
       - implement_GROUP_marker
       - lower_macro_routes_to_runtime_dsl
       - lower_typed_handler_inputs_to_runtime_apis
+      - lower_typed_handler_inputs_to_route_metadata
     depends_on:
       - SwiftCompilerPlugin
       - SwiftSyntax
@@ -252,6 +253,7 @@ implemented_features:
       - "bare @Path uses the Swift local parameter name"
       - "@Path(\"name\") maps to an explicit route parameter name"
       - "@DaylilyServer lowers @Path parameters into Parameters.require(_:as:)"
+      - "@DaylilyServer lowers @Path parameters into RouteInputMetadata.path(...)"
     supported_with:
       - "@GET"
       - "@POST"
@@ -274,6 +276,7 @@ implemented_features:
       - "@JSONBody"
     lowering:
       - "@DaylilyServer lowers @JSONBody parameters into try await req.json(Type.self)"
+      - "@DaylilyServer lowers @JSONBody parameters into RouteBodyMetadata.json(...)"
       - "one @JSONBody parameter is allowed per handler"
       - "Request plus @JSONBody is allowed"
     decisions:
@@ -303,6 +306,8 @@ implemented_features:
     lowering:
       - "@DaylilyServer lowers @Query parameters into req.query.require(_:as:)"
       - "@DaylilyServer lowers @Header parameters into req.headers.require(_:as:)"
+      - "@DaylilyServer lowers @Query parameters into RouteInputMetadata.query(...)"
+      - "@DaylilyServer lowers @Header parameters into RouteInputMetadata.header(...)"
     decisions:
       - "@Query and @Header are public property-wrapper markers in DaylilyCore"
       - "runtime extraction remains the source of truth"
@@ -631,6 +636,23 @@ implemented_features:
       - "Known scalar Swift type names map to simple OpenAPI schemas"
       - "Unknown Swift type names map to object schemas with x-swift-type"
       - "Deep schema derivation, security schemes, documentation UI, and client SDK generation are deferred"
+  macro_metadata_bridge:
+    status: implemented
+    epic: "0014-openapi-metadata"
+    task: "0014-003-macro-metadata-bridge"
+    module: DaylilyMacros
+    public_api: []
+    lowering:
+      - "@Path lowers into RouteInputMetadata.path(...)"
+      - "@Query lowers into RouteInputMetadata.query(...)"
+      - "@Header lowers into RouteInputMetadata.header(...)"
+      - "@JSONBody lowers into RouteBodyMetadata.json(...)"
+      - "Generated routes call Route.describe(inputs:requestBody:) when typed input metadata exists"
+    decisions:
+      - "No new public macros are introduced"
+      - "Macro metadata uses the same runtime metadata model as handwritten routes"
+      - "Runtime extraction behavior is unchanged"
+      - "Summary, description, tags, response inference, and deep schemas are deferred"
 
 planned_features:
   typed_handler_inputs:
@@ -667,12 +689,13 @@ planned_features:
       - "0013-002-request-id-and-timing"
       - "0013-003-observability-hooks"
   openapi:
-    status: in-progress
+    status: implemented
     epic: "0014-openapi-metadata"
     completed:
       - "0014-001-route-metadata-runtime"
       - "0014-002-openapi-schema-mvp"
-    next_task: "0014-003-macro-metadata-bridge"
+      - "0014-003-macro-metadata-bridge"
+    next_task: null
   dependency_injection:
     status: future
 
@@ -1337,9 +1360,9 @@ runtime_rules:
     - wildcard
   path_parameter_prefix: ":"
   typed_path_parameter_policy: "Parameters.require(_:as:) and Parameters.get(_:as:) use ParameterDecodable; missing required and invalid values map to 400; UUID is deferred."
-  macro_path_parameter_policy: "@Path parameters are marker wrappers; @DaylilyServer validates route membership and lowers them into Parameters.require(_:as:)."
-  query_and_header_input_policy: "Request.query uses QueryParameters; Headers has typed require/get; @Query lowers to req.query.require and @Header lowers to req.headers.require."
-  macro_json_body_policy: "@JSONBody parameters are marker wrappers in DaylilyJSON; @DaylilyServer lowers them into try await req.json(Type.self). True @Body spelling is deferred because Body is the raw request body type."
+  macro_path_parameter_policy: "@Path parameters are marker wrappers; @DaylilyServer validates route membership and lowers them into Parameters.require(_:as:) plus RouteInputMetadata.path(...)."
+  query_and_header_input_policy: "Request.query uses QueryParameters; Headers has typed require/get; @Query lowers to req.query.require plus RouteInputMetadata.query(...) and @Header lowers to req.headers.require plus RouteInputMetadata.header(...)."
+  macro_json_body_policy: "@JSONBody parameters are marker wrappers in DaylilyJSON; @DaylilyServer lowers them into try await req.json(Type.self) plus RouteBodyMetadata.json(...). True @Body spelling is deferred because Body is the raw request body type."
   lifecycle_policy: "Application lifecycle phases are configure, boot, started, shutdown, cleanup. Application.run binds lifecycle to transport; Application.respond(to:) does not run lifecycle. The default NIO server closes on SIGINT/SIGTERM."
   server_configuration_policy: "ServerConfiguration is the NIO-free user-facing server control type. Application.run(configuration:) bridges it into DaylilyNIO."
   test_client_policy: "TestClient is an in-memory helper in DaylilyTesting; it calls Application.respond(to:) directly and does not use transport. TestRequest and response assertions are testing helpers, not runtime behavior."
@@ -1416,6 +1439,7 @@ aidev_files:
     - ai/tasks/0013-001-request-logging-middleware.md
     - ai/tasks/0014-001-route-metadata-runtime.md
     - ai/tasks/0014-002-openapi-schema-mvp.md
+    - ai/tasks/0014-003-macro-metadata-bridge.md
   docs:
     - ai/aidev/project-map.md
     - ai/aidev/architecture.md
@@ -1483,7 +1507,7 @@ verification:
     cleanup: "stop the HelloDaylily process"
 
 roadmap:
-  current_task: "0014-003-macro-metadata-bridge"
+  current_task: "0013-002-request-id-and-timing"
   epics:
     completed:
       - "0001-runtime-foundation"
@@ -1495,6 +1519,7 @@ roadmap:
       - "0010-typed-handler-inputs"
       - "0011-daylily-testing"
       - "0012-lifecycle-server-controls"
+      - "0014-openapi-metadata"
     next_recommended:
       - "0014-openapi-metadata"
   completed:
@@ -1523,9 +1548,9 @@ roadmap:
     - "0013-001-request-logging-middleware"
     - "0014-001-route-metadata-runtime"
     - "0014-002-openapi-schema-mvp"
+    - "0014-003-macro-metadata-bridge"
   in_progress: []
   next_recommended:
-    - "0014-003-macro-metadata-bridge"
-  later:
     - "0013-002-request-id-and-timing"
+  later:
     - "0013-003-observability-hooks"

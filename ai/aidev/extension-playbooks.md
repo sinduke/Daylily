@@ -378,13 +378,19 @@ Rules:
 3. Do not make OpenAPI generation inspect handler source code.
 4. Preserve metadata across group prefixing and middleware attachment.
 5. Keep schema derivation separate from route metadata storage.
-6. Macro metadata bridge must lower into runtime metadata.
+6. Macro metadata bridge lowers typed inputs into runtime metadata.
 7. Add behavior checks for metadata preservation.
 8. OpenAPI document generation should read `Application.describeRoutes()`, not route source code.
 
+Current macro bridge:
+
+- `@Path` -> `RouteInputMetadata.path(...)`
+- `@Query` -> `RouteInputMetadata.query(...)`
+- `@Header` -> `RouteInputMetadata.header(...)`
+- `@JSONBody` -> `RouteBodyMetadata.json(...)`
+
 Next steps:
 
-- Lower macro typed inputs into `RouteInputMetadata` and `RouteBodyMetadata`.
 - Add schema hooks after JSON/body conventions mature.
 
 ## Add a New Transport

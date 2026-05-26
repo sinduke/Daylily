@@ -161,18 +161,20 @@ private struct RouteMethod {
 
     var routeDeclaration: String {
         if call.usesRequest {
-            return """
+            let route = """
             \(routeFunction)(\(path.swiftStringLiteral)) { req in
                 \(callPrefix)\(receiver).\(functionName)(\(call.arguments))
             }
             """
+            return route + call.metadataSuffix
         }
 
-        return """
+        let route = """
         \(routeFunction)(\(path.swiftStringLiteral)) {
             \(callPrefix)\(receiver).\(functionName)()
         }
         """
+        return route + call.metadataSuffix
     }
 
     private static func callPrefix(for function: FunctionDeclSyntax) -> String {
@@ -205,6 +207,8 @@ private struct RouteMethod {
 
         let routeParameterNames = pathParameterNames(in: routePath)
         var arguments: [String] = []
+        var inputMetadata: [String] = []
+        var requestBodyMetadata: String?
         var hasRequestParameter = false
         var hasBodyParameter = false
 
@@ -224,6 +228,9 @@ private struct RouteMethod {
                 let typeName = parameter.type.description.trimmed
                 let value = "try req.parameters.require(\(pathName.swiftStringLiteral), as: \(typeName).self)"
                 arguments.append(callArgument(for: parameter, value: value))
+                inputMetadata.append(
+                    "RouteInputMetadata.path(\(pathName.swiftStringLiteral), type: \(typeName.swiftStringLiteral))"
+                )
                 continue
             }
 
@@ -237,6 +244,9 @@ private struct RouteMethod {
                 let typeName = parameter.type.description.trimmed
                 let value = "try req.query.require(\(queryName.swiftStringLiteral), as: \(typeName).self)"
                 arguments.append(callArgument(for: parameter, value: value))
+                inputMetadata.append(
+                    "RouteInputMetadata.query(\(queryName.swiftStringLiteral), type: \(typeName.swiftStringLiteral))"
+                )
                 continue
             }
 
@@ -250,6 +260,9 @@ private struct RouteMethod {
                 let typeName = parameter.type.description.trimmed
                 let value = "try req.headers.require(\(headerName.swiftStringLiteral), as: \(typeName).self)"
                 arguments.append(callArgument(for: parameter, value: value))
+                inputMetadata.append(
+                    "RouteInputMetadata.header(\(headerName.swiftStringLiteral), type: \(typeName.swiftStringLiteral))"
+                )
                 continue
             }
 
@@ -262,6 +275,7 @@ private struct RouteMethod {
                 let typeName = parameter.type.description.trimmed
                 let value = "try await req.json(\(typeName).self)"
                 arguments.append(callArgument(for: parameter, value: value))
+                requestBodyMetadata = "RouteBodyMetadata.json(\(typeName.swiftStringLiteral))"
                 continue
             }
 
@@ -278,7 +292,12 @@ private struct RouteMethod {
             throw DaylilyMacroError("@\(routeName) handler parameters must be Request or annotated with @Path, @Query, @Header, or @JSONBody in this MVP.")
         }
 
-        return HandlerCall(argumentExpressions: arguments, usesRequest: true)
+        return HandlerCall(
+            argumentExpressions: arguments,
+            usesRequest: true,
+            inputMetadataExpressions: inputMetadata,
+            requestBodyMetadataExpression: requestBodyMetadata
+        )
     }
 
     private static func isRequestParameter(_ parameter: FunctionParameterSyntax) -> Bool {
@@ -339,9 +358,29 @@ private struct RouteMethod {
 private struct HandlerCall {
     let argumentExpressions: [String]
     let usesRequest: Bool
+    var inputMetadataExpressions: [String] = []
+    var requestBodyMetadataExpression: String?
 
     var arguments: String {
         argumentExpressions.joined(separator: ", ")
+    }
+
+    var metadataSuffix: String {
+        var arguments: [String] = []
+
+        if !inputMetadataExpressions.isEmpty {
+            arguments.append("inputs: [\(inputMetadataExpressions.joined(separator: ", "))]")
+        }
+
+        if let requestBodyMetadataExpression {
+            arguments.append("requestBody: \(requestBodyMetadataExpression)")
+        }
+
+        guard !arguments.isEmpty else {
+            return ""
+        }
+
+        return "\n.describe(\(arguments.joined(separator: ", ")))"
     }
 }
 

@@ -19,7 +19,7 @@ struct App {
 }
 ```
 
-Current implemented surfaces are the runtime DSL, runtime route metadata, minimal `DaylilyOpenAPI` document generation, runtime middleware, `DaylilyObservability` request logging middleware, application lifecycle hooks, the Daylily-owned `Body` model, explicit buffered body replacement, JSON body/response helpers, the macro route/group MVP, macro `@Path`, `@Query`, `@Header`, and `@JSONBody` typed input injection, and `DaylilyTesting` in-memory request/response helpers.
+Current implemented surfaces are the runtime DSL, runtime route metadata, minimal `DaylilyOpenAPI` document generation, runtime middleware, `DaylilyObservability` request logging middleware, application lifecycle hooks, the Daylily-owned `Body` model, explicit buffered body replacement, JSON body/response helpers, the macro route/group MVP, macro `@Path`, `@Query`, `@Header`, and `@JSONBody` typed input injection with route metadata lowering, and `DaylilyTesting` in-memory request/response helpers.
 
 Runtime DSL:
 
@@ -175,6 +175,15 @@ struct App {
 
 The macro layer lowers into the runtime DSL.
 
+Macro typed inputs also lower into runtime route metadata:
+
+```text
+@Path      -> RouteInputMetadata.path(...)
+@Query     -> RouteInputMetadata.query(...)
+@Header    -> RouteInputMetadata.header(...)
+@JSONBody  -> RouteBodyMetadata.json(...)
+```
+
 Testing surface:
 
 ```swift
@@ -220,6 +229,7 @@ Implemented:
 - Macro `@Path` typed path parameter injection.
 - Macro `@Query` and `@Header` typed input injection.
 - Macro `@JSONBody` typed JSON body injection.
+- Macro typed input metadata lowering for OpenAPI.
 - Runtime typed path parameter extraction.
 - `DaylilyTesting` in-memory `TestClient`, `TestRequest`, and response assertion helpers.
 - Daylily-owned `Body` model with one-shot consumption.
@@ -313,5 +323,5 @@ Do not start with:
 Current strategic order:
 
 1. Keep AIDEV self-contained.
-2. Add macro metadata lowering.
+2. Review the 0014 OpenAPI metadata slice.
 3. Return to request id, timing, and observability hooks.

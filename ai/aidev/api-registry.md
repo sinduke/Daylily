@@ -40,16 +40,20 @@ Rules:
 - `@POST` lowers to runtime `Post`.
 - `@GROUP` marks a nested struct as a route group and contributes a path prefix.
 - `@Path` lowers into `req.parameters.require(_:as:)`.
+- `@Path` also lowers into `RouteInputMetadata.path(...)`.
 - Bare `@Path` uses the Swift local parameter name.
 - `@Path("name")` maps to an explicit path parameter name.
 - `@Path` names must match `:name` segments in the full route path.
 - `@Query` lowers into `req.query.require(_:as:)`.
+- `@Query` also lowers into `RouteInputMetadata.query(...)`.
 - Bare `@Query` uses the Swift local parameter name.
 - `@Query("name")` maps to an explicit query parameter name.
 - `@Header` lowers into `req.headers.require(_:as:)`.
+- `@Header` also lowers into `RouteInputMetadata.header(...)`.
 - Bare `@Header` uses the Swift local parameter name.
 - `@Header("name")` maps to an explicit header name.
 - `@JSONBody` lowers into `try await req.json(Type.self)`.
+- `@JSONBody` also lowers into `RouteBodyMetadata.json(...)`.
 - True `@Body` spelling is deferred because `Body` is already Daylily's raw request body type.
 - Grouped types are instantiated with `Self.GroupType()`.
 

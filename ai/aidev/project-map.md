@@ -54,6 +54,7 @@ Daylily/
 - Swift macro implementation target.
 - Owns the compiler plugin for `@DaylilyServer`, `@GET`, `@POST`, and `@GROUP`.
 - Must lower macro syntax into runtime APIs instead of bypassing them.
+- Lowers typed macro inputs into runtime route metadata.
 
 `DaylilyNIO`
 
@@ -227,6 +228,7 @@ Daylily/
 - Macro implementation and compiler plugin registration.
 - `@DaylilyServer` scans route methods and group structs, then generates `static main() async throws`.
 - `@GET`, `@POST`, and `@GROUP` are marker macros used by `@DaylilyServer`.
+- `@Path`, `@Query`, `@Header`, and `@JSONBody` handler inputs lower into runtime extraction and route metadata.
 
 `Sources/DaylilyNIO/NIOHTTPServer.swift`
 

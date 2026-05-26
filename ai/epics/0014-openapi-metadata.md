@@ -1,6 +1,6 @@
 # 0014 OpenAPI Metadata
 
-Status: in-progress
+Status: implemented
 
 Purpose:
 
@@ -17,7 +17,7 @@ Recommended tasks:
 
 - `0014-001-route-metadata-runtime` (implemented)
 - `0014-002-openapi-schema-mvp` (implemented)
-- `0014-003-macro-metadata-bridge`
+- `0014-003-macro-metadata-bridge` (implemented)
 
 Design notes:
 
@@ -26,6 +26,7 @@ Design notes:
 - Typed handler inputs should inform path/body/query/header metadata.
 - `0014-001` delivered runtime `RouteMetadata`, `Route.describe(...)`, and `Application.describeRoutes()`.
 - `0014-002` delivered `DaylilyOpenAPI` and minimal OpenAPI document generation from route metadata.
+- `0014-003` delivered macro typed input metadata lowering into runtime route metadata.
 
 Non-goals for the first task:
 

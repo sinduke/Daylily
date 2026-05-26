@@ -53,6 +53,7 @@ Daylily 不是 Vapor 或 Hummingbird 的复制品。它是在探索：如果 AI 
 - Macro `@Path` 类型化路径参数注入。
 - Macro `@Query` 和 `@Header` 类型化输入注入。
 - Macro `@JSONBody` 类型化 JSON body 注入。
+- Macro typed inputs 会降级成 route metadata，供 OpenAPI 使用。
 - `DaylilyTesting` in-memory `TestClient`、request builders 和 JSON assertions。
 - 默认 `swift run` 示例服务。
 - 轻量行为检查。
@@ -404,6 +405,8 @@ struct App {
 ```
 
 规则很简单：宏必须展开到 runtime route system。runtime 仍然是框架的真相来源。
+
+宏里的 typed inputs 也会降级成 runtime route metadata。`@Path`、`@Query`、`@Header` 和 `@JSONBody` 会通过手写 route 同款的 `Route.describe(...)` 模型贡献 OpenAPI-ready metadata。
 
 MVP 限制：
 
