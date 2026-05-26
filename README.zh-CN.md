@@ -38,6 +38,7 @@ Daylily 不是 Vapor 或 Hummingbird 的复制品。它是在探索：如果 AI 
 - 基于 `ByteChunk` 和 `ByteCount` 的 one-shot body 消费。
 - 真正的 NIO request body streaming bridge，带有有界缓冲和实用 backpressure。
 - 支持 application、group、route 作用域的 runtime middleware。
+- `DaylilyObservability` request logging middleware。
 - Application lifecycle hooks：`configure`、`boot`、`started`、`shutdown`、`cleanup`。
 - 默认 SIGINT/SIGTERM graceful server shutdown。
 - 显式 `ServerConfiguration`，用于 host、port、backlog、address reuse、read batching 和 shutdown signals。
@@ -244,6 +245,21 @@ struct SignatureMiddleware: Middleware {
 ```
 
 replacement body 依然是 one-shot，而且 helper 必须传入明确的大小限制。
+
+## Observability
+
+`DaylilyObservability` 目前提供 request logging middleware，同时不把 logging backend 或 tracing 依赖塞进 `DaylilyCore`：
+
+```swift
+let app = Application {
+    Get("/hello") {
+        "Daylily ships."
+    }
+}
+.middleware(RequestLoggingMiddleware(sink: ConsoleRequestLogSink()))
+```
+
+`RequestLoggingMiddleware` 会记录 method、path 和最终 status。`InMemoryRequestLogSink` 可用于行为检查和早期测试。
 
 ## DaylilyTesting
 

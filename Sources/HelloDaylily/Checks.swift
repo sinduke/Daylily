@@ -41,6 +41,9 @@ enum DaylilyChecks {
         try await middlewarePathParameters()
         try await middlewareBodyShortCircuit()
         try await middlewareBodyOneShot()
+        try await requestLoggingMiddleware()
+        try await requestLoggingMiddlewareAbort()
+        try await requestLoggingMiddlewareUnhandledError()
         try await requestWithBodyReplacement()
         try await withBufferedBodyMiddleware()
         try await withBufferedBodyReplacementIsOneShot()
@@ -711,6 +714,63 @@ enum DaylilyChecks {
 
         try expect(response.status == .internalServerError, "expected consumed body 500 response")
         try expect(response.bodyString == "Request body already consumed", "expected consumed body reason")
+    }
+
+    private static func requestLoggingMiddleware() async throws {
+        let sink = InMemoryRequestLogSink()
+        let app = Application {
+            Get("/hello") {
+                "ok"
+            }
+        }
+        .middleware(RequestLoggingMiddleware(sink: sink))
+
+        let response = await app.respond(to: Request(method: .get, path: "/hello"))
+        let logs = await sink.snapshot()
+
+        try expect(response.status == .ok, "expected request logging response 200")
+        try expect(
+            logs == [RequestLog(method: .get, path: "/hello", status: .ok)],
+            "expected successful request log"
+        )
+    }
+
+    private static func requestLoggingMiddlewareAbort() async throws {
+        let sink = InMemoryRequestLogSink()
+        let app = Application {
+            Get("/fail") { () async throws -> String in
+                throw Abort(.badRequest, reason: "nope")
+            }
+        }
+        .middleware(RequestLoggingMiddleware(sink: sink))
+
+        let response = await app.respond(to: Request(method: .get, path: "/fail"))
+        let logs = await sink.snapshot()
+
+        try expect(response.status == .badRequest, "expected request logging abort response")
+        try expect(
+            logs == [RequestLog(method: .get, path: "/fail", status: .badRequest)],
+            "expected abort request log"
+        )
+    }
+
+    private static func requestLoggingMiddlewareUnhandledError() async throws {
+        let sink = InMemoryRequestLogSink()
+        let app = Application {
+            Get("/boom") { () async throws -> String in
+                throw CheckFailure(message: "boom")
+            }
+        }
+        .middleware(RequestLoggingMiddleware(sink: sink))
+
+        let response = await app.respond(to: Request(method: .get, path: "/boom"))
+        let logs = await sink.snapshot()
+
+        try expect(response.status == .internalServerError, "expected request logging unhandled error response")
+        try expect(
+            logs == [RequestLog(method: .get, path: "/boom", status: .internalServerError)],
+            "expected unhandled error request log"
+        )
     }
 
     private static func requestWithBodyReplacement() async throws {

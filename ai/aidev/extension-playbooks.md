@@ -191,6 +191,37 @@ Body rules:
 5. If downstream code needs an equivalent body, use `request.withBufferedBody(upTo:_:)` deliberately.
 6. `withBufferedBody(upTo:_:)` buffers in memory under a required limit and creates a one-shot replacement body.
 
+## Extend Observability
+
+Current shape:
+
+```swift
+let app = Application {
+    Get("/hello") {
+        "Daylily ships."
+    }
+}
+.middleware(RequestLoggingMiddleware(sink: ConsoleRequestLogSink()))
+```
+
+Rules:
+
+1. Keep observability helpers in `DaylilyObservability`.
+2. Do not move logging, tracing, metrics, or backend clients into `DaylilyCore`.
+3. Implement observability behavior through middleware or explicit hooks before adding macro sugar.
+4. Preserve normal middleware ordering and error propagation.
+5. Record public error semantics, not private thrown error internals.
+6. Add `InMemoryRequestLogSink`-style checks for new observable fields.
+7. Update `api-registry.md`, `runtime-contracts.md`, and `registry.yml`.
+
+Next likely slices:
+
+- request id
+- latency timing
+- structured log fields
+- OpenTelemetry bridge
+- metrics hooks
+
 ## Extend Lifecycle
 
 Current shape:

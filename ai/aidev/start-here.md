@@ -19,7 +19,7 @@ struct App {
 }
 ```
 
-Current implemented surfaces are the runtime DSL, runtime middleware, application lifecycle hooks, the Daylily-owned `Body` model, explicit buffered body replacement, JSON body/response helpers, the macro route/group MVP, macro `@Path`, `@Query`, `@Header`, and `@JSONBody` typed input injection, and `DaylilyTesting` in-memory request/response helpers.
+Current implemented surfaces are the runtime DSL, runtime middleware, `DaylilyObservability` request logging middleware, application lifecycle hooks, the Daylily-owned `Body` model, explicit buffered body replacement, JSON body/response helpers, the macro route/group MVP, macro `@Path`, `@Query`, `@Header`, and `@JSONBody` typed input injection, and `DaylilyTesting` in-memory request/response helpers.
 
 Runtime DSL:
 
@@ -69,6 +69,7 @@ let app = Application {
     .middleware(HeaderMiddleware())
 }
 .middleware(HeaderMiddleware())
+.middleware(RequestLoggingMiddleware(sink: ConsoleRequestLogSink()))
 .configure {
     // register configuration
 }
@@ -95,6 +96,19 @@ application -> router dispatch -> group -> route -> handler
 ```
 
 Middleware may read `request.body`, but `Body` is one-shot. There is no hidden body replay. If middleware needs to inspect bytes and pass an equivalent body downstream, use `request.withBufferedBody(upTo:_:)` with an explicit limit.
+
+Observability currently starts as a separate module:
+
+```swift
+let app = Application {
+    Get("/hello") {
+        "Daylily ships."
+    }
+}
+.middleware(RequestLoggingMiddleware(sink: ConsoleRequestLogSink()))
+```
+
+`RequestLoggingMiddleware` records method, path, and final status. The module depends on `DaylilyCore`, is re-exported by `Daylily`, and must not force logging or tracing dependencies into the core runtime.
 
 Macro route/group MVP:
 
@@ -177,6 +191,7 @@ Implemented:
 - Core runtime.
 - Basic route DSL: `Get`, `Post`, `Group`.
 - Runtime middleware at application, group, and route scope.
+- `DaylilyObservability` request logging middleware.
 - Application lifecycle hooks: `configure`, `boot`, `started`, `shutdown`, `cleanup`.
 - Default SIGINT/SIGTERM graceful server shutdown.
 - Explicit `ServerConfiguration`.
@@ -271,12 +286,11 @@ Do not start with:
 - ORM
 - database module
 - auth
-- OpenAPI
 - production middleware stack
 - benchmarking suite
 
 Current strategic order:
 
 1. Keep AIDEV self-contained.
-2. Add observability middleware.
-3. Add OpenAPI metadata.
+2. Add OpenAPI metadata.
+3. Return to request id, timing, and observability hooks.

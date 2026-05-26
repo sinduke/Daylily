@@ -13,6 +13,7 @@ let package = Package(
         .library(name: "DaylilyCore", targets: ["DaylilyCore"]),
         .library(name: "DaylilyJSON", targets: ["DaylilyJSON"]),
         .library(name: "DaylilyNIO", targets: ["DaylilyNIO"]),
+        .library(name: "DaylilyObservability", targets: ["DaylilyObservability"]),
         .library(name: "DaylilyTesting", targets: ["DaylilyTesting"]),
         .executable(name: "HelloDaylily", targets: ["HelloDaylily"]),
     ],
@@ -28,6 +29,10 @@ let package = Package(
         ),
         .target(
             name: "DaylilyTesting",
+            dependencies: ["DaylilyCore"]
+        ),
+        .target(
+            name: "DaylilyObservability",
             dependencies: ["DaylilyCore"]
         ),
         .macro(
@@ -55,6 +60,7 @@ let package = Package(
                 "DaylilyJSON",
                 "DaylilyMacros",
                 "DaylilyNIO",
+                "DaylilyObservability",
             ]
         ),
         .executableTarget(

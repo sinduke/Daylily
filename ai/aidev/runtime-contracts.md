@@ -128,6 +128,56 @@ Extension points:
 - explicit body replay helper
 - production middleware packages
 
+## Observability Contract
+
+Owner:
+
+- `DaylilyObservability`
+
+Implemented by:
+
+- `ai/tasks/0013-001-request-logging-middleware.md`
+
+Shape:
+
+```swift
+public struct RequestLog: Equatable, Sendable {
+    public var method: HTTPMethod
+    public var path: String
+    public var status: Status
+}
+
+public protocol RequestLogSink: Sendable {
+    func record(_ log: RequestLog) async
+}
+
+public struct RequestLoggingMiddleware<Sink: RequestLogSink>: Middleware
+```
+
+Guarantees:
+
+- Request logging is implemented as normal middleware.
+- The middleware calls downstream exactly once when it does not short-circuit by throwing before `next`.
+- Successful downstream responses record `RequestLog(method:path:status:)` with the response status.
+- Thrown `ResponseError` values record their public `status` and are rethrown.
+- Unknown thrown errors record `500 Internal Server Error` and are rethrown.
+- `ConsoleRequestLogSink` writes a simple development log line.
+- `InMemoryRequestLogSink` stores logs for checks and early tests.
+
+Boundaries:
+
+- `DaylilyObservability` depends on `DaylilyCore`.
+- `DaylilyCore` does not depend on `DaylilyObservability`.
+- No logging backend, metrics backend, tracing SDK, or transport dependency is required by the first observability slice.
+
+Extension points:
+
+- request id
+- latency timing
+- structured log fields
+- OpenTelemetry bridge
+- metrics hooks
+
 ## Route Contract
 
 Input:

@@ -50,6 +50,12 @@ Daylily
 DaylilyNIO
   ↓
 SwiftNIO
+
+Daylily
+  ↓
+DaylilyObservability
+  ↓
+DaylilyCore
 ```
 
 This diagram is conceptual. Package dependencies are:
@@ -59,8 +65,10 @@ Daylily -> DaylilyCore
 Daylily -> DaylilyJSON
 Daylily -> DaylilyMacros
 Daylily -> DaylilyNIO
+Daylily -> DaylilyObservability
 DaylilyJSON -> DaylilyCore
 DaylilyJSON -> Foundation
+DaylilyObservability -> DaylilyCore
 DaylilyTesting -> DaylilyCore
 DaylilyTesting -> Foundation
 DaylilyMacros -> SwiftSyntax
@@ -95,6 +103,8 @@ The transport may use those internally.
 JSON support lives in `DaylilyJSON`, not `DaylilyCore`. `DaylilyJSON` may import Foundation for `JSONEncoder`, `JSONDecoder`, and `Data`.
 
 Testing support lives in `DaylilyTesting`, not `DaylilyCore`. `DaylilyTesting` may use Foundation for test JSON helpers, must stay transport-free and NIO-free, and should call `Application.respond(to:)` directly.
+
+Observability helpers live in `DaylilyObservability`, not `DaylilyCore`. The first slice is request logging middleware. It may depend on `DaylilyCore`, but it must not force logging backends, tracing SDKs, metrics clients, or transport-specific APIs into the core runtime.
 
 ## Runtime First
 
@@ -192,6 +202,20 @@ Application middleware -> router dispatch -> group middleware -> route middlewar
 ```
 
 Application middleware wraps every request, including missing routes. Group and route middleware run only after a route match, so path parameters are available. Middleware may read `request.body`, but the `Body` remains one-shot and Daylily does not replay it automatically.
+
+0013-001 request logging middleware:
+
+```text
+RequestLoggingMiddleware
+  ↓
+next.respond(to:)
+  ↓
+RequestLog(method, path, final status)
+  ↓
+RequestLogSink
+```
+
+Request logging is a normal middleware and follows the same ordering, short-circuiting, and error mapping rules as other middleware. It records the final response status for successful downstream responses, `ResponseError.status` for framework errors, and `500 Internal Server Error` for unknown thrown errors.
 
 ## Router Rules
 

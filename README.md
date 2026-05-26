@@ -38,6 +38,7 @@ Implemented today:
 - One-shot body consumption with `ByteChunk` and `ByteCount`.
 - True NIO request body streaming bridge with bounded buffering and practical backpressure.
 - Runtime middleware with application, group, and route scopes.
+- `DaylilyObservability` request logging middleware.
 - Application lifecycle hooks: `configure`, `boot`, `started`, `shutdown`, `cleanup`.
 - Default SIGINT/SIGTERM graceful server shutdown.
 - Explicit `ServerConfiguration` for host, port, backlog, address reuse, read batching, and shutdown signals.
@@ -244,6 +245,21 @@ struct SignatureMiddleware: Middleware {
 ```
 
 The replacement body is still one-shot, and the helper requires an explicit size limit.
+
+## Observability
+
+`DaylilyObservability` currently provides request logging middleware without adding logging backends or tracing dependencies to `DaylilyCore`:
+
+```swift
+let app = Application {
+    Get("/hello") {
+        "Daylily ships."
+    }
+}
+.middleware(RequestLoggingMiddleware(sink: ConsoleRequestLogSink()))
+```
+
+`RequestLoggingMiddleware` records method, path, and final status. `InMemoryRequestLogSink` is available for behavior checks and early tests.
 
 ## DaylilyTesting
 

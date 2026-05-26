@@ -10,6 +10,7 @@ This file tracks the current public API surface. Update it whenever public names
 @_exported import DaylilyCore
 @_exported import DaylilyJSON
 @_exported import DaylilyNIO
+@_exported import DaylilyObservability
 ```
 
 ### Macros
@@ -71,6 +72,61 @@ Lifecycle order:
 ```text
 configure -> boot -> NIO bind -> started -> server close -> shutdown -> cleanup
 ```
+
+## Module DaylilyObservability
+
+### RequestLog
+
+```swift
+public struct RequestLog: Equatable, Sendable {
+    public var method: HTTPMethod
+    public var path: String
+    public var status: Status
+
+    public init(method: HTTPMethod, path: String, status: Status)
+}
+```
+
+### RequestLogSink
+
+```swift
+public protocol RequestLogSink: Sendable {
+    func record(_ log: RequestLog) async
+}
+```
+
+### RequestLoggingMiddleware
+
+```swift
+public struct RequestLoggingMiddleware<Sink: RequestLogSink>: Middleware {
+    public init(sink: Sink)
+    public func handle(_ request: Request, next: Handler) async throws -> Response
+}
+```
+
+### Sinks
+
+```swift
+public struct ConsoleRequestLogSink: RequestLogSink {
+    public init()
+    public func record(_ log: RequestLog) async
+}
+
+public actor InMemoryRequestLogSink: RequestLogSink {
+    public init()
+    public func record(_ log: RequestLog)
+    public func snapshot() -> [RequestLog]
+}
+```
+
+Rules:
+
+- `DaylilyObservability` depends on `DaylilyCore`.
+- `RequestLoggingMiddleware` records method, path, and final status.
+- Successful downstream responses record `response.status`.
+- Thrown `ResponseError` values record `error.status` and then rethrow.
+- Unknown thrown errors record `500 Internal Server Error` and then rethrow.
+- The module must not require a logging backend, tracing SDK, or transport dependency.
 
 ## Module DaylilyTesting
 

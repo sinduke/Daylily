@@ -171,7 +171,8 @@ Practical interleave:
 0012-001 Application lifecycle MVP (delivered)
 0012-002 Graceful shutdown (delivered)
 0012-003 Server configuration (delivered)
-0013-001 Observability middleware
+0013-001 Request logging middleware (delivered)
+0014-001 Route metadata runtime
 ```
 
 ## Recently Completed Epic
@@ -205,7 +206,7 @@ func search(
 
 ### 0012 Lifecycle / Server Controls
 
-Status: in-progress
+Status: implemented
 
 Delivered:
 
@@ -227,10 +228,30 @@ let app = Application {
 
 Next task:
 
+- `0014-001-route-metadata-runtime`
+
+### 0013 Observability Middleware
+
+Status: in-progress
+
+Delivered:
+
 - `0013-001-request-logging-middleware`
+
+Delivered shape:
+
+```swift
+let app = Application {
+    Get("/hello") { "ok" }
+}
+.middleware(RequestLoggingMiddleware(sink: ConsoleRequestLogSink()))
+```
+
+Remaining future slices:
+
+- request id and timing
+- observability hooks
 
 ### Future Epics
 
-- `0012` Lifecycle and production server controls.
-- `0013` Observability middleware.
 - `0014` OpenAPI metadata.

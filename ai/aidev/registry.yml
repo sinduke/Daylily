@@ -5,7 +5,7 @@ project:
   license: MIT
   license_file: LICENSE
   swift_tools_version: "6.0"
-  current_phase: "observability_middleware"
+  current_phase: "openapi_metadata"
   authoritative_ai_entry:
     - AIDEV.md
     - ai/aidev/start-here.md
@@ -63,6 +63,7 @@ products:
       - reexport_core
       - reexport_json
       - reexport_nio_transport
+      - reexport_observability
       - provide_application_run
       - expose_route_macros
     depends_on:
@@ -70,6 +71,7 @@ products:
       - DaylilyJSON
       - DaylilyMacros
       - DaylilyNIO
+      - DaylilyObservability
   DaylilyJSON:
     kind: library
     role: json_helpers
@@ -140,6 +142,22 @@ products:
       - bridge_async_responder_to_event_loop
     depends_on:
       - DaylilyCore
+      - NIOCore
+      - NIOHTTP1
+      - NIOPosix
+  DaylilyObservability:
+    kind: library
+    role: observability_helpers
+    responsibility:
+      - provide_request_logging_middleware
+      - provide_request_log_sink_protocol
+      - provide_console_request_log_sink
+      - provide_in_memory_request_log_sink_for_checks
+      - keep_logging_and_tracing_out_of_core
+    depends_on:
+      - DaylilyCore
+    forbidden_imports:
+      - NIO
       - NIOCore
       - NIOHTTP1
       - NIOPosix
@@ -522,6 +540,31 @@ implemented_features:
       - "multipart parsing"
       - "JSON/Content abstraction"
       - "streaming replay"
+  request_logging_middleware:
+    status: implemented
+    epic: "0013-observability-middleware"
+    task: "0013-001-request-logging-middleware"
+    module: DaylilyObservability
+    public_api:
+      - RequestLog
+      - RequestLogSink
+      - RequestLoggingMiddleware
+      - ConsoleRequestLogSink
+      - InMemoryRequestLogSink
+    decisions:
+      - "Observability helpers live outside DaylilyCore"
+      - "Request logging is implemented as normal middleware"
+      - "Logs include method, path, and final status"
+      - "Successful downstream responses record response.status"
+      - "ResponseError values record error.status and are rethrown"
+      - "Unknown thrown errors record 500 Internal Server Error and are rethrown"
+      - "No logging backend, metrics backend, tracing SDK, or transport dependency is required"
+    non_goals:
+      - "request id"
+      - "latency timing"
+      - "OpenTelemetry"
+      - "structured logging framework commitment"
+      - "metrics backend integration"
 
 planned_features:
   typed_handler_inputs:
@@ -540,16 +583,27 @@ planned_features:
       - "0011-001-minimal-test-client"
       - "0011-002-request-builders-and-json-assertions"
     next_task: null
-  openapi:
-    status: future
   lifecycle_server_controls:
-    status: in-progress
+    status: implemented
     epic: "0012-lifecycle-server-controls"
     completed:
       - "0012-001-application-lifecycle-mvp"
       - "0012-002-graceful-shutdown"
       - "0012-003-server-configuration"
     next_task: null
+  observability_middleware:
+    status: in-progress
+    epic: "0013-observability-middleware"
+    completed:
+      - "0013-001-request-logging-middleware"
+    next_task: "0014-001-route-metadata-runtime"
+    deferred:
+      - "0013-002-request-id-and-timing"
+      - "0013-003-observability-hooks"
+  openapi:
+    status: next
+    epic: "0014-openapi-metadata"
+    next_task: "0014-001-route-metadata-runtime"
   dependency_injection:
     status: future
 
@@ -559,6 +613,7 @@ public_api:
       - DaylilyCore
       - DaylilyJSON
       - DaylilyNIO
+      - DaylilyObservability
     Application.run:
       signatures:
         - "public func run(host: String = \"127.0.0.1\", port: Int = 8080) async throws"
@@ -580,6 +635,45 @@ public_api:
       GROUP:
         signature: "public macro GROUP(_ prefix: String)"
         role: "mark nested struct as route group"
+  DaylilyObservability:
+    RequestLog:
+      kind: struct
+      conforms:
+        - Equatable
+        - Sendable
+      properties:
+        - "method: HTTPMethod"
+        - "path: String"
+        - "status: Status"
+      initializer: "public init(method: HTTPMethod, path: String, status: Status)"
+    RequestLogSink:
+      kind: protocol
+      conforms:
+        - Sendable
+      methods:
+        - "func record(_ log: RequestLog) async"
+    RequestLoggingMiddleware:
+      kind: struct
+      generic: "Sink: RequestLogSink"
+      conforms:
+        - Middleware
+      initializer: "public init(sink: Sink)"
+      contract: "Records method, path, and final status around downstream middleware/handler execution."
+    ConsoleRequestLogSink:
+      kind: struct
+      conforms:
+        - RequestLogSink
+      methods:
+        - "public init()"
+        - "public func record(_ log: RequestLog) async"
+    InMemoryRequestLogSink:
+      kind: actor
+      conforms:
+        - RequestLogSink
+      methods:
+        - "public init()"
+        - "public func record(_ log: RequestLog)"
+        - "public func snapshot() -> [RequestLog]"
   DaylilyTesting:
     TestClient:
       kind: struct
@@ -1017,6 +1111,7 @@ runtime_rules:
   middleware_order: "application -> router dispatch -> group -> route -> handler"
   middleware_body_policy: "middleware can read Body, but Body remains one-shot and no automatic replay occurs"
   explicit_buffered_body_policy: "withBufferedBody consumes the original Body, buffers under an explicit limit, creates a one-shot replacement Body.bytes value, and does not enable automatic replay"
+  observability_policy: "DaylilyObservability owns request logging and future observability helpers; DaylilyCore does not depend on logging backends, tracing SDKs, metrics clients, or transport APIs."
   errors:
     response_error: "status + reason"
     abort: "ResponseError conformer"
@@ -1078,6 +1173,7 @@ aidev_files:
     - ai/tasks/0012-001-application-lifecycle-mvp.md
     - ai/tasks/0012-002-graceful-shutdown.md
     - ai/tasks/0012-003-server-configuration.md
+    - ai/tasks/0013-001-request-logging-middleware.md
   docs:
     - ai/aidev/project-map.md
     - ai/aidev/architecture.md
@@ -1100,6 +1196,7 @@ extension_playbooks:
   - extend_json_body_decoding
   - extend_json_responses
   - add_middleware_runtime
+  - extend_observability
   - extend_lifecycle
   - add_explicit_buffered_body_helper
   - add_streaming_body
@@ -1143,7 +1240,7 @@ verification:
     cleanup: "stop the HelloDaylily process"
 
 roadmap:
-  current_task:
+  current_task: "0014-001-route-metadata-runtime"
   epics:
     completed:
       - "0001-runtime-foundation"
@@ -1156,7 +1253,6 @@ roadmap:
       - "0011-daylily-testing"
       - "0012-lifecycle-server-controls"
     next_recommended:
-      - "0013-observability-middleware"
       - "0014-openapi-metadata"
   completed:
     - "0001-001-minimal-http-server"
@@ -1181,9 +1277,10 @@ roadmap:
     - "0012-001-application-lifecycle-mvp"
     - "0012-002-graceful-shutdown"
     - "0012-003-server-configuration"
+    - "0013-001-request-logging-middleware"
   in_progress: []
   next_recommended:
-    - "0013-001-request-logging-middleware"
-  later:
-    - "0013-001-request-logging-middleware"
     - "0014-001-route-metadata-runtime"
+  later:
+    - "0013-002-request-id-and-timing"
+    - "0013-003-observability-hooks"

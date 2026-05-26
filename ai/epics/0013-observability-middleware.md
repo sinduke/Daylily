@@ -1,6 +1,6 @@
 # 0013 Observability Middleware
 
-Status: proposed
+Status: in-progress
 
 Purpose:
 
@@ -9,7 +9,7 @@ Purpose:
 
 Recommended tasks:
 
-- `0013-001-request-logging-middleware`
+- `0013-001-request-logging-middleware` (implemented)
 - `0013-002-request-id-and-timing`
 - `0013-003-observability-hooks`
 
@@ -18,6 +18,7 @@ Design notes:
 - Prefer middleware packages or optional modules over bloating `DaylilyCore`.
 - Keep default error output safe.
 - Make diagnostics useful for AI agents and humans.
+- `0013-001` delivered `DaylilyObservability`, `RequestLoggingMiddleware`, and simple console/in-memory sinks.
 
 Non-goals for the first task:
 

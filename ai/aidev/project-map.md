@@ -15,6 +15,7 @@ Daylily/
 │   ├── DaylilyJSON/
 │   ├── DaylilyMacros/
 │   ├── DaylilyNIO/
+│   ├── DaylilyObservability/
 │   ├── DaylilyTesting/
 │   └── HelloDaylily/
 └── ai/
@@ -29,7 +30,7 @@ Daylily/
 `Daylily`
 
 - Public user-facing library.
-- Re-exports `DaylilyCore`, `DaylilyJSON`, and `DaylilyNIO`.
+- Re-exports `DaylilyCore`, `DaylilyJSON`, `DaylilyNIO`, and `DaylilyObservability`.
 - Adds `Application.run(host:port:)`.
 - Exposes `@DaylilyServer`, `@GET`, `@POST`, and `@GROUP`.
 
@@ -61,6 +62,13 @@ Daylily/
 - Uses bounded buffering and practical backpressure for request bodies.
 - Converts Daylily `Response` into NIO HTTP response parts.
 
+`DaylilyObservability`
+
+- Optional observability helpers.
+- Depends on `DaylilyCore`.
+- Owns `RequestLoggingMiddleware`, `RequestLog`, and request log sinks.
+- Must not pull logging backends, tracing SDKs, or transport-specific APIs into `DaylilyCore`.
+
 `DaylilyTesting`
 
 - Transport-free testing helpers.
@@ -86,7 +94,7 @@ Daylily/
 
 `Sources/Daylily/Exports.swift`
 
-- Re-exports `DaylilyCore`, `DaylilyJSON`, and `DaylilyNIO`.
+- Re-exports `DaylilyCore`, `DaylilyJSON`, `DaylilyNIO`, and `DaylilyObservability`.
 
 `Sources/Daylily/Macros.swift`
 
@@ -208,6 +216,13 @@ Daylily/
 
 - NIO HTTP server and channel handler.
 - Accepts a `started` callback so `Application.run` can run lifecycle after bind.
+
+`Sources/DaylilyObservability/RequestLoggingMiddleware.swift`
+
+- Defines `RequestLog`.
+- Defines `RequestLogSink`.
+- Defines `RequestLoggingMiddleware`.
+- Provides `ConsoleRequestLogSink` and `InMemoryRequestLogSink`.
 
 `Sources/DaylilyTesting/TestClient.swift`
 
