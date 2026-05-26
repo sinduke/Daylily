@@ -69,6 +69,29 @@ scripts/template-smoke-test.sh --mode path
 scripts/template-smoke-test.sh --mode release --version 0.1.0-alpha.1
 ```
 
+## Run the Commerce API Example
+
+The first real API example lives in `examples/commerce-api`. It demonstrates a
+small product and order service with state, JSON DTOs, typed path/query inputs,
+route metadata, and transport-free tests.
+
+Validate it from the repository root:
+
+```sh
+scripts/example-smoke-test.sh --mode path
+scripts/example-smoke-test.sh --mode release --version 0.1.0-alpha.1
+```
+
+Or run it directly:
+
+```sh
+cd examples/commerce-api
+swift build
+swift test
+swift run App --check
+swift run App
+```
+
 ## Run Checks
 
 Daylily keeps a shared behavior check suite that is used by both the example executable and formal tests:
@@ -155,6 +178,7 @@ struct App {
 ## Next Steps
 
 - Read the [JSON API example](examples/json-api.md).
+- Read the [commerce API example](examples/commerce-api.md).
 - Read the [middleware example](examples/middleware.md).
 - Read the [testing example](examples/testing.md).
 - Check the [capability matrix](capability-matrix.md).

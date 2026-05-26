@@ -10,6 +10,7 @@ VERSION="0.1.0-alpha.1"
 REPO_URL="https://github.com/sinduke/Daylily.git"
 PACKAGE_PATH="$REPO_ROOT"
 TEMPLATE_DIR="$REPO_ROOT/templates/minimal-app"
+SMOKE_NAME="minimal app template"
 BRANCH="main"
 KEEP_WORKDIR="0"
 WORKDIR=""
@@ -24,9 +25,10 @@ Options:
   --repo-url URL               Git repository URL for release/branch mode.
   --package-path PATH          Local package path for --mode path.
   --template-dir PATH          Template directory to copy.
+  --name NAME                  Human-readable smoke name. Default: minimal app template.
   --branch BRANCH              Branch name for --mode branch. Default: main.
   --workdir PATH               Reuse or create the smoke package in PATH.
-  --keep                       Keep the generated template smoke package after the run.
+  --keep                       Keep the generated smoke package after the run.
   -h, --help                   Show this help.
 USAGE
 }
@@ -51,6 +53,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --template-dir)
             TEMPLATE_DIR="$2"
+            shift 2
+            ;;
+        --name)
+            SMOKE_NAME="$2"
             shift 2
             ;;
         --branch)
@@ -162,7 +168,8 @@ trap cleanup EXIT
 cp -R "$TEMPLATE_DIR/." "$WORKDIR/"
 replace_dependency "$WORKDIR/Package.swift" "$DAYLILY_DEPENDENCY"
 
-echo "Template smoke package: $WORKDIR"
+echo "Smoke package: $WORKDIR"
+echo "Smoke target: $SMOKE_NAME"
 echo "Dependency mode: $MODE"
 
 (
@@ -173,4 +180,4 @@ echo "Dependency mode: $MODE"
     swift run App --check
 )
 
-echo "Daylily minimal app template smoke passed ($MODE)."
+echo "Daylily $SMOKE_NAME smoke passed ($MODE)."

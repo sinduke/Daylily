@@ -213,6 +213,15 @@ swift test
 swift run App --check
 ```
 
+To try the first real API example:
+
+```sh
+scripts/example-smoke-test.sh --mode path
+cd examples/commerce-api
+swift run App --check
+swift run App
+```
+
 Daylily uses Swift Testing for the formal test target. If `swift test` reports `no such module 'Testing'` while `xcode-select -p` points at Command Line Tools, run it with an Xcode developer directory, for example:
 
 ```sh
@@ -253,6 +262,7 @@ Dedicated beta docs are also available:
 - [Quick Start](docs/quickstart.md)
 - [Capability Matrix](docs/capability-matrix.md)
 - [Release Readiness](docs/release-readiness.md)
+- [Commerce API Example](docs/examples/commerce-api.md)
 - [JSON API Example](docs/examples/json-api.md)
 - [Middleware Example](docs/examples/middleware.md)
 - [Testing Example](docs/examples/testing.md)

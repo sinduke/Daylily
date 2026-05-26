@@ -20,6 +20,8 @@ scripts/consumer-smoke-test.sh --mode path
 scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.1
 scripts/template-smoke-test.sh --mode path
 scripts/template-smoke-test.sh --mode release --version 0.1.0-alpha.1
+scripts/example-smoke-test.sh --mode path
+scripts/example-smoke-test.sh --mode release --version 0.1.0-alpha.1
 ```
 
 GitHub Actions validation:
@@ -29,6 +31,7 @@ GitHub Actions validation:
 - Commands: `swift package resolve`, `swift build`, `swift test`, `swift run HelloDaylily --check`
 - External consumer smoke: fresh SwiftPM package using both local path dependency and released package dependency
 - Template smoke: `templates/minimal-app` using both local path dependency and released package dependency
+- Example smoke: `examples/commerce-api` using both local path dependency and released package dependency
 
 Linux validation is CI-owned for now. Local development has been verified on macOS with Xcode 26.5 and Swift 6.3.2.
 
@@ -44,6 +47,7 @@ Linux validation is CI-owned for now. Local development has been verified on mac
 - Transport-free testing helpers.
 - External SwiftPM consumer smoke coverage for runtime, macro, and testing package shapes.
 - Minimal app template with `AppCore`, executable startup, and in-memory tests.
+- Commerce API example with products, orders, state, metadata, and in-memory tests.
 - AI-readable AIDEV project handoff.
 - Beta documentation set.
 
@@ -65,5 +69,6 @@ Before creating a tag:
 - README and docs state the correct support level.
 - External consumer smoke passes for local path and release dependency modes.
 - Minimal app template smoke passes for local path and release dependency modes.
+- Commerce API example smoke passes for local path and release dependency modes.
 - `ai/aidev/api-registry.md` and `ai/aidev/registry.yml` match public API.
 - The tag name follows semver pre-release form, such as `0.1.0-alpha.1`.

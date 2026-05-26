@@ -12,9 +12,12 @@ Daylily/
 ├── README.zh-CN.md
 ├── scripts/
 │   ├── consumer-smoke-test.sh
+│   ├── example-smoke-test.sh
 │   └── template-smoke-test.sh
 ├── templates/
 │   └── minimal-app/
+├── examples/
+│   └── commerce-api/
 ├── docs/
 │   ├── README.md
 │   ├── quickstart.md
@@ -63,7 +66,7 @@ Daylily/
 
 `docs/examples/`
 
-- Focused beta examples for JSON APIs, middleware, and transport-free testing.
+- Focused beta examples for the commerce API, JSON APIs, middleware, and transport-free testing.
 
 `CHANGELOG.md`
 
@@ -85,6 +88,11 @@ Daylily/
 - Rewrites the Daylily dependency for path, release, or branch validation.
 - Runs `swift package resolve`, `swift build`, `swift test`, and `swift run App --check`.
 
+`scripts/example-smoke-test.sh`
+
+- Validates `examples/commerce-api` through the same external package smoke path.
+- Supports path, release, and branch dependency modes through `scripts/template-smoke-test.sh`.
+
 ## Templates
 
 `templates/minimal-app`
@@ -92,6 +100,15 @@ Daylily/
 - Recommended minimal external Daylily app structure.
 - Uses `AppCore` for application construction and route declarations.
 - Uses `App` for process startup.
+- Uses `AppCoreTests` with `DaylilyTesting` for in-memory tests.
+
+## Examples
+
+`examples/commerce-api`
+
+- First real API example for package consumers.
+- Uses `AppCore` for a product/order API with an actor-backed in-memory store.
+- Uses `App` for process startup and `--check`.
 - Uses `AppCoreTests` with `DaylilyTesting` for in-memory tests.
 
 ## Package Products and Targets

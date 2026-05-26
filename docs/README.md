@@ -13,6 +13,7 @@ This directory contains beta-facing docs: practical guides for trying the curren
 
 ## Examples
 
+- [Commerce API](examples/commerce-api.md): first real API example with products, orders, state, metadata, and tests.
 - [JSON API](examples/json-api.md): request decoding, JSON responses, and macro `@Body` input.
 - [Middleware](examples/middleware.md): application/group/route middleware, observability, and one-shot body rules.
 - [Testing](examples/testing.md): transport-free tests with `DaylilyTesting`.
@@ -32,5 +33,6 @@ This directory contains beta-facing docs: practical guides for trying the curren
 - CI validation: macOS and Linux.
 - External consumer validation: fresh SwiftPM package in path and release modes.
 - Template validation: minimal app template in path and release modes.
+- Example validation: commerce API example in path and release modes.
 - Transport: NIO-backed HTTP/1.1.
 - Status: experimental package-consumer work after the first alpha release.

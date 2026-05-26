@@ -302,6 +302,7 @@ Implemented:
 - Release hygiene docs, including `CHANGELOG.md` and `docs/release-readiness.md`.
 - External SwiftPM consumer smoke script and CI coverage for local path and released package dependency modes.
 - Minimal app template in `templates/minimal-app`, plus template smoke validation for path and release dependency modes.
+- Commerce API example in `examples/commerce-api`, plus example smoke validation for path and release dependency modes.
 
 Not implemented:
 
@@ -359,6 +360,7 @@ swift test
 swift run HelloDaylily --check
 scripts/consumer-smoke-test.sh --mode path
 scripts/template-smoke-test.sh --mode path
+scripts/example-smoke-test.sh --mode path
 ```
 
 If `swift test` reports `no such module 'Testing'` because the active developer directory is Command Line Tools, run it with the installed Xcode toolchain:
@@ -391,5 +393,5 @@ Do not start with:
 Current strategic order:
 
 1. Finish Package Consumer Experience.
-2. Add the first real API example.
-3. Then stabilize dependency injection design from the external app shape.
+2. Stabilize dependency injection design from the external app and commerce API shapes.
+3. Then implement the DI runtime MVP.

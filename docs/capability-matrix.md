@@ -11,6 +11,7 @@ This matrix tracks the current beta-facing capability surface. It is intentional
 | Linux CI | Implemented | GitHub Actions validates with `swift:6.3.2-noble`. |
 | External consumer smoke | Implemented | Fresh SwiftPM package validates local path and released package dependency modes. |
 | Minimal app template | Implemented | `templates/minimal-app` validates `AppCore`, executable startup, tests, and package dependency modes. |
+| Commerce API example | Implemented | `examples/commerce-api` validates a small stateful product/order API in path and release modes. |
 | Runtime application | Implemented | `Application` owns route dispatch and middleware execution. |
 | HTTP transport | Implemented | NIO-backed HTTP/1.1 server. |
 | Route DSL | Implemented | `Get`, `Post`, `Put`, `Patch`, `Delete`, `Head`, `Options`, `Group`. |

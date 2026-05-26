@@ -5,4 +5,5 @@ DerivedData/
 *.xcodeproj
 xcuserdata/
 .DS_Store
-templates/minimal-app/Package.resolved
+templates/*/Package.resolved
+examples/*/Package.resolved

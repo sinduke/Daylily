@@ -213,6 +213,15 @@ swift test
 swift run App --check
 ```
 
+如果要试第一个真实 API 示例：
+
+```sh
+scripts/example-smoke-test.sh --mode path
+cd examples/commerce-api
+swift run App --check
+swift run App
+```
+
 Daylily 使用 Swift Testing 作为正式 test target。如果 `swift test` 报 `no such module 'Testing'`，并且 `xcode-select -p` 指向 Command Line Tools，可以显式指定 Xcode developer directory：
 
 ```sh
@@ -253,6 +262,7 @@ README 后半部分就是详细使用教程入口，保留了可以直接复制�
 - [Quick Start](docs/quickstart.md)
 - [Capability Matrix](docs/capability-matrix.md)
 - [Release Readiness](docs/release-readiness.md)
+- [Commerce API Example](docs/examples/commerce-api.md)
 - [JSON API Example](docs/examples/json-api.md)
 - [Middleware Example](docs/examples/middleware.md)
 - [Testing Example](docs/examples/testing.md)
