@@ -12,6 +12,7 @@ Daylily is currently experimental. Public APIs may change before beta or stable 
 - Minimal app template with `AppCore`, executable startup, in-memory tests, and template smoke validation.
 - Commerce API example with products, orders, state, metadata, tests, and example smoke validation.
 - Dependency injection design for the first `Dependencies` registry MVP.
+- Documentation principle that Daylily defaults are recommended paths, not mandatory application architecture.
 
 ## 0.1.0-alpha.1 - 2026-05-26
 

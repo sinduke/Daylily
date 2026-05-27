@@ -4,6 +4,10 @@ This file tracks the current public API surface. Update it whenever public names
 
 ## Module Daylily
 
+### Default Path Principle
+
+Daylily APIs provide recommended defaults, not mandatory application architecture. Runtime APIs are first-class. Macros must lower into runtime APIs and must not become the only way to express a supported app shape.
+
 ### Re-exports
 
 ```swift
@@ -77,6 +81,7 @@ Rules:
 - `@JSONBody` is a compatibility alias spelling for `@Body` and uses the same lowering.
 - The raw one-shot request body type is `RequestBody`.
 - Grouped types are instantiated with `Self.GroupType()`.
+- These are macro rules, not runtime rules. Runtime route DSL remains a first-class supported API when macro limits do not fit an application.
 
 ### Application.run
 

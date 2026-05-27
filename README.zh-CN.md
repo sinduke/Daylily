@@ -94,6 +94,15 @@ Daylily 优先考虑：
 - 确定性的架构；
 - 便于 introspection 的系统。
 
+### Default Path, Not Mandatory Path
+
+Daylily 提供推荐默认路径，但不会要求应用把自己的架构交给框架。
+
+- Runtime DSL 是一等 API，不是宏不够用时的 fallback。
+- `@DaylilyServer` 和 route macros 是 runtime routes 上的便利语法。
+- 计划中的 `Dependencies` registry 是默认依赖通道，不是强制 DI container。
+- 应用可以保留自己的 composition root、捕获自己的 services，或者注册自己的 container。
+
 ### Swift Concurrency First
 
 Daylily 围绕现代 Swift 设计：
@@ -143,6 +152,8 @@ Transport layer
 ```
 
 Runtime 仍然是框架真相来源。宏会降级成 runtime routes 和 metadata；OpenAPI 和 AI tooling 读取的是同一套显式契约，而不是从源码里猜。
+
+Daylily 的默认能力都应该是可替换的。当 macro shape 或内置 helper 不适合真实应用时，runtime API 仍然是受支持的正路。
 
 ## Benchmarks
 
@@ -640,6 +651,8 @@ struct App {
 
 规则很简单：宏必须展开到 runtime route system。runtime 仍然是框架的真相来源。
 
+Macro API 是默认便利路径，不是构建 Daylily app 的唯一方式。如果项目需要自己的 composition root、非默认初始化，或者超出 macro MVP 的 handler 形状，就直接使用 runtime DSL。
+
 宏里的 typed inputs 也会降级成 runtime route metadata。`@Path`、`@Query`、`@Header` 和主写法 `@Body` 会通过手写 route 同款的 `Route.describe(...)` 模型贡献 OpenAPI-ready metadata。`@JSONBody` 只作为 `@Body` 的兼容别名写法保留。
 
 MVP 限制：
@@ -655,6 +668,8 @@ MVP 限制：
 - raw one-shot request body 类型是 `RequestBody`；
 - group type 必须可以默认初始化；
 - optional typed inputs、macro middleware attributes、DI 和深度 OpenAPI schema 推导都是后续工作。
+
+这些是 macro MVP 的限制，不是 runtime 的限制。
 
 ## AI-Native 开发
 

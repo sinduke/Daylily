@@ -104,6 +104,16 @@ Middleware lives in `DaylilyCore`. It is runtime infrastructure, not transport i
 
 Lifecycle phases live in `DaylilyCore`. `Application.run` wires them to the current transport, and `DaylilyNIO` only exposes a transport-level `started` callback for bind completion.
 
+## Default Path, Not Mandatory Path
+
+Daylily provides recommended defaults without making them architectural monopolies.
+
+- Runtime APIs are first-class and remain valid even when macro APIs exist.
+- Macro APIs are convenience syntax over runtime APIs.
+- Built-in helpers should support common application shapes without forcing users to abandon their own composition root.
+- The planned `Dependencies` registry is a default dependency channel, not the only legal DI or service wiring strategy.
+- User applications may capture services in closures, register their own container, or bypass Daylily dependency helpers entirely.
+
 ## Non-Negotiable Boundaries
 
 `DaylilyCore` must not import:
@@ -157,7 +167,7 @@ Application {
 
 Runtime route verbs currently include `Get`, `Post`, `Put`, `Patch`, `Delete`, `Head`, and `Options`. `HEAD` and `OPTIONS` are explicit route methods; there is no automatic `HEAD -> GET` fallback or automatic `OPTIONS Allow` response yet.
 
-Macro syntax lowers into runtime APIs.
+Macro syntax lowers into runtime APIs. If the macro MVP cannot express a real application shape, the runtime DSL is the supported path rather than an escape hatch.
 
 Implemented MVP:
 
@@ -416,4 +426,4 @@ MVP limits:
 
 Important rule:
 
-The macro layer must not become the only way to build routes. Runtime APIs remain the ground truth.
+The macro layer must not become the only way to build routes. Runtime APIs remain the ground truth, and macro limitations must not become runtime limitations.

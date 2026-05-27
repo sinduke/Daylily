@@ -6,7 +6,7 @@ This is the first file an AI should read when taking over Daylily.
 
 Daylily is an experimental AI-native web framework for Swift.
 
-Its intended surface is macro-driven and declarative:
+Its default surface is macro-driven and declarative:
 
 ```swift
 @main
@@ -18,6 +18,8 @@ struct App {
     }
 }
 ```
+
+This is a default path, not a mandatory path. Runtime APIs are first-class, macros lower into runtime APIs, and user applications may keep their own composition roots, services, factories, or containers.
 
 Current implemented surfaces are the runtime DSL for `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, and `OPTIONS`, runtime route metadata, minimal `DaylilyOpenAPI` document generation, runtime middleware, `DaylilyObservability` request ID and request logging middleware, application lifecycle hooks, the Daylily-owned `RequestBody` model, explicit buffered body replacement, JSON body/response helpers, the macro route/group MVP, macro `@Path`, `@Query`, `@Header`, and preferred `@Body` typed JSON input injection with route metadata lowering, `@JSONBody` compatibility alias spelling, and `DaylilyTesting` in-memory request/response helpers.
 
@@ -223,7 +225,7 @@ struct App {
 }
 ```
 
-The macro layer lowers into the runtime DSL.
+The macro layer lowers into the runtime DSL. Macro limitations are macro limitations, not runtime limitations.
 
 Macro typed inputs also lower into runtime route metadata:
 

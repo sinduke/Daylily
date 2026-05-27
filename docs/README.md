@@ -4,6 +4,10 @@ Daylily is an experimental AI-first Swift web framework built around Swift Concu
 
 This directory contains beta-facing docs: practical guides for trying the current framework and evaluating what is implemented today.
 
+## Design Principle
+
+Daylily provides default paths, not mandatory paths. Runtime APIs are first-class, macros are convenience syntax, and future helpers such as `Dependencies` are intended to support common application shapes without replacing a project's own composition root.
+
 ## Start Here
 
 - [Quick Start](quickstart.md): install, build, test, run, and validate external package consumption.

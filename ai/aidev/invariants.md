@@ -10,6 +10,8 @@ These rules define Daylily's shape. Do not break them without an ADR.
 4. Runtime APIs are the ground truth.
 5. Macros lower into runtime APIs.
 6. Transport adapters call `Application.respond(to:)` or an equivalent runtime responder.
+7. Default framework paths must not become mandatory application architecture.
+8. Macro limitations must not become runtime limitations.
 
 ## Developer Experience
 
@@ -30,6 +32,7 @@ These rules define Daylily's shape. Do not break them without an ADR.
 6. `String`, `Status`, and `Response` remain simple return values.
 7. New return types should conform to `ResponseConvertible`.
 8. Middleware must not add hidden request body replay.
+9. Built-in dependency helpers must remain optional; applications may use their own service wiring.
 
 ## Routing
 

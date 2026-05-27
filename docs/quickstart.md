@@ -137,7 +137,7 @@ Stop the server with `Ctrl-C`.
 
 ## Minimal Macro App Shape
 
-Daylily's intended user-facing shape is macro-driven:
+Daylily offers a macro-driven default shape:
 
 ```swift
 import Daylily
@@ -152,11 +152,11 @@ struct App {
 }
 ```
 
-Macros lower into the runtime route system. The runtime remains the source of truth.
+Macros lower into the runtime route system. The runtime remains the source of truth, and the macro shape is optional.
 
 ## Minimal Runtime Shape
 
-The runtime DSL is available directly:
+The runtime DSL is available directly and remains a first-class application shape:
 
 ```swift
 import Daylily
@@ -174,6 +174,22 @@ struct App {
     }
 }
 ```
+
+## Default Path, Not Mandatory Path
+
+Daylily's built-in APIs are recommended defaults, not architectural monopolies. A real app can keep its own composition root and services:
+
+```swift
+let services = MyServices()
+
+let app = Application {
+    Get("/products") { _ in
+        try await services.products.list()
+    }
+}
+```
+
+The planned `Dependencies` registry will provide a Daylily-owned default channel for common cases. It will not be required for applications that already have their own factories, service containers, or module wiring.
 
 ## Next Steps
 

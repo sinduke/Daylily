@@ -26,6 +26,7 @@ Non-goals:
 - Add automatic service lifecycle management.
 - Add `@Dependency` macro syntax.
 - Migrate examples in this task.
+- Make Daylily's dependency registry mandatory for user applications.
 
 Steps:
 
@@ -44,6 +45,14 @@ Design outcome:
 - Handlers, middleware, and tests should read dependencies through `Request.dependencies`.
 - `Application` owns the configured registry and stamps it onto each `Request`.
 - Tests should override dependencies by constructing an app with alternate registry contents.
+
+Design addendum before 0020-005:
+
+- `Dependencies` is a default path, not a mandatory path.
+- The registry MVP limits what Daylily provides first; it does not limit what applications may build themselves.
+- Applications may keep their own composition root and capture their own services in route closures.
+- Applications may register their own container as one value if that fits their architecture.
+- Future `@Dependency` syntax must remain sugar over runtime behavior, not the only way to access dependencies.
 
 Proposed 0020-005 MVP API:
 
@@ -129,6 +138,7 @@ let app = makeApplication { dependencies in
 - No request-scoped registration API.
 - No hierarchical containers.
 - No global singleton registry.
+- No requirement that applications use Daylily dependency injection.
 
 Future extension sequence:
 
@@ -178,3 +188,4 @@ Completed validation:
 - No trailing whitespace in changed docs.
 - YAML parse for `ai/aidev/registry.yml`
 - No stale old DI runtime task names or planned `0020-004` references remain.
+- 0020-005 preflight docs calibration: `Dependencies` is documented as a default path, not mandatory architecture.

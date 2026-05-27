@@ -94,6 +94,15 @@ Daylily prioritizes:
 - deterministic architecture;
 - introspection-friendly systems.
 
+### Default Path, Not Mandatory Path
+
+Daylily provides recommended defaults, but applications do not have to surrender their architecture to the framework.
+
+- The runtime DSL is a first-class API, not a fallback for when macros fail.
+- `@DaylilyServer` and route macros are convenience syntax over runtime routes.
+- The planned `Dependencies` registry is a default dependency channel, not a required DI container.
+- Applications may keep their own composition root, capture their own services, or register their own container.
+
 ### Swift Concurrency First
 
 Daylily is designed around modern Swift:
@@ -143,6 +152,8 @@ Transport layer
 ```
 
 The runtime remains the source of truth. Macros lower into runtime routes and metadata; OpenAPI and AI tooling read the same explicit contract instead of guessing from source code.
+
+Daylily's defaults are intentionally replaceable. When the macro shape or a built-in helper does not fit a real application, the runtime API remains the supported path.
 
 ## Benchmarks
 
@@ -640,6 +651,8 @@ struct App {
 
 The rule is simple: macros must lower into the runtime route system. The runtime remains the source of truth.
 
+Macro APIs are a default convenience path, not the only supported way to build a Daylily app. If a project needs a custom composition root, non-default initialization, or a handler shape outside the macro MVP, use the runtime DSL directly.
+
 Typed macro inputs also lower into runtime route metadata. `@Path`, `@Query`, `@Header`, and preferred `@Body` inputs contribute OpenAPI-ready metadata through the same `Route.describe(...)` model used by handwritten routes. `@JSONBody` is retained as a compatibility alias spelling for `@Body`.
 
 MVP limits:
@@ -655,6 +668,8 @@ MVP limits:
 - the raw one-shot request body type is `RequestBody`;
 - grouped types must be default-initializable;
 - optional typed inputs, macro middleware attributes, DI, and deep OpenAPI schema derivation are future work.
+
+These are macro MVP limits, not runtime limits.
 
 ## AI-Native Development
 

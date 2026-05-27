@@ -117,6 +117,8 @@ public struct Request: Sendable {
 MVP guarantees:
 
 - The public concept is `Dependencies`, not `Container`, `Services`, or `ServiceContainer`.
+- `Dependencies` is a Daylily default path, not mandatory application architecture.
+- Applications may keep their own composition roots, factories, service containers, or closure-captured services.
 - The first registry is app-wide and concrete-type based.
 - `Application` owns the configured registry and gives requests read-only access.
 - `register` stores one concrete `Sendable` value per concrete metatype.
@@ -138,6 +140,7 @@ MVP guarantees:
 - request-scoped registration
 - hierarchical containers
 - global singleton registry
+- forcing applications to use Daylily dependency injection
 
 Future extension points:
 
@@ -738,6 +741,8 @@ Known limitations:
 - Static route handlers are not supported.
 - Optional typed inputs, macro middleware attributes, and DI are not supported yet.
 - OpenAPI metadata lowering exists for typed inputs; deeper schema inference and richer operation metadata are deferred.
+
+These are macro limitations, not runtime limitations.
 
 Extension points:
 
