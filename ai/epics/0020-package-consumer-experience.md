@@ -15,7 +15,7 @@ Tasks:
 - `0020-003-first-real-api-example` (implemented)
 - `0020-004-dependency-injection-design` (implemented)
 - `0020-005-dependencies-registry-mvp` (implemented)
-- `0020-006-di-usage-polish` (planned)
+- `0020-006-di-usage-polish` (implemented)
 - `0020-007-protocol-keyed-dependencies-design` (planned)
 - `0020-008-lifecycle-integration-design` (planned)
 - `0020-009-macro-dependency` (planned)
@@ -28,6 +28,7 @@ Required work:
 - Dependency injection design grounded in the external project and example app shapes.
 - A small `Dependencies` registry MVP before protocol, keyed, lifecycle, or macro injection work.
 - Usage polish for `makeApplication`, test overrides, and optional minimal template examples.
+- Protocol and keyed dependency design before any implementation beyond concrete type lookup.
 
 Dependency sequence:
 

@@ -334,7 +334,7 @@ Recommended sequence:
 0020-003 First real API example: commerce API package (delivered)
 0020-004 Dependency injection design: registry MVP scope and follow-up order (delivered)
 0020-005 Dependencies Registry MVP (delivered)
-0020-006 DI Usage Polish (planned)
+0020-006 DI Usage Polish (delivered)
 0020-007 Protocol / Keyed Dependencies Design (planned)
 0020-008 Lifecycle Integration Design (planned)
 0020-009 Macro @Dependency (planned)
@@ -362,7 +362,7 @@ Options("/health") { Status.noContent }
 Remaining:
 
 - `0.1.0-alpha.1` is the first public alpha release after macOS and Linux CI are green.
-- Next package consumer slice is DI usage polish.
+- Next package consumer slice is protocol and keyed dependency design.
 
 ## Package Consumer Experience
 
@@ -378,7 +378,7 @@ Sequence:
 0020-003 First real API example (delivered)
 0020-004 Dependency injection design (delivered)
 0020-005 Dependencies Registry MVP (delivered)
-0020-006 DI Usage Polish (planned)
+0020-006 DI Usage Polish (delivered)
 0020-007 Protocol / Keyed Dependencies Design (planned)
 0020-008 Lifecycle Integration Design (planned)
 0020-009 Macro @Dependency (planned)
@@ -397,6 +397,7 @@ Delivered:
 - `scripts/example-smoke-test.sh` validates the example in current checkout path mode.
 - `0020-004` converges DI around a small app-wide `Dependencies` registry before protocol, keyed, lifecycle, or macro work.
 - `0020-005` implements `Dependencies`, `Application(dependencies:)`, `Request.dependencies`, and missing dependency 500 mapping.
+- `0020-006` documents the project-owned `makeApplication` pattern, test override guidance, and the decision to keep minimal-app source dependency-free until the API is tagged.
 
 Dependency injection order:
 
@@ -406,7 +407,7 @@ runtime registry -> usage polish -> protocol/key design -> lifecycle design -> m
 
 Next:
 
-- `0020-006-di-usage-polish`
+- `0020-007-protocol-keyed-dependencies-design`
 
 ### Future Epics
 

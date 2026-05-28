@@ -66,7 +66,8 @@ Daylily/
 
 `docs/examples/`
 
-- Focused beta examples for the commerce API, JSON APIs, middleware, and transport-free testing.
+- Focused beta examples for dependencies usage, the commerce API, JSON APIs, middleware, and transport-free testing.
+- `docs/examples/dependencies.md` owns the `makeApplication`, test override, and custom service wiring guidance.
 
 `CHANGELOG.md`
 
@@ -102,6 +103,7 @@ Daylily/
 - Uses `AppCore` for application construction and route declarations.
 - Uses `App` for process startup.
 - Uses `AppCoreTests` with `DaylilyTesting` for in-memory tests.
+- Source intentionally stays free of `Dependencies` until the current dependency API is included in a release tag.
 
 ## Examples
 
@@ -109,6 +111,7 @@ Daylily/
 
 - First real API example for package consumers.
 - Uses `AppCore` for a product/order API with an actor-backed in-memory store.
+- Uses `makeApplication(store:)` for common overrides and `makeApplication(configureDependencies:)` for registry-level overrides.
 - Uses `App` for process startup and `--check`.
 - Uses `AppCoreTests` with `DaylilyTesting` for in-memory tests.
 

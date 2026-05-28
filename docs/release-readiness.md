@@ -47,7 +47,7 @@ Linux validation is CI-owned for now. Local development has been verified on mac
 - External SwiftPM consumer smoke coverage for runtime, macro, and testing package shapes.
 - Minimal app template with `AppCore`, executable startup, and in-memory tests.
 - Commerce API example with products, orders, state, metadata, dependencies, and in-memory tests.
-- App-wide `Dependencies` registry MVP for concrete `Sendable` values.
+- App-wide `Dependencies` registry MVP for concrete `Sendable` values, with documented usage guidance.
 - AI-readable AIDEV project handoff.
 - Beta documentation set.
 

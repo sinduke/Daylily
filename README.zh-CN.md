@@ -276,6 +276,7 @@ README 后半部分就是详细使用教程入口，保留了可以直接复制�
 - [Capability Matrix](docs/capability-matrix.md)
 - [Release Readiness](docs/release-readiness.md)
 - [Commerce API Example](docs/examples/commerce-api.md)
+- [Dependencies Usage](docs/examples/dependencies.md)
 - [JSON API Example](docs/examples/json-api.md)
 - [Middleware Example](docs/examples/middleware.md)
 - [Testing Example](docs/examples/testing.md)
@@ -460,6 +461,36 @@ let app = Application {
     }
 }
 ```
+
+写 app factory 时，优先提供业务语义明确的参数，再保留
+`configureDependencies` 作为测试和高级 wiring 的出口：
+
+```swift
+public func makeApplication(productService: ProductService = .live) -> Application {
+    makeApplication(configureDependencies: { dependencies in
+        dependencies.register(productService)
+    })
+}
+
+public func makeApplication(
+    configureDependencies: @Sendable (inout Dependencies) -> Void
+) -> Application {
+    Application(dependencies: configureDependencies) {
+        Get("/products") { request in
+            let service = try request.dependencies.require(ProductService.self)
+            return JSON(try await service.list())
+        }
+    }
+}
+```
+
+测试里通常可以直接 override 业务 service：
+
+```swift
+let client = TestClient(makeApplication(productService: .stub([])))
+```
+
+完整 pattern 见 [Dependencies Usage](docs/examples/dependencies.md)。
 
 ## Runtime Middleware
 
@@ -713,7 +744,7 @@ MVP 限制：
 - `@Body` 会降级到 `try await req.json(Type.self)`；`@JSONBody` 是同样 lowering 的兼容别名写法；
 - raw one-shot request body 类型是 `RequestBody`；
 - group type 必须可以默认初始化；
-- optional typed inputs、macro middleware attributes、DI 和深度 OpenAPI schema 推导都是后续工作。
+- optional typed inputs、macro middleware attributes、protocol/keyed DI 和深度 OpenAPI schema 推导都是后续工作。
 
 这些是 macro MVP 的限制，不是 runtime 的限制。
 
@@ -793,11 +824,10 @@ Daylily/
 
 近期：
 
-1. 打磨 dependency usage patterns。
-2. 设计 protocol 和 keyed dependencies。
-3. 增加 middleware macro attributes。
-4. 扩展 OpenAPI schema generation。
-5. 发布 benchmark methodology。
+1. 设计 protocol 和 keyed dependencies。
+2. 增加 middleware macro attributes。
+3. 扩展 OpenAPI schema generation。
+4. 发布 benchmark methodology。
 
 ## License
 

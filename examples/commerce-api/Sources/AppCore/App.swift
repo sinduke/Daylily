@@ -2,9 +2,9 @@ import Daylily
 import Foundation
 
 public func makeApplication(store: CommerceStore = .seeded()) -> Application {
-    makeApplication { dependencies in
+    makeApplication(configureDependencies: { dependencies in
         dependencies.register(store)
-    }
+    })
 }
 
 public func makeApplication(

@@ -396,6 +396,6 @@ Do not start with:
 
 Current strategic order:
 
-1. Polish the `makeApplication` and test override usage in `0020-006`.
-2. Design protocol/keyed dependencies in `0020-007`.
-3. Design lifecycle integration, then `@Dependency` macro sugar in order.
+1. Design protocol/keyed dependencies in `0020-007`.
+2. Design lifecycle integration in `0020-008`.
+3. Add `@Dependency` macro sugar only after those runtime contracts are clear.

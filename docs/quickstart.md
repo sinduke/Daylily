@@ -208,6 +208,7 @@ It is not required for applications that already have their own factories, servi
 ## Next Steps
 
 - Read the [JSON API example](examples/json-api.md).
+- Read the [Dependencies usage guide](examples/dependencies.md).
 - Read the [commerce API example](examples/commerce-api.md).
 - Read the [middleware example](examples/middleware.md).
 - Read the [testing example](examples/testing.md).

@@ -50,9 +50,9 @@ curl http://127.0.0.1:8080/api/orders/1001
 
 ```swift
 public func makeApplication(store: CommerceStore = .seeded()) -> Application {
-    makeApplication { dependencies in
+    makeApplication(configureDependencies: { dependencies in
         dependencies.register(store)
-    }
+    })
 }
 
 public func makeApplication(
@@ -84,3 +84,8 @@ but with enough business behavior to guide real applications.
 but this is not the only valid architecture. A real app can still keep its own
 services in a composition root and capture them in route closures when that is
 clearer.
+
+Tests use the domain-specific `makeApplication(store:)` override when they only
+need a different store. The lower-level `configureDependencies` hook remains
+available for tests that need to replace several registered values or exercise
+the registry behavior directly.

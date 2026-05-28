@@ -544,13 +544,15 @@ implemented_features:
       - "0020-003-first-real-api-example"
       - "0020-004-dependency-injection-design"
       - "0020-005-dependencies-registry-mvp"
-    next_task: "0020-006-di-usage-polish"
+      - "0020-006-di-usage-polish"
+    next_task: "0020-007-protocol-keyed-dependencies-design"
     files:
       - scripts/consumer-smoke-test.sh
       - scripts/template-smoke-test.sh
       - scripts/example-smoke-test.sh
       - ai/tasks/0020-004-dependency-injection-design.md
       - ai/tasks/0020-005-dependencies-registry-mvp.md
+      - ai/tasks/0020-006-di-usage-polish.md
       - Sources/DaylilyCore/Dependencies.swift
       - Sources/DaylilyCore/Application.swift
       - Sources/DaylilyCore/Request.swift
@@ -564,6 +566,7 @@ implemented_features:
       - examples/commerce-api/Sources/App/main.swift
       - examples/commerce-api/Tests/AppCoreTests/AppCoreTests.swift
       - examples/commerce-api/README.md
+      - docs/examples/dependencies.md
       - .github/workflows/ci.yml
     smoke_modes:
       path: "validates current checkout as an external SwiftPM dependency"
@@ -577,11 +580,16 @@ implemented_features:
       - "commerce API example with AppCore, actor-backed state, dependencies, route metadata, and AppCoreTests"
       - "dependency injection design grounded in external package, minimal app, and commerce API shapes"
       - "Dependencies registry with register/get/require, Request.dependencies, handler/middleware/TestClient checks"
+      - "dependency usage guide covering makeApplication, test overrides, and optional minimal template guidance"
     decisions:
       - "The DI public concept is Dependencies, not Container or Services."
       - "0020-005 implements an app-wide concrete Sendable registry."
       - "Request.dependencies is the first handler-facing access point."
       - "Dependencies is a default path, not mandatory application architecture."
+      - "Project-owned makeApplication functions are the preferred composition point."
+      - "Domain-specific makeApplication parameters are preferred for common test overrides."
+      - "configureDependencies remains the registry-level escape hatch."
+      - "The minimal app template source remains dependency-free until the Dependencies API is included in a release tag."
       - "Protocol lookup, keyed dependencies, lifecycle integration, and @Dependency are deferred."
     sequence:
       - "0020-001-external-consumer-smoke-test"
@@ -665,7 +673,34 @@ implemented_features:
       - "async factories"
       - "request-scoped registration"
       - "forcing applications to use Daylily dependency injection"
-    next_task: "0020-006-di-usage-polish"
+    next_task: null
+  dependency_usage_polish:
+    status: implemented
+    epic: "0020-package-consumer-experience"
+    task: "0020-006-di-usage-polish"
+    files:
+      - docs/examples/dependencies.md
+      - README.md
+      - README.zh-CN.md
+      - docs/README.md
+      - docs/quickstart.md
+      - docs/examples/commerce-api.md
+      - templates/minimal-app/README.md
+      - examples/commerce-api/Sources/AppCore/App.swift
+      - examples/commerce-api/Tests/AppCoreTests/AppCoreTests.swift
+    decisions:
+      - "makeApplication is the project-owned composition point."
+      - "Domain-specific parameters such as makeApplication(store:) are preferred for normal test overrides."
+      - "makeApplication(configureDependencies:) remains the explicit registry-level escape hatch."
+      - "The minimal app template documents how to add Dependencies later, but its source stays compatible with 0.1.0-alpha.1 release template smoke."
+      - "Dependencies remains optional; closure-captured custom services remain valid."
+    non_goals:
+      - "runtime API changes"
+      - "protocol or existential lookup"
+      - "keyed dependencies"
+      - "lifecycle integration"
+      - "@Dependency macro"
+    next_task: "0020-007-protocol-keyed-dependencies-design"
   macro_route_mvp:
     status: implemented
     task: "0003-001-macro-route-mvp"
@@ -1018,7 +1053,8 @@ planned_features:
     completed:
       - "0020-004-dependency-injection-design"
       - "0020-005-dependencies-registry-mvp"
-    next_task: "0020-006-di-usage-polish"
+      - "0020-006-di-usage-polish"
+    next_task: "0020-007-protocol-keyed-dependencies-design"
     sequence:
       - "0020-004-dependency-injection-design"
       - "0020-005-dependencies-registry-mvp"
@@ -1054,7 +1090,8 @@ planned_features:
       - "0020-003-first-real-api-example"
       - "0020-004-dependency-injection-design"
       - "0020-005-dependencies-registry-mvp"
-    next_task: "0020-006-di-usage-polish"
+      - "0020-006-di-usage-polish"
+    next_task: "0020-007-protocol-keyed-dependencies-design"
     sequence:
       - "0020-001-external-consumer-smoke-test"
       - "0020-002-minimal-app-template"
@@ -1968,12 +2005,14 @@ aidev_files:
     - ai/tasks/0020-003-first-real-api-example.md
     - ai/tasks/0020-004-dependency-injection-design.md
     - ai/tasks/0020-005-dependencies-registry-mvp.md
+    - ai/tasks/0020-006-di-usage-polish.md
   docs:
     - CHANGELOG.md
     - docs/README.md
     - docs/quickstart.md
     - docs/capability-matrix.md
     - docs/release-readiness.md
+    - docs/examples/dependencies.md
     - docs/examples/commerce-api.md
     - docs/examples/json-api.md
     - docs/examples/middleware.md
@@ -2073,7 +2112,7 @@ roadmap:
     in_progress:
       - "0020-package-consumer-experience"
     next_recommended:
-      - "0020-006-di-usage-polish"
+      - "0020-007-protocol-keyed-dependencies-design"
   completed:
     - "0001-001-minimal-http-server"
     - "0002-001-aidev-project-contract"
@@ -2114,11 +2153,11 @@ roadmap:
     - "0020-003-first-real-api-example"
     - "0020-004-dependency-injection-design"
     - "0020-005-dependencies-registry-mvp"
+    - "0020-006-di-usage-polish"
   in_progress: []
   next_recommended:
-    - "0020-006-di-usage-polish"
+    - "0020-007-protocol-keyed-dependencies-design"
   later:
     - "0013-003-observability-hooks"
-    - "0020-007-protocol-keyed-dependencies-design"
     - "0020-008-lifecycle-integration-design"
     - "0020-009-macro-dependency"

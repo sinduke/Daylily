@@ -57,6 +57,9 @@ curl http://127.0.0.1:8080/api/orders/1001
 - `CommerceStore` is an `actor`, so mutable example state is concurrency-safe.
 - `CommerceStore` is registered as a Daylily `Dependencies` value and read from
   `Request.dependencies`.
+- Tests override the store through `makeApplication(store:)`; the lower-level
+  `configureDependencies` hook is available when a test needs registry-level
+  control.
 - Routes use query parameters, typed path parameters, JSON request bodies, JSON
   responses, and explicit metadata.
 - Tests use `DaylilyTesting` without opening a port.

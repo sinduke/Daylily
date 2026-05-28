@@ -276,6 +276,7 @@ Dedicated beta docs are also available:
 - [Capability Matrix](docs/capability-matrix.md)
 - [Release Readiness](docs/release-readiness.md)
 - [Commerce API Example](docs/examples/commerce-api.md)
+- [Dependencies Usage](docs/examples/dependencies.md)
 - [JSON API Example](docs/examples/json-api.md)
 - [Middleware Example](docs/examples/middleware.md)
 - [Testing Example](docs/examples/testing.md)
@@ -460,6 +461,36 @@ let app = Application {
     }
 }
 ```
+
+For app factories, prefer domain-specific parameters first, then keep a
+`configureDependencies` escape hatch for tests and advanced wiring:
+
+```swift
+public func makeApplication(productService: ProductService = .live) -> Application {
+    makeApplication(configureDependencies: { dependencies in
+        dependencies.register(productService)
+    })
+}
+
+public func makeApplication(
+    configureDependencies: @Sendable (inout Dependencies) -> Void
+) -> Application {
+    Application(dependencies: configureDependencies) {
+        Get("/products") { request in
+            let service = try request.dependencies.require(ProductService.self)
+            return JSON(try await service.list())
+        }
+    }
+}
+```
+
+Tests can usually override the business service directly:
+
+```swift
+let client = TestClient(makeApplication(productService: .stub([])))
+```
+
+Use [Dependencies Usage](docs/examples/dependencies.md) for the fuller pattern.
 
 ## Runtime Middleware
 
@@ -713,7 +744,7 @@ MVP limits:
 - `@Body` lowers into `try await req.json(Type.self)`; `@JSONBody` is a compatibility alias spelling with the same lowering;
 - the raw one-shot request body type is `RequestBody`;
 - grouped types must be default-initializable;
-- optional typed inputs, macro middleware attributes, DI, and deep OpenAPI schema derivation are future work.
+- optional typed inputs, macro middleware attributes, protocol/keyed DI, and deep OpenAPI schema derivation are future work.
 
 These are macro MVP limits, not runtime limits.
 
@@ -793,11 +824,10 @@ The most important invariants:
 
 Near-term:
 
-1. Polish dependency usage patterns.
-2. Design protocol and keyed dependencies.
-3. Add middleware macro attributes.
-4. Expand OpenAPI schema generation.
-5. Publish benchmark methodology.
+1. Design protocol and keyed dependencies.
+2. Add middleware macro attributes.
+3. Expand OpenAPI schema generation.
+4. Publish benchmark methodology.
 
 ## License
 

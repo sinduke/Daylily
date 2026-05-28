@@ -23,7 +23,7 @@ This matrix tracks the current beta-facing capability surface. It is intentional
 | Middleware | Implemented | Application, group, and route scope. |
 | Lifecycle hooks | Implemented | `configure`, `boot`, `started`, `shutdown`, `cleanup`. |
 | Server configuration | Implemented | Host, port, backlog, address reuse, read batching, shutdown signals. |
-| Dependencies registry | MVP | App-wide concrete `Sendable` registry with `register`, `get`, `require`, and `Request.dependencies`. |
+| Dependencies registry | MVP | App-wide concrete `Sendable` registry with `register`, `get`, `require`, `Request.dependencies`, and documented `makeApplication` usage guidance. |
 
 ## Macro Layer
 

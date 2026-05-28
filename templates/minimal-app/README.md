@@ -21,6 +21,8 @@ DaylilyMinimalApp/
 - `App` owns process startup.
 - Tests import `AppCore` and use `DaylilyTesting` without opening a port.
 - The same `makeApplication()` function powers runtime startup and tests.
+- The template intentionally starts without `Dependencies`; add it only when the
+  app has a shared service that benefits from app-wide wiring.
 
 ## Use It
 
@@ -58,4 +60,44 @@ Try it:
 curl http://127.0.0.1:8080/hello
 curl http://127.0.0.1:8080/health
 curl -X POST -H 'content-type: application/json' --data '{"message":"hi"}' http://127.0.0.1:8080/echo
+```
+
+## Adding Dependencies Later
+
+When the app grows a real shared service, keep `makeApplication` as the single
+composition point:
+
+```swift
+public struct GreetingService: Sendable {
+    public let message: String
+
+    public static let live = GreetingService(message: "Daylily minimal app ships.")
+
+    public static func stub(_ message: String) -> GreetingService {
+        GreetingService(message: message)
+    }
+}
+
+public func makeApplication(greetingService: GreetingService = .live) -> Application {
+    makeApplication(configureDependencies: { dependencies in
+        dependencies.register(greetingService)
+    })
+}
+
+public func makeApplication(
+    configureDependencies: @Sendable (inout Dependencies) -> Void
+) -> Application {
+    Application(dependencies: configureDependencies) {
+        Get("/hello") { request in
+            let service = try request.dependencies.require(GreetingService.self)
+            return service.message
+        }
+    }
+}
+```
+
+Tests can then prefer the business-level override:
+
+```swift
+let client = TestClient(makeApplication(greetingService: .stub("test")))
 ```
