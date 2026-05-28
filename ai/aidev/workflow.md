@@ -229,7 +229,6 @@ scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.1
 scripts/template-smoke-test.sh --mode path
 scripts/template-smoke-test.sh --mode release --version 0.1.0-alpha.1
 scripts/example-smoke-test.sh --mode path
-scripts/example-smoke-test.sh --mode release --version 0.1.0-alpha.1
 ```
 
 The Linux job runs on `ubuntu-latest` inside the official `swift:6.3.2-noble` container. The macOS job runs on `macos-latest`.
@@ -238,7 +237,7 @@ The consumer smoke script creates a fresh SwiftPM package outside the Daylily re
 
 The template smoke script copies `templates/minimal-app` into a fresh external directory. It verifies the recommended app structure in both current-checkout and released-package modes.
 
-The example smoke script copies `examples/commerce-api` into a fresh external directory. It verifies the first product-shaped API example in both current-checkout and released-package modes.
+The example smoke script copies `examples/commerce-api` into a fresh external directory. It verifies the first product-shaped API example in current-checkout path mode. Release-mode example smoke should be run after a tag includes the current example source.
 
 ## Epic and Task Files
 

@@ -55,6 +55,8 @@ curl http://127.0.0.1:8080/api/orders/1001
 - `AppCore` owns application construction and route declarations.
 - `App` owns process startup and `--check`.
 - `CommerceStore` is an `actor`, so mutable example state is concurrency-safe.
+- `CommerceStore` is registered as a Daylily `Dependencies` value and read from
+  `Request.dependencies`.
 - Routes use query parameters, typed path parameters, JSON request bodies, JSON
   responses, and explicit metadata.
 - Tests use `DaylilyTesting` without opening a port.
@@ -65,5 +67,7 @@ From the Daylily repository root:
 
 ```sh
 scripts/example-smoke-test.sh --mode path
-scripts/example-smoke-test.sh --mode release --version 0.1.0-alpha.1
 ```
+
+The current example uses APIs from the checkout, so path mode is the primary
+validation before the next release tag.

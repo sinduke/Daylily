@@ -12,6 +12,7 @@ sitting:
 - JSON responses for health, products, and orders;
 - explicit route metadata for OpenAPI-facing contracts;
 - an actor-backed in-memory store;
+- the `Dependencies` registry as a default service channel;
 - transport-free tests with `DaylilyTesting`.
 
 ## Run It
@@ -49,15 +50,25 @@ curl http://127.0.0.1:8080/api/orders/1001
 
 ```swift
 public func makeApplication(store: CommerceStore = .seeded()) -> Application {
-    Application {
+    makeApplication { dependencies in
+        dependencies.register(store)
+    }
+}
+
+public func makeApplication(
+    configureDependencies: @Sendable (inout Dependencies) -> Void
+) -> Application {
+    Application(dependencies: configureDependencies) {
         Get("/api/products") { request in
             let category = request.query["category"]
+            let store = try request.dependencies.require(CommerceStore.self)
             let products = await store.listProducts(category: category)
             return JSON(ProductListResponse(products: products))
         }
 
         Post("/api/orders") { request in
             let input = try await request.json(CreateOrderRequest.self)
+            let store = try request.dependencies.require(CommerceStore.self)
             let order = try await store.createOrder(input)
             return JSON(order, status: .created)
         }
@@ -68,3 +79,8 @@ public func makeApplication(store: CommerceStore = .seeded()) -> Application {
 The example keeps `AppCore` testable and gives `App` only the process startup
 responsibility. That is the same external project shape as the minimal template,
 but with enough business behavior to guide real applications.
+
+`CommerceStore` is registered through Daylily's default `Dependencies` registry,
+but this is not the only valid architecture. A real app can still keep its own
+services in a composition root and capture them in route closures when that is
+clearer.

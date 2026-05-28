@@ -11,7 +11,7 @@ This matrix tracks the current beta-facing capability surface. It is intentional
 | Linux CI | Implemented | GitHub Actions validates with `swift:6.3.2-noble`. |
 | External consumer smoke | Implemented | Fresh SwiftPM package validates local path and released package dependency modes. |
 | Minimal app template | Implemented | `templates/minimal-app` validates `AppCore`, executable startup, tests, and package dependency modes. |
-| Commerce API example | Implemented | `examples/commerce-api` validates a small stateful product/order API in path and release modes. |
+| Commerce API example | Implemented | `examples/commerce-api` validates a small stateful product/order API in current checkout path mode. |
 | Runtime application | Implemented | `Application` owns route dispatch and middleware execution. |
 | HTTP transport | Implemented | NIO-backed HTTP/1.1 server. |
 | Route DSL | Implemented | `Get`, `Post`, `Put`, `Patch`, `Delete`, `Head`, `Options`, `Group`. |
@@ -23,6 +23,7 @@ This matrix tracks the current beta-facing capability surface. It is intentional
 | Middleware | Implemented | Application, group, and route scope. |
 | Lifecycle hooks | Implemented | `configure`, `boot`, `started`, `shutdown`, `cleanup`. |
 | Server configuration | Implemented | Host, port, backlog, address reuse, read batching, shutdown signals. |
+| Dependencies registry | MVP | App-wide concrete `Sendable` registry with `register`, `get`, `require`, and `Request.dependencies`. |
 
 ## Macro Layer
 
@@ -64,7 +65,7 @@ This matrix tracks the current beta-facing capability surface. It is intentional
 
 | Capability | Status | Notes |
 | --- | --- | --- |
-| Dependency injection | Planned | Not started. |
+| Protocol/keyed dependencies | Planned | Concrete type registry exists; protocol and keyed lookup are future design work. |
 | Authentication | Future | Ecosystem direction, not current runtime. |
 | ORM/database module | Future | Explicitly out of current beta closure. |
 | Queue/background jobs | Future | Ecosystem direction. |

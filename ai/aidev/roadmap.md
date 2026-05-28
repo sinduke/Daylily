@@ -311,7 +311,7 @@ Macro typed inputs now lower into route metadata:
 
 Suggested next task:
 
-- Continue Package Consumer Experience with the `Dependencies` registry MVP.
+- Continue Package Consumer Experience with DI usage polish.
 
 ## Beta Closure Sequence
 
@@ -333,7 +333,7 @@ Recommended sequence:
 0020-002 Minimal app template: recommended external project shape (delivered)
 0020-003 First real API example: commerce API package (delivered)
 0020-004 Dependency injection design: registry MVP scope and follow-up order (delivered)
-0020-005 Dependencies Registry MVP (planned)
+0020-005 Dependencies Registry MVP (delivered)
 0020-006 DI Usage Polish (planned)
 0020-007 Protocol / Keyed Dependencies Design (planned)
 0020-008 Lifecycle Integration Design (planned)
@@ -362,7 +362,7 @@ Options("/health") { Status.noContent }
 Remaining:
 
 - `0.1.0-alpha.1` is the first public alpha release after macOS and Linux CI are green.
-- Next package consumer slice is the `Dependencies` registry MVP.
+- Next package consumer slice is DI usage polish.
 
 ## Package Consumer Experience
 
@@ -377,7 +377,7 @@ Sequence:
 0020-002 Minimal app template (delivered)
 0020-003 First real API example (delivered)
 0020-004 Dependency injection design (delivered)
-0020-005 Dependencies Registry MVP (planned)
+0020-005 Dependencies Registry MVP (delivered)
 0020-006 DI Usage Polish (planned)
 0020-007 Protocol / Keyed Dependencies Design (planned)
 0020-008 Lifecycle Integration Design (planned)
@@ -393,9 +393,10 @@ Delivered:
 - The generated consumer package runs Swift Testing with `DaylilyTesting`.
 - `templates/minimal-app` defines the recommended `AppCore` plus `App` executable shape.
 - `scripts/template-smoke-test.sh` validates the template in path and release dependency modes.
-- `examples/commerce-api` demonstrates a small product/order API with state, metadata, and tests.
-- `scripts/example-smoke-test.sh` validates the example in path and release dependency modes.
+- `examples/commerce-api` demonstrates a small product/order API with state, dependencies, metadata, and tests.
+- `scripts/example-smoke-test.sh` validates the example in current checkout path mode.
 - `0020-004` converges DI around a small app-wide `Dependencies` registry before protocol, keyed, lifecycle, or macro work.
+- `0020-005` implements `Dependencies`, `Application(dependencies:)`, `Request.dependencies`, and missing dependency 500 mapping.
 
 Dependency injection order:
 
@@ -405,7 +406,7 @@ runtime registry -> usage polish -> protocol/key design -> lifecycle design -> m
 
 Next:
 
-- `0020-005-dependencies-registry-mvp`
+- `0020-006-di-usage-polish`
 
 ### Future Epics
 

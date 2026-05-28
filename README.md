@@ -100,7 +100,7 @@ Daylily provides recommended defaults, but applications do not have to surrender
 
 - The runtime DSL is a first-class API, not a fallback for when macros fail.
 - `@DaylilyServer` and route macros are convenience syntax over runtime routes.
-- The planned `Dependencies` registry is a default dependency channel, not a required DI container.
+- The `Dependencies` registry is a default dependency channel, not a required DI container.
 - Applications may keep their own composition root, capture their own services, or register their own container.
 
 ### Swift Concurrency First
@@ -128,7 +128,7 @@ Daylily is designed around modern Swift:
 | Observability middleware | MVP |
 | Transport-free testing helpers | Implemented |
 | AIDEV AI handoff system | Implemented |
-| Dependency injection | Planned |
+| Dependencies registry | MVP |
 | Macro middleware attributes | Planned |
 | Full Swift schema derivation | Planned |
 
@@ -189,6 +189,8 @@ Use Daylily as a SwiftPM package:
 ```swift
 .package(url: "https://github.com/sinduke/Daylily.git", from: "0.1.0-alpha.1")
 ```
+
+The `main` README may describe unreleased APIs. The `Dependencies` registry is currently available from the source checkout and will be included in a future pre-release tag.
 
 Add the product to your target:
 
@@ -281,6 +283,7 @@ Dedicated beta docs are also available:
 README sections:
 
 - [Current API](#current-api): runtime routes, typed parameters, JSON, lifecycle, and server configuration.
+- [Dependencies](#dependencies): app-wide default dependency registry and custom service wiring.
 - [Runtime Middleware](#runtime-middleware): application, group, and route middleware with one-shot body rules.
 - [Observability](#observability): request ID and request logging middleware.
 - [Route Metadata](#route-metadata): explicit metadata and minimal OpenAPI generation.
@@ -413,6 +416,49 @@ try await app.run(
         port: 8080
     )
 )
+```
+
+## Dependencies
+
+Daylily includes a small app-wide `Dependencies` registry for common service wiring:
+
+```swift
+struct ProductService: Sendable {
+    func list() async throws -> [Product] {
+        []
+    }
+}
+
+let app = Application(dependencies: { dependencies in
+    dependencies.register(ProductService())
+}) {
+    Get("/products") { request in
+        let service = try request.dependencies.require(ProductService.self)
+        return JSON(try await service.list())
+    }
+}
+```
+
+The registry supports concrete `Sendable` values by type:
+
+```swift
+var dependencies = Dependencies()
+dependencies.register(ProductService())
+
+let service = try dependencies.require(ProductService.self)
+let optional: ProductService? = dependencies.get()
+```
+
+This is a default tool, not mandatory architecture. Capturing your own services remains equally valid:
+
+```swift
+let services = MyServices()
+
+let app = Application {
+    Get("/products") { _ in
+        try await services.products.list()
+    }
+}
 ```
 
 ## Runtime Middleware
@@ -747,10 +793,10 @@ The most important invariants:
 
 Near-term:
 
-1. Implement the `Dependencies` registry MVP.
-2. Add middleware macro attributes.
-3. Expand OpenAPI schema generation.
-4. Add WebSocket/realtime experiments.
+1. Polish dependency usage patterns.
+2. Design protocol and keyed dependencies.
+3. Add middleware macro attributes.
+4. Expand OpenAPI schema generation.
 5. Publish benchmark methodology.
 
 ## License

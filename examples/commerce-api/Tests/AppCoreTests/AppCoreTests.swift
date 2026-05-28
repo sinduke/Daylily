@@ -14,6 +14,24 @@ func commerceAPIListsAndFiltersProducts() async throws {
     #expect(payload.products.allSatisfy { $0.category == "tea" })
 }
 
+@Test("commerce API can override dependencies")
+func commerceAPICanOverrideDependencies() async throws {
+    let store = CommerceStore(
+        products: [
+            Product(id: 99, name: "Preview Tea", category: "preview", priceCents: 100, inStock: true),
+        ]
+    )
+    let client = TestClient(makeApplication { dependencies in
+        dependencies.register(store)
+    })
+
+    let response = try await client.get("/api/products?category=preview")
+
+    try response.requireStatus(.ok)
+    let payload = try response.json(ProductListResponse.self)
+    #expect(payload.products.map(\.id) == [99])
+}
+
 @Test("commerce API creates and fetches an order")
 func commerceAPICreatesAndFetchesOrder() async throws {
     let client = TestClient(makeApplication(store: .seeded()))

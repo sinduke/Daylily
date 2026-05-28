@@ -80,18 +80,18 @@ Lifecycle limitations:
 - No graceful request draining yet.
 - No worker or pool integration yet.
 
-## Dependency Injection Design Contract
+## Dependency Injection Contract
 
 Status:
 
 - Designed in `ai/tasks/0020-004-dependency-injection-design.md`.
-- Runtime implementation is deferred to `0020-005-dependencies-registry-mvp`.
+- Runtime MVP implemented in `ai/tasks/0020-005-dependencies-registry-mvp.md`.
 
 Owner:
 
 - `DaylilyCore`
 
-Planned MVP shape:
+MVP shape:
 
 ```swift
 public struct Dependencies: Sendable {
@@ -104,13 +104,14 @@ public struct Dependencies: Sendable {
 
 public struct Application: Sendable {
     public init(
-        dependencies configureDependencies: (inout Dependencies) -> Void = { _ in },
+        dependencies configureDependencies: @Sendable (inout Dependencies) -> Void = { _ in },
         @RouteBuilder routes: () -> [Route]
     )
 }
 
 public struct Request: Sendable {
     public let dependencies: Dependencies
+    public func with(dependencies: Dependencies) -> Request
 }
 ```
 
@@ -120,7 +121,9 @@ MVP guarantees:
 - `Dependencies` is a Daylily default path, not mandatory application architecture.
 - Applications may keep their own composition roots, factories, service containers, or closure-captured services.
 - The first registry is app-wide and concrete-type based.
-- `Application` owns the configured registry and gives requests read-only access.
+- `Application` owns the configured registry and stamps it onto requests in `respond(to:)`.
+- Handlers and middleware read the same `Request.dependencies`.
+- `Application { ... }` remains valid and creates an empty dependency registry.
 - `register` stores one concrete `Sendable` value per concrete metatype.
 - Re-registering the same concrete type replaces the previous value.
 - `get` returns `nil` for missing values.

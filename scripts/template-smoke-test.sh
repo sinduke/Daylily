@@ -166,6 +166,7 @@ cleanup() {
 trap cleanup EXIT
 
 cp -R "$TEMPLATE_DIR/." "$WORKDIR/"
+rm -rf "$WORKDIR/.build" "$WORKDIR/Package.resolved"
 replace_dependency "$WORKDIR/Package.swift" "$DAYLILY_DEPENDENCY"
 
 echo "Smoke package: $WORKDIR"

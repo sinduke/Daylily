@@ -17,6 +17,8 @@ Add Daylily as a package dependency:
 .package(url: "https://github.com/sinduke/Daylily.git", from: "0.1.0-alpha.1")
 ```
 
+Documentation on `main` may describe APIs newer than the latest tag. The `Dependencies` registry is available from the source checkout and will be included in a future pre-release tag.
+
 Add the product to your target:
 
 ```swift
@@ -73,13 +75,12 @@ scripts/template-smoke-test.sh --mode release --version 0.1.0-alpha.1
 
 The first real API example lives in `examples/commerce-api`. It demonstrates a
 small product and order service with state, JSON DTOs, typed path/query inputs,
-route metadata, and transport-free tests.
+route metadata, the `Dependencies` registry, and transport-free tests.
 
 Validate it from the repository root:
 
 ```sh
 scripts/example-smoke-test.sh --mode path
-scripts/example-smoke-test.sh --mode release --version 0.1.0-alpha.1
 ```
 
 Or run it directly:
@@ -189,7 +190,20 @@ let app = Application {
 }
 ```
 
-The planned `Dependencies` registry will provide a Daylily-owned default channel for common cases. It will not be required for applications that already have their own factories, service containers, or module wiring.
+The `Dependencies` registry provides a Daylily-owned default channel for common cases:
+
+```swift
+let app = Application(dependencies: { dependencies in
+    dependencies.register(ProductService())
+}) {
+    Get("/products") { request in
+        let service = try request.dependencies.require(ProductService.self)
+        return JSON(try await service.list())
+    }
+}
+```
+
+It is not required for applications that already have their own factories, service containers, or module wiring.
 
 ## Next Steps
 

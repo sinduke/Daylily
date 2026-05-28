@@ -100,7 +100,7 @@ Daylily 提供推荐默认路径，但不会要求应用把自己的架构交给
 
 - Runtime DSL 是一等 API，不是宏不够用时的 fallback。
 - `@DaylilyServer` 和 route macros 是 runtime routes 上的便利语法。
-- 计划中的 `Dependencies` registry 是默认依赖通道，不是强制 DI container。
+- `Dependencies` registry 是默认依赖通道，不是强制 DI container。
 - 应用可以保留自己的 composition root、捕获自己的 services，或者注册自己的 container。
 
 ### Swift Concurrency First
@@ -128,7 +128,7 @@ Daylily 围绕现代 Swift 设计：
 | Observability middleware | MVP |
 | Transport-free testing helpers | 已实现 |
 | AIDEV AI handoff system | 已实现 |
-| Dependency injection | Planned |
+| Dependencies registry | MVP |
 | Macro middleware attributes | Planned |
 | Full Swift schema derivation | Planned |
 
@@ -189,6 +189,8 @@ Daylily 不是只想成为 routing library，而是在探索 Swift cloud develop
 ```swift
 .package(url: "https://github.com/sinduke/Daylily.git", from: "0.1.0-alpha.1")
 ```
+
+`main` 分支 README 可能会描述尚未进入 tag 的 API。`Dependencies` registry 目前可从源码 checkout 使用，会进入后续 pre-release tag。
 
 把 product 加到 target 里：
 
@@ -281,6 +283,7 @@ README 后半部分就是详细使用教程入口，保留了可以直接复制�
 README 里的详细章节：
 
 - [当前 API](#当前-api)：runtime routes、typed parameters、JSON、lifecycle 和 server configuration。
+- [Dependencies](#dependencies)：app-wide 默认依赖 registry，以及用户自有 service wiring。
 - [Runtime Middleware](#runtime-middleware)：application、group、route 三层 middleware，以及 one-shot body 规则。
 - [Observability](#observability)：request ID 和 request logging middleware。
 - [Route Metadata](#route-metadata)：显式 metadata 和最小 OpenAPI generation。
@@ -413,6 +416,49 @@ try await app.run(
         port: 8080
     )
 )
+```
+
+## Dependencies
+
+Daylily 提供了一个很小的 app-wide `Dependencies` registry，用来覆盖常见 service wiring：
+
+```swift
+struct ProductService: Sendable {
+    func list() async throws -> [Product] {
+        []
+    }
+}
+
+let app = Application(dependencies: { dependencies in
+    dependencies.register(ProductService())
+}) {
+    Get("/products") { request in
+        let service = try request.dependencies.require(ProductService.self)
+        return JSON(try await service.list())
+    }
+}
+```
+
+这个 registry 按 concrete `Sendable` 类型注册和读取：
+
+```swift
+var dependencies = Dependencies()
+dependencies.register(ProductService())
+
+let service = try dependencies.require(ProductService.self)
+let optional: ProductService? = dependencies.get()
+```
+
+这是默认工具，不是强制架构。继续捕获你自己的 services 也完全合法：
+
+```swift
+let services = MyServices()
+
+let app = Application {
+    Get("/products") { _ in
+        try await services.products.list()
+    }
+}
 ```
 
 ## Runtime Middleware
@@ -747,10 +793,10 @@ Daylily/
 
 近期：
 
-1. 稳定 dependency injection design。
-2. 增加 middleware macro attributes。
-3. 扩展 OpenAPI schema generation。
-4. 增加 WebSocket/realtime experiments。
+1. 打磨 dependency usage patterns。
+2. 设计 protocol 和 keyed dependencies。
+3. 增加 middleware macro attributes。
+4. 扩展 OpenAPI schema generation。
 5. 发布 benchmark methodology。
 
 ## License

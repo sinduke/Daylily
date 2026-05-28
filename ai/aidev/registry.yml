@@ -115,6 +115,7 @@ products:
       - body_model
       - middleware_runtime
       - lifecycle_runtime
+      - dependencies_registry
       - server_configuration
       - response_conversion
       - path_parameters
@@ -542,12 +543,17 @@ implemented_features:
       - "0020-002-minimal-app-template"
       - "0020-003-first-real-api-example"
       - "0020-004-dependency-injection-design"
-    next_task: "0020-005-dependencies-registry-mvp"
+      - "0020-005-dependencies-registry-mvp"
+    next_task: "0020-006-di-usage-polish"
     files:
       - scripts/consumer-smoke-test.sh
       - scripts/template-smoke-test.sh
       - scripts/example-smoke-test.sh
       - ai/tasks/0020-004-dependency-injection-design.md
+      - ai/tasks/0020-005-dependencies-registry-mvp.md
+      - Sources/DaylilyCore/Dependencies.swift
+      - Sources/DaylilyCore/Application.swift
+      - Sources/DaylilyCore/Request.swift
       - templates/minimal-app/Package.swift
       - templates/minimal-app/Sources/AppCore/App.swift
       - templates/minimal-app/Sources/App/main.swift
@@ -568,11 +574,12 @@ implemented_features:
       - "macro executable with @main @DaylilyServer"
       - "Swift Testing target importing DaylilyTesting"
       - "minimal app template with AppCore, App executable, and AppCoreTests"
-      - "commerce API example with AppCore, actor-backed state, route metadata, and AppCoreTests"
+      - "commerce API example with AppCore, actor-backed state, dependencies, route metadata, and AppCoreTests"
       - "dependency injection design grounded in external package, minimal app, and commerce API shapes"
+      - "Dependencies registry with register/get/require, Request.dependencies, handler/middleware/TestClient checks"
     decisions:
       - "The DI public concept is Dependencies, not Container or Services."
-      - "0020-005 starts with an app-wide concrete Sendable registry."
+      - "0020-005 implements an app-wide concrete Sendable registry."
       - "Request.dependencies is the first handler-facing access point."
       - "Dependencies is a default path, not mandatory application architecture."
       - "Protocol lookup, keyed dependencies, lifecycle integration, and @Dependency are deferred."
@@ -619,7 +626,46 @@ implemented_features:
       - "hierarchical containers"
       - "global singleton registry"
       - "forcing applications to use Daylily dependency injection"
-    next_task: "0020-005-dependencies-registry-mvp"
+    implemented_by: "0020-005-dependencies-registry-mvp"
+  dependencies_registry_mvp:
+    status: implemented
+    epic: "0020-package-consumer-experience"
+    task: "0020-005-dependencies-registry-mvp"
+    module: DaylilyCore
+    files:
+      - Sources/DaylilyCore/Dependencies.swift
+      - Sources/DaylilyCore/Application.swift
+      - Sources/DaylilyCore/Request.swift
+      - Sources/DaylilyCheckSuite/Checks.swift
+      - examples/commerce-api/Sources/AppCore/App.swift
+      - examples/commerce-api/Tests/AppCoreTests/AppCoreTests.swift
+    public_api:
+      - Dependencies
+      - DependencyError
+      - "Dependencies.register(_:)"
+      - "Dependencies.get(_:)"
+      - "Dependencies.require(_:)"
+      - "Application.init(dependencies:routes:)"
+      - "Request.dependencies"
+      - "Request.with(dependencies:)"
+    decisions:
+      - "Dependencies lives in DaylilyCore and stays NIO-free."
+      - "The MVP stores concrete Sendable values by concrete metatype."
+      - "Application owns one app-wide Dependencies value."
+      - "Application.respond(to:) stamps application dependencies onto each request before middleware and routing."
+      - "Middleware and handlers read the same Request.dependencies."
+      - "Application { ... } remains valid and creates an empty dependency registry."
+      - "DependencyError maps missing required dependencies to 500 Internal Server Error."
+      - "Dependencies remains a default path, not mandatory application architecture."
+    non_goals:
+      - "protocol or existential lookup"
+      - "keyed dependencies"
+      - "@Dependency macro"
+      - "lifecycle start/stop integration"
+      - "async factories"
+      - "request-scoped registration"
+      - "forcing applications to use Daylily dependency injection"
+    next_task: "0020-006-di-usage-polish"
   macro_route_mvp:
     status: implemented
     task: "0003-001-macro-route-mvp"
@@ -971,7 +1017,8 @@ planned_features:
     epic: "0020-package-consumer-experience"
     completed:
       - "0020-004-dependency-injection-design"
-    next_task: "0020-005-dependencies-registry-mvp"
+      - "0020-005-dependencies-registry-mvp"
+    next_task: "0020-006-di-usage-polish"
     sequence:
       - "0020-004-dependency-injection-design"
       - "0020-005-dependencies-registry-mvp"
@@ -1006,7 +1053,8 @@ planned_features:
       - "0020-002-minimal-app-template"
       - "0020-003-first-real-api-example"
       - "0020-004-dependency-injection-design"
-    next_task: "0020-005-dependencies-registry-mvp"
+      - "0020-005-dependencies-registry-mvp"
+    next_task: "0020-006-di-usage-polish"
     sequence:
       - "0020-001-external-consumer-smoke-test"
       - "0020-002-minimal-app-template"
@@ -1293,7 +1341,9 @@ public_api:
         - Sendable
       methods:
         - "public init(@RouteBuilder routes: () -> [Route])"
+        - "public init(dependencies configureDependencies: @Sendable (inout Dependencies) -> Void = { _ in }, @RouteBuilder routes: () -> [Route])"
         - "public init(routes: [Route])"
+        - "public init(routes: [Route], dependencies: Dependencies)"
         - "public init(routes: Routes)"
         - "public func middleware<M: Middleware>(_ middleware: M) -> Application"
         - "public func lifecycle(_ phase: LifecyclePhase, _ operation: @escaping LifecycleOperation) -> Application"
@@ -1305,7 +1355,28 @@ public_api:
         - "public func runLifecycle(_ phase: LifecyclePhase) async throws"
         - "public func describeRoutes() -> [RouteDescription]"
         - "public func respond(to request: Request) async -> Response"
-      contract: "Always returns a Response; runs application middleware around router dispatch; converts ResponseError and unknown errors; lifecycle hooks are explicit and not run by respond(to:); describeRoutes exposes route metadata without invoking handlers."
+      contract: "Always returns a Response; stamps application dependencies onto the request; runs application middleware around router dispatch; converts ResponseError and unknown errors; lifecycle hooks are explicit and not run by respond(to:); describeRoutes exposes route metadata without invoking handlers."
+    Dependencies:
+      kind: struct
+      conforms:
+        - Sendable
+      methods:
+        - "public init()"
+        - "public mutating func register<Value: Sendable>(_ value: Value)"
+        - "public func get<Value: Sendable>(_ type: Value.Type = Value.self) -> Value?"
+        - "public func require<Value: Sendable>(_ type: Value.Type = Value.self) throws -> Value"
+      contract: "App-wide default dependency registry storing concrete Sendable values by concrete metatype; optional helper, not mandatory application architecture."
+    DependencyError:
+      kind: struct
+      conforms:
+        - ResponseError
+      properties:
+        - "typeName: String"
+        - "status: Status"
+        - "reason: String"
+      methods:
+        - "public static func missing<Value>(_ type: Value.Type) -> DependencyError"
+      contract: "Missing required dependency response error; maps to 500 Internal Server Error."
     LifecyclePhase:
       kind: enum
       conforms:
@@ -1468,14 +1539,16 @@ public_api:
         - "body: RequestBody"
         - "parameters: Parameters"
         - "query: QueryParameters"
+        - "dependencies: Dependencies"
       methods:
-        - "public init(method:path:headers:body: RequestBody = .bytes([]), parameters: Parameters = Parameters(), query: QueryParameters? = nil)"
-        - "public init(method:path:headers:body: [UInt8], parameters: Parameters = Parameters(), query: QueryParameters? = nil)"
+        - "public init(method:path:headers:body: RequestBody = .bytes([]), parameters: Parameters = Parameters(), query: QueryParameters? = nil, dependencies: Dependencies = Dependencies())"
+        - "public init(method:path:headers:body: [UInt8], parameters: Parameters = Parameters(), query: QueryParameters? = nil, dependencies: Dependencies = Dependencies())"
         - "public func with(parameters: Parameters) -> Request"
         - "public func with(body: RequestBody) -> Request"
         - "public func with(headers: Headers) -> Request"
+        - "public func with(dependencies: Dependencies) -> Request"
         - "public func withBufferedBody<R: Sendable>(upTo limit: ByteCount, _ operation: @Sendable (Request, [UInt8]) async throws -> R) async throws -> R"
-      contract: "Request initializers strip query text from path and populate query; DaylilyNIO creates streaming RequestBody values through transport SPI; in-process callers may use RequestBody.bytes(...); request copying helpers preserve one-shot body storage; explicit body buffering uses withBufferedBody(upTo:_:)."
+      contract: "Request initializers strip query text from path and populate query; Application.respond(to:) stamps application dependencies onto requests; DaylilyNIO creates streaming RequestBody values through transport SPI; in-process callers may use RequestBody.bytes(...); request copying helpers preserve one-shot body storage; explicit body buffering uses withBufferedBody(upTo:_:)."
     Parameters:
       kind: struct
       conforms:
@@ -1798,6 +1871,7 @@ runtime_rules:
   query_and_header_input_policy: "Request.query uses QueryParameters; Headers has typed require/get; @Query lowers to req.query.require plus RouteInputMetadata.query(...) and @Header lowers to req.headers.require plus RouteInputMetadata.header(...)."
   macro_json_body_policy: "@Body parameters are the preferred marker wrappers in DaylilyJSON; @DaylilyServer lowers them into try await req.json(Type.self) plus RouteBodyMetadata.json(...). @JSONBody remains as a compatibility alias spelling with the same lowering. The raw one-shot request body type is RequestBody."
   lifecycle_policy: "Application lifecycle phases are configure, boot, started, shutdown, cleanup. Application.run binds lifecycle to transport; Application.respond(to:) does not run lifecycle. The default NIO server closes on SIGINT/SIGTERM."
+  dependencies_policy: "Dependencies is an app-wide concrete Sendable registry in DaylilyCore. Application.respond(to:) stamps dependencies onto each request. Missing required dependencies map to 500 Internal Server Error. Protocol lookup, keyed dependencies, lifecycle integration, and @Dependency are deferred."
   server_configuration_policy: "ServerConfiguration is the NIO-free user-facing server control type. Application.run(configuration:) bridges it into DaylilyNIO."
   test_client_policy: "TestClient is an in-memory helper in DaylilyTesting; it calls Application.respond(to:) directly and does not use transport. TestRequest and response assertions are testing helpers, not runtime behavior."
   route_metadata_policy: "Route metadata lives in DaylilyCore and is exposed through Route.describe(...) and Application.describeRoutes(); it does not affect routing and is the source of truth for OpenAPI generation."
@@ -1893,6 +1967,7 @@ aidev_files:
     - ai/tasks/0020-002-minimal-app-template.md
     - ai/tasks/0020-003-first-real-api-example.md
     - ai/tasks/0020-004-dependency-injection-design.md
+    - ai/tasks/0020-005-dependencies-registry-mvp.md
   docs:
     - CHANGELOG.md
     - docs/README.md
@@ -1998,7 +2073,7 @@ roadmap:
     in_progress:
       - "0020-package-consumer-experience"
     next_recommended:
-      - "0020-005-dependencies-registry-mvp"
+      - "0020-006-di-usage-polish"
   completed:
     - "0001-001-minimal-http-server"
     - "0002-001-aidev-project-contract"
@@ -2038,12 +2113,12 @@ roadmap:
     - "0020-002-minimal-app-template"
     - "0020-003-first-real-api-example"
     - "0020-004-dependency-injection-design"
+    - "0020-005-dependencies-registry-mvp"
   in_progress: []
   next_recommended:
-    - "0020-005-dependencies-registry-mvp"
+    - "0020-006-di-usage-polish"
   later:
     - "0013-003-observability-hooks"
-    - "0020-006-di-usage-polish"
     - "0020-007-protocol-keyed-dependencies-design"
     - "0020-008-lifecycle-integration-design"
     - "0020-009-macro-dependency"

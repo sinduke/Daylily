@@ -21,7 +21,7 @@ struct App {
 
 This is a default path, not a mandatory path. Runtime APIs are first-class, macros lower into runtime APIs, and user applications may keep their own composition roots, services, factories, or containers.
 
-Current implemented surfaces are the runtime DSL for `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, and `OPTIONS`, runtime route metadata, minimal `DaylilyOpenAPI` document generation, runtime middleware, `DaylilyObservability` request ID and request logging middleware, application lifecycle hooks, the Daylily-owned `RequestBody` model, explicit buffered body replacement, JSON body/response helpers, the macro route/group MVP, macro `@Path`, `@Query`, `@Header`, and preferred `@Body` typed JSON input injection with route metadata lowering, `@JSONBody` compatibility alias spelling, and `DaylilyTesting` in-memory request/response helpers.
+Current implemented surfaces are the runtime DSL for `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, and `OPTIONS`, runtime route metadata, minimal `DaylilyOpenAPI` document generation, runtime middleware, `DaylilyObservability` request ID and request logging middleware, application lifecycle hooks, app-wide `Dependencies` registry MVP, the Daylily-owned `RequestBody` model, explicit buffered body replacement, JSON body/response helpers, the macro route/group MVP, macro `@Path`, `@Query`, `@Header`, and preferred `@Body` typed JSON input injection with route metadata lowering, `@JSONBody` compatibility alias spelling, and `DaylilyTesting` in-memory request/response helpers.
 
 Runtime DSL:
 
@@ -278,6 +278,7 @@ Implemented:
 - Runtime middleware at application, group, and route scope.
 - `DaylilyObservability` request ID and request logging middleware.
 - Application lifecycle hooks: `configure`, `boot`, `started`, `shutdown`, `cleanup`.
+- App-wide `Dependencies` registry MVP with concrete `Sendable` `register`, `get`, and `require`.
 - Default SIGINT/SIGTERM graceful server shutdown.
 - Explicit `ServerConfiguration`.
 - Macro route/group MVP: `@DaylilyServer`, `@GET`, `@POST`, `@PUT`, `@PATCH`, `@DELETE`, `@HEAD`, `@OPTIONS`, `@GROUP`.
@@ -304,14 +305,14 @@ Implemented:
 - Release hygiene docs, including `CHANGELOG.md` and `docs/release-readiness.md`.
 - External SwiftPM consumer smoke script and CI coverage for local path and released package dependency modes.
 - Minimal app template in `templates/minimal-app`, plus template smoke validation for path and release dependency modes.
-- Commerce API example in `examples/commerce-api`, plus example smoke validation for path and release dependency modes.
-- Dependency injection design for the first `Dependencies` registry MVP.
+- Commerce API example in `examples/commerce-api`, plus example smoke validation for current checkout path mode.
+- Dependency injection design and runtime MVP for the first `Dependencies` registry.
 
 Not implemented:
 
 - Macro typed input injection beyond `@Path`, `@Query`, `@Header`, and `@Body` (optional values, etc.).
 - Deep OpenAPI schema derivation.
-- Dependency injection runtime.
+- Protocol/keyed dependencies, dependency lifecycle integration, and `@Dependency` macro syntax.
 - Macro middleware attributes.
 
 ## Read Order
@@ -395,6 +396,6 @@ Do not start with:
 
 Current strategic order:
 
-1. Implement `0020-005-dependencies-registry-mvp`.
-2. Polish the `makeApplication` and test override usage in `0020-006`.
-3. Design protocol/keyed dependencies, lifecycle integration, then `@Dependency` macro sugar in order.
+1. Polish the `makeApplication` and test override usage in `0020-006`.
+2. Design protocol/keyed dependencies in `0020-007`.
+3. Design lifecycle integration, then `@Dependency` macro sugar in order.

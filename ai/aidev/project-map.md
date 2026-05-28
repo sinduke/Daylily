@@ -85,6 +85,7 @@ Daylily/
 `scripts/template-smoke-test.sh`
 
 - Copies `templates/minimal-app` to a temporary external directory.
+- Removes copied `.build` and `Package.resolved` artifacts so local builds cannot pollute smoke packages.
 - Rewrites the Daylily dependency for path, release, or branch validation.
 - Runs `swift package resolve`, `swift build`, `swift test`, and `swift run App --check`.
 
@@ -123,7 +124,7 @@ Daylily/
 `DaylilyCore`
 
 - Framework runtime.
-- Owns request, response, body, route, route metadata, routes, router, middleware, handler, status, headers, parameters, errors.
+- Owns request, response, body, dependencies, route, route metadata, routes, router, middleware, handler, status, headers, parameters, errors.
 - Must stay independent from NIO and transport-specific APIs.
 
 `DaylilyJSON`
@@ -213,6 +214,7 @@ Daylily/
 - Holds `Router`.
 - Entrypoint for in-memory request handling via `respond(to:)`.
 - Stores application middleware.
+- Owns the app-wide `Dependencies` value and stamps it onto requests.
 - Converts `ResponseError` failures into responses.
 
 `Sources/DaylilyCore/Body.swift`
@@ -224,6 +226,12 @@ Daylily/
 `Sources/DaylilyCore/Errors.swift`
 
 - Defines `ResponseError` and `Abort`.
+
+`Sources/DaylilyCore/Dependencies.swift`
+
+- Defines the app-wide `Dependencies` registry MVP.
+- Defines `DependencyError` for missing required dependencies.
+- Stores concrete `Sendable` values by concrete metatype.
 
 `Sources/DaylilyCore/Handler.swift`
 
@@ -274,8 +282,8 @@ Daylily/
 
 `Sources/DaylilyCore/Request.swift`
 
-- Method, path, headers, `RequestBody`, path parameters, and query parameters.
-- Request copy helpers for parameters, body replacement, and explicit buffered body replacement.
+- Method, path, headers, `RequestBody`, path parameters, query parameters, and dependencies.
+- Request copy helpers for parameters, body replacement, dependency replacement, and explicit buffered body replacement.
 
 `Sources/DaylilyCore/ServerConfiguration.swift`
 

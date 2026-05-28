@@ -18,6 +18,11 @@ public enum DaylilyChecks {
         try await testClientNotFound()
         try await testClientRequestBuilder()
         try await testClientPostJSON()
+        try dependenciesRegistry()
+        try await applicationDependenciesHandler()
+        try await applicationDependenciesMissing()
+        try await applicationDependenciesMiddleware()
+        try await testClientApplicationDependencies()
         try httpMethodParsing()
         try await runtimeHTTPVerbs()
         try await testClientHTTPVerbs()
@@ -466,6 +471,109 @@ public enum DaylilyChecks {
 
         try response.requireStatus(.ok)
         try response.requireJSON(EchoResponse(echo: "testing"))
+    }
+
+    private static func dependenciesRegistry() throws {
+        var dependencies = Dependencies()
+
+        let missing: DependencyGreeting? = dependencies.get()
+        try expect(missing == nil, "expected missing optional dependency lookup to return nil")
+
+        dependencies.register(DependencyGreeting(message: "first"))
+        try expect(
+            dependencies.get(DependencyGreeting.self) == DependencyGreeting(message: "first"),
+            "expected registered dependency lookup"
+        )
+        let requiredFirst = try dependencies.require(DependencyGreeting.self)
+        try expect(
+            requiredFirst == DependencyGreeting(message: "first"),
+            "expected required dependency lookup"
+        )
+
+        dependencies.register(DependencyGreeting(message: "second"))
+        let requiredSecond = try dependencies.require(DependencyGreeting.self)
+        try expect(
+            requiredSecond == DependencyGreeting(message: "second"),
+            "expected repeated registration to replace dependency"
+        )
+
+        do {
+            _ = try dependencies.require(MissingDependency.self)
+            try expect(false, "expected missing dependency error")
+        } catch let error as DependencyError {
+            try expect(error.status == .internalServerError, "expected missing dependency 500")
+            try expect(
+                error.reason.contains("Missing dependency:"),
+                "expected missing dependency reason"
+            )
+        }
+    }
+
+    private static func applicationDependenciesHandler() async throws {
+        let app = Application(dependencies: { dependencies in
+            dependencies.register(DependencyGreeting(message: "handler"))
+        }) {
+            Get("/dependency") { request in
+                let greeting = try request.dependencies.require(DependencyGreeting.self)
+                return greeting.message
+            }
+        }
+
+        let response = await app.respond(to: Request(method: .get, path: "/dependency"))
+
+        try expect(response.status == .ok, "expected dependency handler response")
+        try expect(response.bodyString == "handler", "expected handler to read application dependency")
+    }
+
+    private static func applicationDependenciesMissing() async throws {
+        let app = Application {
+            Get("/dependency") { request in
+                let greeting = try request.dependencies.require(DependencyGreeting.self)
+                return greeting.message
+            }
+        }
+
+        let response = await app.respond(to: Request(method: .get, path: "/dependency"))
+
+        try expect(response.status == .internalServerError, "expected missing dependency to map to 500")
+        try expect(
+            response.bodyString.contains("Missing dependency:"),
+            "expected missing dependency response body"
+        )
+    }
+
+    private static func applicationDependenciesMiddleware() async throws {
+        let app = Application(dependencies: { dependencies in
+            dependencies.register(DependencyGreeting(message: "middleware"))
+        }) {
+            Get("/dependency") {
+                "ok"
+            }
+            .middleware(DependencyHeaderMiddleware())
+        }
+
+        let response = await app.respond(to: Request(method: .get, path: "/dependency"))
+
+        try expect(response.status == .ok, "expected dependency middleware response")
+        try expect(
+            response.headers["x-dependency"] == "middleware",
+            "expected middleware to read application dependency"
+        )
+    }
+
+    private static func testClientApplicationDependencies() async throws {
+        let app = Application(dependencies: { dependencies in
+            dependencies.register(DependencyGreeting(message: "test-client"))
+        }) {
+            Get("/dependency") { request in
+                try request.dependencies.require(DependencyGreeting.self).message
+            }
+        }
+
+        let response = try await TestClient(app).get("/dependency")
+
+        try response.requireStatus(.ok)
+        try response.requireBody("test-client")
     }
 
     private static func httpMethodParsing() throws {
@@ -1614,6 +1722,12 @@ private struct CheckFailure: Error, CustomStringConvertible {
     }
 }
 
+private struct DependencyGreeting: Equatable, Sendable {
+    let message: String
+}
+
+private struct MissingDependency: Sendable {}
+
 private actor EventLog {
     private var events: [String] = []
 
@@ -1645,6 +1759,15 @@ private struct HeaderMiddleware: Middleware {
     func handle(_ request: Request, next: Handler) async throws -> Response {
         var response = try await next.respond(to: request)
         response.headers[name] = value
+        return response
+    }
+}
+
+private struct DependencyHeaderMiddleware: Middleware {
+    func handle(_ request: Request, next: Handler) async throws -> Response {
+        let greeting = try request.dependencies.require(DependencyGreeting.self)
+        var response = try await next.respond(to: request)
+        response.headers["x-dependency"] = greeting.message
         return response
     }
 }

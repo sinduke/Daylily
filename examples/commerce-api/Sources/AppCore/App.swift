@@ -2,13 +2,22 @@ import Daylily
 import Foundation
 
 public func makeApplication(store: CommerceStore = .seeded()) -> Application {
-    Application {
+    makeApplication { dependencies in
+        dependencies.register(store)
+    }
+}
+
+public func makeApplication(
+    configureDependencies: @Sendable (inout Dependencies) -> Void
+) -> Application {
+    Application(dependencies: configureDependencies) {
         Get("/api/health") {
             JSON(HealthResponse(status: "ok", service: "commerce-api"))
         }
 
         Get("/api/products") { request in
             let category = request.query["category"]
+            let store = try request.dependencies.require(CommerceStore.self)
             let products = await store.listProducts(category: category)
             return JSON(ProductListResponse(products: products))
         }
@@ -25,6 +34,7 @@ public func makeApplication(store: CommerceStore = .seeded()) -> Application {
 
         Get("/api/products/:id") { request in
             let id = try request.parameters.require("id", as: Int.self)
+            let store = try request.dependencies.require(CommerceStore.self)
             guard let product = await store.product(id: id) else {
                 throw Abort(.notFound, reason: "Product not found")
             }
@@ -45,6 +55,7 @@ public func makeApplication(store: CommerceStore = .seeded()) -> Application {
 
         Post("/api/orders") { request in
             let input = try await request.json(CreateOrderRequest.self)
+            let store = try request.dependencies.require(CommerceStore.self)
             let order = try await store.createOrder(input)
             return JSON(order, status: .created)
         }
@@ -61,6 +72,7 @@ public func makeApplication(store: CommerceStore = .seeded()) -> Application {
 
         Get("/api/orders/:id") { request in
             let id = try request.parameters.require("id", as: Int.self)
+            let store = try request.dependencies.require(CommerceStore.self)
             guard let order = await store.order(id: id) else {
                 throw Abort(.notFound, reason: "Order not found")
             }

@@ -5,6 +5,7 @@ public struct Request: Sendable {
     public let body: RequestBody
     public let parameters: Parameters
     public let query: QueryParameters
+    public let dependencies: Dependencies
 
     public init(
         method: HTTPMethod,
@@ -12,7 +13,8 @@ public struct Request: Sendable {
         headers: Headers = [:],
         body: RequestBody = .bytes([]),
         parameters: Parameters = Parameters(),
-        query: QueryParameters? = nil
+        query: QueryParameters? = nil,
+        dependencies: Dependencies = Dependencies()
     ) {
         let parsedPath = Self.parsePath(path)
         self.method = method
@@ -21,6 +23,7 @@ public struct Request: Sendable {
         self.body = body
         self.parameters = parameters
         self.query = query ?? parsedPath.query
+        self.dependencies = dependencies
     }
 
     public init(
@@ -29,7 +32,8 @@ public struct Request: Sendable {
         headers: Headers = [:],
         body: [UInt8],
         parameters: Parameters = Parameters(),
-        query: QueryParameters? = nil
+        query: QueryParameters? = nil,
+        dependencies: Dependencies = Dependencies()
     ) {
         self.init(
             method: method,
@@ -37,7 +41,8 @@ public struct Request: Sendable {
             headers: headers,
             body: .bytes(body),
             parameters: parameters,
-            query: query
+            query: query,
+            dependencies: dependencies
         )
     }
 
@@ -48,7 +53,8 @@ public struct Request: Sendable {
             headers: headers,
             body: body,
             parameters: parameters,
-            query: query
+            query: query,
+            dependencies: dependencies
         )
     }
 
@@ -59,7 +65,8 @@ public struct Request: Sendable {
             headers: headers,
             body: body,
             parameters: parameters,
-            query: query
+            query: query,
+            dependencies: dependencies
         )
     }
 
@@ -70,7 +77,20 @@ public struct Request: Sendable {
             headers: headers,
             body: body,
             parameters: parameters,
-            query: query
+            query: query,
+            dependencies: dependencies
+        )
+    }
+
+    public func with(dependencies: Dependencies) -> Request {
+        Request(
+            method: method,
+            path: path,
+            headers: headers,
+            body: body,
+            parameters: parameters,
+            query: query,
+            dependencies: dependencies
         )
     }
 

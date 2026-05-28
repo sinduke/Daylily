@@ -51,9 +51,6 @@ jobs:
       - name: Run Path Example Smoke
         run: scripts/example-smoke-test.sh --mode path
 
-      - name: Run Release Example Smoke
-        run: scripts/example-smoke-test.sh --mode release --version 0.1.0-alpha.1
-
   linux:
     name: Linux Build, Test, and Check
     runs-on: ubuntu-latest
@@ -92,6 +89,3 @@ jobs:
 
       - name: Run Path Example Smoke
         run: scripts/example-smoke-test.sh --mode path
-
-      - name: Run Release Example Smoke
-        run: scripts/example-smoke-test.sh --mode release --version 0.1.0-alpha.1

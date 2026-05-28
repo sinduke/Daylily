@@ -365,7 +365,12 @@ Rules:
 ```swift
 public struct Application: Sendable {
     public init(@RouteBuilder routes: () -> [Route])
+    public init(
+        dependencies configureDependencies: @Sendable (inout Dependencies) -> Void = { _ in },
+        @RouteBuilder routes: () -> [Route]
+    )
     public init(routes: [Route])
+    public init(routes: [Route], dependencies: Dependencies)
     public init(routes: Routes)
     public func middleware<M: Middleware>(_ middleware: M) -> Application
     public func lifecycle(_ phase: LifecyclePhase, _ operation: @escaping LifecycleOperation) -> Application
@@ -385,9 +390,41 @@ Rules:
 - `respond(to:)` catches framework errors and always returns a `Response`.
 - It is the in-memory test surface for runtime behavior.
 - Application middleware wraps every request, including missing routes and error responses produced by router dispatch.
+- `Application(dependencies:)` configures an app-wide default dependency registry.
+- `Application { ... }` remains supported and creates an empty dependency registry.
+- `respond(to:)` stamps application dependencies onto the request before middleware and router dispatch.
 - Lifecycle hooks are async, throwing, and run in registration order within each phase.
 - `respond(to:)` does not run lifecycle hooks.
 - `describeRoutes()` returns normalized route descriptions and route metadata without invoking handlers.
+
+### Dependencies
+
+```swift
+public struct Dependencies: Sendable {
+    public init()
+
+    public mutating func register<Value: Sendable>(_ value: Value)
+    public func get<Value: Sendable>(_ type: Value.Type = Value.self) -> Value?
+    public func require<Value: Sendable>(_ type: Value.Type = Value.self) throws -> Value
+}
+
+public struct DependencyError: ResponseError {
+    public let typeName: String
+    public static func missing<Value>(_ type: Value.Type) -> DependencyError
+    public var status: Status { get }
+    public var reason: String { get }
+}
+```
+
+Rules:
+
+- `Dependencies` is a default Daylily service channel, not mandatory application architecture.
+- The MVP stores concrete `Sendable` values by concrete metatype.
+- Re-registering the same concrete type replaces the previous value.
+- `get` returns `nil` when the concrete type is missing.
+- `require` throws `DependencyError.missing(...)` when the concrete type is missing.
+- `DependencyError` maps to `500 Internal Server Error`.
+- Protocol lookup, keyed dependencies, lifecycle integration, and macro `@Dependency` are not part of this MVP.
 
 ### Lifecycle
 
@@ -646,6 +683,7 @@ public struct Request: Sendable {
     public let body: RequestBody
     public let parameters: Parameters
     public let query: QueryParameters
+    public let dependencies: Dependencies
 
     public init(
         method: HTTPMethod,
@@ -653,7 +691,8 @@ public struct Request: Sendable {
         headers: Headers = [:],
         body: RequestBody = .bytes([]),
         parameters: Parameters = Parameters(),
-        query: QueryParameters? = nil
+        query: QueryParameters? = nil,
+        dependencies: Dependencies = Dependencies()
     )
 
     public init(
@@ -662,12 +701,14 @@ public struct Request: Sendable {
         headers: Headers = [:],
         body: [UInt8],
         parameters: Parameters = Parameters(),
-        query: QueryParameters? = nil
+        query: QueryParameters? = nil,
+        dependencies: Dependencies = Dependencies()
     )
 
     public func with(parameters: Parameters) -> Request
     public func with(body: RequestBody) -> Request
     public func with(headers: Headers) -> Request
+    public func with(dependencies: Dependencies) -> Request
 
     public func withBufferedBody<R: Sendable>(
         upTo limit: ByteCount,
@@ -680,7 +721,7 @@ Rules:
 
 - Initializers strip query text from `path` and populate `query` when `path` includes `?`.
 - Explicit `query:` overrides query text parsed from `path`.
-- `with(parameters:)`, `with(body:)`, `with(headers:)`, and `withBufferedBody(upTo:_:)` preserve query values.
+- `with(parameters:)`, `with(body:)`, `with(headers:)`, `with(dependencies:)`, and `withBufferedBody(upTo:_:)` preserve query values.
 
 RequestBody rules:
 
@@ -689,6 +730,7 @@ RequestBody rules:
 - `with(parameters:)` preserves the same `RequestBody` storage and one-shot state.
 - `with(body:)` replaces only the body and preserves method, path, headers, and parameters.
 - `with(headers:)` replaces only headers and preserves method, path, body, parameters, and query.
+- `with(dependencies:)` replaces only dependencies and preserves method, path, headers, body, parameters, and query.
 - `withBufferedBody(upTo:_:)` consumes the current body, creates a replacement `RequestBody.bytes(...)`, and passes both replacement request and collected bytes to the closure.
 - `withBufferedBody(upTo:_:)` requires an explicit `ByteCount` limit.
 - The replacement body from `withBufferedBody(upTo:_:)` is still one-shot.

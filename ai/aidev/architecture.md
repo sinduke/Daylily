@@ -104,6 +104,8 @@ Middleware lives in `DaylilyCore`. It is runtime infrastructure, not transport i
 
 Lifecycle phases live in `DaylilyCore`. `Application.run` wires them to the current transport, and `DaylilyNIO` only exposes a transport-level `started` callback for bind completion.
 
+The `Dependencies` registry lives in `DaylilyCore`. `Application` owns an app-wide registry and stamps it onto each request before middleware and route handlers run.
+
 ## Default Path, Not Mandatory Path
 
 Daylily provides recommended defaults without making them architectural monopolies.
@@ -111,7 +113,7 @@ Daylily provides recommended defaults without making them architectural monopoli
 - Runtime APIs are first-class and remain valid even when macro APIs exist.
 - Macro APIs are convenience syntax over runtime APIs.
 - Built-in helpers should support common application shapes without forcing users to abandon their own composition root.
-- The planned `Dependencies` registry is a default dependency channel, not the only legal DI or service wiring strategy.
+- The `Dependencies` registry is a default dependency channel, not the only legal DI or service wiring strategy.
 - User applications may capture services in closures, register their own container, or bypass Daylily dependency helpers entirely.
 
 ## Non-Negotiable Boundaries

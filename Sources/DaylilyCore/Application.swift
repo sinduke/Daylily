@@ -2,15 +2,30 @@ public struct Application: Sendable {
     private let router: Router
     private let middlewares: [AnyMiddleware]
     private let lifecycleHooks: [LifecyclePhase: [LifecycleOperation]]
+    private let dependencies: Dependencies
 
     public init(@RouteBuilder routes: () -> [Route]) {
-        self.init(routes: routes())
+        self.init(dependencies: { _ in }, routes: routes)
+    }
+
+    public init(
+        dependencies configureDependencies: @Sendable (inout Dependencies) -> Void = { _ in },
+        @RouteBuilder routes: () -> [Route]
+    ) {
+        var dependencies = Dependencies()
+        configureDependencies(&dependencies)
+        self.init(routes: routes(), dependencies: dependencies)
     }
 
     public init(routes: [Route]) {
+        self.init(routes: routes, dependencies: Dependencies())
+    }
+
+    public init(routes: [Route], dependencies: Dependencies) {
         self.router = Router(routes: routes)
         self.middlewares = []
         self.lifecycleHooks = [:]
+        self.dependencies = dependencies
     }
 
     public init(routes: Routes) {
@@ -20,17 +35,24 @@ public struct Application: Sendable {
     private init(
         router: Router,
         middlewares: [AnyMiddleware],
-        lifecycleHooks: [LifecyclePhase: [LifecycleOperation]]
+        lifecycleHooks: [LifecyclePhase: [LifecycleOperation]],
+        dependencies: Dependencies
     ) {
         self.router = router
         self.middlewares = middlewares
         self.lifecycleHooks = lifecycleHooks
+        self.dependencies = dependencies
     }
 
     public func middleware<M: Middleware>(_ middleware: M) -> Application {
         var middlewares = self.middlewares
         middlewares.append(AnyMiddleware(middleware))
-        return Application(router: router, middlewares: middlewares, lifecycleHooks: lifecycleHooks)
+        return Application(
+            router: router,
+            middlewares: middlewares,
+            lifecycleHooks: lifecycleHooks,
+            dependencies: dependencies
+        )
     }
 
     public func lifecycle(
@@ -39,7 +61,12 @@ public struct Application: Sendable {
     ) -> Application {
         var lifecycleHooks = self.lifecycleHooks
         lifecycleHooks[phase, default: []].append(operation)
-        return Application(router: router, middlewares: middlewares, lifecycleHooks: lifecycleHooks)
+        return Application(
+            router: router,
+            middlewares: middlewares,
+            lifecycleHooks: lifecycleHooks,
+            dependencies: dependencies
+        )
     }
 
     public func configure(_ operation: @escaping LifecycleOperation) -> Application {
@@ -73,6 +100,7 @@ public struct Application: Sendable {
     }
 
     public func respond(to request: Request) async -> Response {
+        let request = request.with(dependencies: dependencies)
         let terminal = Handler { request in
             await Self.render {
                 try await router.respond(to: request)
