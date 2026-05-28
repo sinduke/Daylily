@@ -424,7 +424,8 @@ Rules:
 - `get` returns `nil` when the concrete type is missing.
 - `require` throws `DependencyError.missing(...)` when the concrete type is missing.
 - `DependencyError` maps to `500 Internal Server Error`.
-- Protocol lookup, keyed dependencies, lifecycle integration, and macro `@Dependency` are not part of this MVP.
+- Protocol/keyed runtime APIs, lifecycle integration, and macro `@Dependency` are not part of this MVP.
+- 0020-007 accepts a future typed `DependencyKey<Value>` direction for protocol-oriented and same-type multi-instance lookups; it is design-only and not public API yet.
 
 ### Lifecycle
 

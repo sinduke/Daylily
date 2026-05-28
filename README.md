@@ -744,7 +744,7 @@ MVP limits:
 - `@Body` lowers into `try await req.json(Type.self)`; `@JSONBody` is a compatibility alias spelling with the same lowering;
 - the raw one-shot request body type is `RequestBody`;
 - grouped types must be default-initializable;
-- optional typed inputs, macro middleware attributes, protocol/keyed DI, and deep OpenAPI schema derivation are future work.
+- optional typed inputs, macro middleware attributes, protocol/keyed DI runtime implementation, and deep OpenAPI schema derivation are future work.
 
 These are macro MVP limits, not runtime limits.
 
@@ -824,7 +824,7 @@ The most important invariants:
 
 Near-term:
 
-1. Design protocol and keyed dependencies.
+1. Design dependency lifecycle integration.
 2. Add middleware macro attributes.
 3. Expand OpenAPI schema generation.
 4. Publish benchmark methodology.

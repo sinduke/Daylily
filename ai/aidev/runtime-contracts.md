@@ -147,10 +147,35 @@ MVP guarantees:
 
 Future extension points:
 
-- protocol and keyed dependency design
+- keyed dependency runtime API based on the accepted `DependencyKey<Value>` design
 - request-scoped values
 - lifecycle-aware services
 - macro `@Dependency` syntax
+
+0020-007 accepted design, not implemented:
+
+```swift
+public struct DependencyKey<Value>: Sendable {
+    public let name: String
+
+    public init(_ name: String)
+}
+
+public extension Dependencies {
+    mutating func register<Value: Sendable>(_ value: Value, for key: DependencyKey<Value>)
+    func get<Value: Sendable>(_ key: DependencyKey<Value>) -> Value?
+    func require<Value: Sendable>(_ key: DependencyKey<Value>) throws -> Value
+}
+```
+
+Design rules:
+
+- Keep concrete-type lookup as the simple path.
+- Use typed keys when dependency intent matters more than concrete type.
+- Express protocol-oriented lookup through a key whose value is an existential, such as `DependencyKey<any ProductServing>`.
+- Express same-type multi-instance lookup through distinct keys with the same value type.
+- Do not add default values, lifecycle ownership, async factories, request-scoped mutation, or macro syntax in the keyed runtime slice.
+- Direct protocol metatype lookup is not the preferred Daylily surface.
 
 ## Middleware Contract
 

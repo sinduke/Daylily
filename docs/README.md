@@ -18,7 +18,7 @@ Daylily provides default paths, not mandatory paths. Runtime APIs are first-clas
 ## Examples
 
 - [Commerce API](examples/commerce-api.md): first real API example with products, orders, state, dependencies, metadata, and tests.
-- [Dependencies](examples/dependencies.md): `makeApplication` pattern, test overrides, and custom service wiring.
+- [Dependencies](examples/dependencies.md): `makeApplication` pattern, test overrides, custom service wiring, and the typed key design direction.
 - [JSON API](examples/json-api.md): request decoding, JSON responses, and macro `@Body` input.
 - [Middleware](examples/middleware.md): application/group/route middleware, observability, and one-shot body rules.
 - [Testing](examples/testing.md): transport-free tests with `DaylilyTesting`.

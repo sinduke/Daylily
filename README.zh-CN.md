@@ -744,7 +744,7 @@ MVP 限制：
 - `@Body` 会降级到 `try await req.json(Type.self)`；`@JSONBody` 是同样 lowering 的兼容别名写法；
 - raw one-shot request body 类型是 `RequestBody`；
 - group type 必须可以默认初始化；
-- optional typed inputs、macro middleware attributes、protocol/keyed DI 和深度 OpenAPI schema 推导都是后续工作。
+- optional typed inputs、macro middleware attributes、protocol/keyed DI runtime implementation 和深度 OpenAPI schema 推导都是后续工作。
 
 这些是 macro MVP 的限制，不是 runtime 的限制。
 
@@ -824,7 +824,7 @@ Daylily/
 
 近期：
 
-1. 设计 protocol 和 keyed dependencies。
+1. 设计 dependency lifecycle integration。
 2. 增加 middleware macro attributes。
 3. 扩展 OpenAPI schema generation。
 4. 发布 benchmark methodology。

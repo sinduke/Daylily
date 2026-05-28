@@ -80,6 +80,44 @@ let app = Application {
 Use the registry when it makes common wiring easier. Use your own composition
 root when that makes the application clearer.
 
+## Protocols and Multiple Instances
+
+The current runtime registry looks up concrete types. Protocol-oriented lookup
+and multiple values of the same concrete type are designed, but not implemented
+yet.
+
+The planned direction is a typed `DependencyKey<Value>`:
+
+```swift
+protocol ProductServing: Sendable {
+    func list() async throws -> [Product]
+}
+
+enum AppDependencies {
+    static let productService = DependencyKey<any ProductServing>("productService")
+    static let primaryDatabase = DependencyKey<Database>("database.primary")
+    static let replicaDatabase = DependencyKey<Database>("database.replica")
+}
+```
+
+Future usage would look like this:
+
+```swift
+let app = Application(dependencies: { dependencies in
+    dependencies.register(ProductService.live, for: AppDependencies.productService)
+    dependencies.register(Database.primary, for: AppDependencies.primaryDatabase)
+    dependencies.register(Database.replica, for: AppDependencies.replicaDatabase)
+}) {
+    Get("/products") { request in
+        let service = try request.dependencies.require(AppDependencies.productService)
+        return JSON(try await service.list())
+    }
+}
+```
+
+This keeps dependency intent explicit without making protocol metatypes or raw
+strings the main lookup surface.
+
 ## Minimal Template
 
 The minimal app template intentionally keeps its source free of `Dependencies`
