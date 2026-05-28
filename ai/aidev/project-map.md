@@ -67,7 +67,7 @@ Daylily/
 `docs/examples/`
 
 - Focused beta examples for dependencies usage, the commerce API, JSON APIs, middleware, and transport-free testing.
-- `docs/examples/dependencies.md` owns the `makeApplication`, test override, custom service wiring, and typed dependency key design guidance.
+- `docs/examples/dependencies.md` owns the `makeApplication`, test override, custom service wiring, typed dependency key, and managed service lifecycle design guidance.
 
 `CHANGELOG.md`
 

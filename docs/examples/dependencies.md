@@ -118,6 +118,60 @@ let app = Application(dependencies: { dependencies in
 This keeps dependency intent explicit without making protocol metatypes or raw
 strings the main lookup surface.
 
+## Lifecycle
+
+The current registry is an access channel, not a lifecycle owner. If a service
+needs explicit startup or shutdown today, keep that in the application
+composition root:
+
+```swift
+let database = Database.live
+
+let app = Application(dependencies: { dependencies in
+    dependencies.register(database)
+}) {
+    Get("/products") { request in
+        let database = try request.dependencies.require(Database.self)
+        return JSON(try await database.products())
+    }
+}
+.boot {
+    try await database.connect()
+}
+.shutdown {
+    try await database.close()
+}
+```
+
+The planned lifecycle direction keeps that boundary: `Application` owns service
+lifecycle, while `Dependencies` only owns lookup.
+
+```swift
+public protocol ApplicationService: Sendable {
+    func boot() async throws
+    func shutdown() async throws
+}
+```
+
+Future usage may look like this:
+
+```swift
+let database = Database.live
+let worker = OrderWorker(database: database)
+
+let app = Application(dependencies: { dependencies in
+    dependencies.register(database)
+}) {
+    // routes
+}
+.service(database)
+.service(worker)
+```
+
+Services would boot in registration order and shut down in reverse order. The
+same object may be both a dependency and an application service, but those remain
+two separate choices.
+
 ## Minimal Template
 
 The minimal app template intentionally keeps its source free of `Dependencies`

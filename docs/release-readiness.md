@@ -57,7 +57,8 @@ Linux validation is CI-owned for now. Local development has been verified on mac
 - Deep Swift schema derivation is not implemented.
 - Dependency injection is currently a small concrete-type registry only.
 - Protocol/keyed dependencies are designed around typed `DependencyKey<Value>`, but the runtime API is not implemented.
-- Lifecycle integration and `@Dependency` syntax are not implemented.
+- Lifecycle-managed services are designed around future `ApplicationService`, but the runtime API is not implemented.
+- `@Dependency` syntax is not implemented.
 - Macro middleware attributes are not implemented.
 - Production auth, ORM, queue, realtime, and deployment tooling are future ecosystem work.
 - Benchmarks are not published yet.

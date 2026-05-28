@@ -824,7 +824,7 @@ Daylily/
 
 近期：
 
-1. 设计 dependency lifecycle integration。
+1. 设计 `@Dependency` macro syntax。
 2. 增加 middleware macro attributes。
 3. 扩展 OpenAPI schema generation。
 4. 发布 benchmark methodology。

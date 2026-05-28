@@ -546,7 +546,8 @@ implemented_features:
       - "0020-005-dependencies-registry-mvp"
       - "0020-006-di-usage-polish"
       - "0020-007-protocol-keyed-dependencies-design"
-    next_task: "0020-008-lifecycle-integration-design"
+      - "0020-008-lifecycle-integration-design"
+    next_task: "0020-009-macro-dependency"
     files:
       - scripts/consumer-smoke-test.sh
       - scripts/template-smoke-test.sh
@@ -555,6 +556,7 @@ implemented_features:
       - ai/tasks/0020-005-dependencies-registry-mvp.md
       - ai/tasks/0020-006-di-usage-polish.md
       - ai/tasks/0020-007-protocol-keyed-dependencies-design.md
+      - ai/tasks/0020-008-lifecycle-integration-design.md
       - Sources/DaylilyCore/Dependencies.swift
       - Sources/DaylilyCore/Application.swift
       - Sources/DaylilyCore/Request.swift
@@ -584,6 +586,7 @@ implemented_features:
       - "Dependencies registry with register/get/require, Request.dependencies, handler/middleware/TestClient checks"
       - "dependency usage guide covering makeApplication, test overrides, and optional minimal template guidance"
       - "protocol/keyed dependency design centered on future typed DependencyKey<Value>"
+      - "lifecycle integration design centered on future ApplicationService and Application.service(_:)"
     decisions:
       - "The DI public concept is Dependencies, not Container or Services."
       - "0020-005 implements an app-wide concrete Sendable registry."
@@ -595,7 +598,8 @@ implemented_features:
       - "The minimal app template source remains dependency-free until the Dependencies API is included in a release tag."
       - "Protocol-oriented and same-type multi-instance lookups should use typed DependencyKey<Value> in a future runtime slice."
       - "Direct protocol metatype lookup is not the preferred Daylily surface."
-      - "Lifecycle integration and @Dependency are deferred."
+      - "Application, not Dependencies, should own managed service lifecycle."
+      - "@Dependency is deferred."
     sequence:
       - "0020-001-external-consumer-smoke-test"
       - "0020-002-minimal-app-template"
@@ -744,7 +748,44 @@ implemented_features:
       - "async factories"
       - "request-scoped mutation"
       - "@Dependency macro"
-    next_task: "0020-008-lifecycle-integration-design"
+    next_task: null
+  lifecycle_integration_design:
+    status: implemented
+    epic: "0020-package-consumer-experience"
+    task: "0020-008-lifecycle-integration-design"
+    files:
+      - ai/tasks/0020-008-lifecycle-integration-design.md
+      - docs/README.md
+      - docs/examples/dependencies.md
+      - docs/capability-matrix.md
+      - docs/release-readiness.md
+      - ai/aidev/project-map.md
+      - ai/aidev/runtime-contracts.md
+      - ai/aidev/api-registry.md
+      - ai/aidev/roadmap.md
+      - ai/aidev/start-here.md
+      - ai/epics/0020-package-consumer-experience.md
+    accepted_future_api:
+      - ApplicationService
+      - "Application.service(_:)"
+    decisions:
+      - "Application owns managed service lifecycle."
+      - "Dependencies remains lookup-only and does not own lifecycle."
+      - "The same object may be both registered in Dependencies and managed as an ApplicationService."
+      - "A managed service does not have to be registered as a dependency."
+      - "Services boot in registration order and shut down in reverse registration order."
+      - "Boot failure should shut down already booted services in reverse order."
+      - "Shutdown should attempt every started service and aggregate failures."
+      - "Service lifecycle maps onto existing boot and shutdown phases; no second lifecycle system is introduced."
+    non_goals:
+      - "runtime implementation"
+      - "registerManaged on Dependencies"
+      - "default service discovery"
+      - "request-scoped services"
+      - "async factories"
+      - "keyed dependency runtime implementation"
+      - "@Dependency macro"
+    next_task: "0020-009-macro-dependency"
   macro_route_mvp:
     status: implemented
     task: "0003-001-macro-route-mvp"
@@ -1099,7 +1140,8 @@ planned_features:
       - "0020-005-dependencies-registry-mvp"
       - "0020-006-di-usage-polish"
       - "0020-007-protocol-keyed-dependencies-design"
-    next_task: "0020-008-lifecycle-integration-design"
+      - "0020-008-lifecycle-integration-design"
+    next_task: "0020-009-macro-dependency"
     sequence:
       - "0020-004-dependency-injection-design"
       - "0020-005-dependencies-registry-mvp"
@@ -1137,7 +1179,8 @@ planned_features:
       - "0020-005-dependencies-registry-mvp"
       - "0020-006-di-usage-polish"
       - "0020-007-protocol-keyed-dependencies-design"
-    next_task: "0020-008-lifecycle-integration-design"
+      - "0020-008-lifecycle-integration-design"
+    next_task: "0020-009-macro-dependency"
     sequence:
       - "0020-001-external-consumer-smoke-test"
       - "0020-002-minimal-app-template"
@@ -1953,8 +1996,8 @@ runtime_rules:
   macro_limit_policy: "Macro limitations must stay macro limitations. Applications may use runtime DSL, custom composition roots, and their own service wiring when macro or helper defaults do not fit."
   query_and_header_input_policy: "Request.query uses QueryParameters; Headers has typed require/get; @Query lowers to req.query.require plus RouteInputMetadata.query(...) and @Header lowers to req.headers.require plus RouteInputMetadata.header(...)."
   macro_json_body_policy: "@Body parameters are the preferred marker wrappers in DaylilyJSON; @DaylilyServer lowers them into try await req.json(Type.self) plus RouteBodyMetadata.json(...). @JSONBody remains as a compatibility alias spelling with the same lowering. The raw one-shot request body type is RequestBody."
-  lifecycle_policy: "Application lifecycle phases are configure, boot, started, shutdown, cleanup. Application.run binds lifecycle to transport; Application.respond(to:) does not run lifecycle. The default NIO server closes on SIGINT/SIGTERM."
-  dependencies_policy: "Dependencies is an app-wide concrete Sendable registry in DaylilyCore. Application.respond(to:) stamps dependencies onto each request. Missing required dependencies map to 500 Internal Server Error. Protocol/keyed lookup is designed around a future typed DependencyKey<Value> API but not implemented. Lifecycle integration and @Dependency are deferred."
+  lifecycle_policy: "Application lifecycle phases are configure, boot, started, shutdown, cleanup. Application.run binds lifecycle to transport; Application.respond(to:) does not run lifecycle. The default NIO server closes on SIGINT/SIGTERM. Managed service lifecycle is designed around future ApplicationService and Application.service(_:), with Application owning lifecycle and Dependencies remaining lookup-only."
+  dependencies_policy: "Dependencies is an app-wide concrete Sendable registry in DaylilyCore. Application.respond(to:) stamps dependencies onto each request. Missing required dependencies map to 500 Internal Server Error. Protocol/keyed lookup is designed around a future typed DependencyKey<Value> API but not implemented. Managed service lifecycle is designed around future ApplicationService but not implemented. @Dependency is deferred."
   server_configuration_policy: "ServerConfiguration is the NIO-free user-facing server control type. Application.run(configuration:) bridges it into DaylilyNIO."
   test_client_policy: "TestClient is an in-memory helper in DaylilyTesting; it calls Application.respond(to:) directly and does not use transport. TestRequest and response assertions are testing helpers, not runtime behavior."
   route_metadata_policy: "Route metadata lives in DaylilyCore and is exposed through Route.describe(...) and Application.describeRoutes(); it does not affect routing and is the source of truth for OpenAPI generation."
@@ -2053,6 +2096,7 @@ aidev_files:
     - ai/tasks/0020-005-dependencies-registry-mvp.md
     - ai/tasks/0020-006-di-usage-polish.md
     - ai/tasks/0020-007-protocol-keyed-dependencies-design.md
+    - ai/tasks/0020-008-lifecycle-integration-design.md
   docs:
     - CHANGELOG.md
     - docs/README.md
@@ -2159,7 +2203,7 @@ roadmap:
     in_progress:
       - "0020-package-consumer-experience"
     next_recommended:
-      - "0020-008-lifecycle-integration-design"
+      - "0020-009-macro-dependency"
   completed:
     - "0001-001-minimal-http-server"
     - "0002-001-aidev-project-contract"
@@ -2202,9 +2246,9 @@ roadmap:
     - "0020-005-dependencies-registry-mvp"
     - "0020-006-di-usage-polish"
     - "0020-007-protocol-keyed-dependencies-design"
+    - "0020-008-lifecycle-integration-design"
   in_progress: []
   next_recommended:
-    - "0020-008-lifecycle-integration-design"
+    - "0020-009-macro-dependency"
   later:
     - "0013-003-observability-hooks"
-    - "0020-009-macro-dependency"

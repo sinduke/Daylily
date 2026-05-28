@@ -17,7 +17,7 @@ Tasks:
 - `0020-005-dependencies-registry-mvp` (implemented)
 - `0020-006-di-usage-polish` (implemented)
 - `0020-007-protocol-keyed-dependencies-design` (implemented)
-- `0020-008-lifecycle-integration-design` (planned)
+- `0020-008-lifecycle-integration-design` (implemented)
 - `0020-009-macro-dependency` (planned)
 
 Required work:
@@ -30,6 +30,7 @@ Required work:
 - Usage polish for `makeApplication`, test overrides, and optional minimal template examples.
 - Protocol and keyed dependency design before any implementation beyond concrete type lookup.
 - Lifecycle integration design before lifecycle-owned services are implemented.
+- Macro dependency syntax design after keyed and lifecycle design contracts are clear.
 
 Dependency sequence:
 

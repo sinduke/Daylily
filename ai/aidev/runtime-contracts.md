@@ -149,7 +149,7 @@ Future extension points:
 
 - keyed dependency runtime API based on the accepted `DependencyKey<Value>` design
 - request-scoped values
-- lifecycle-aware services
+- lifecycle-aware services based on the accepted `ApplicationService` design
 - macro `@Dependency` syntax
 
 0020-007 accepted design, not implemented:
@@ -176,6 +176,31 @@ Design rules:
 - Express same-type multi-instance lookup through distinct keys with the same value type.
 - Do not add default values, lifecycle ownership, async factories, request-scoped mutation, or macro syntax in the keyed runtime slice.
 - Direct protocol metatype lookup is not the preferred Daylily surface.
+
+0020-008 accepted design, not implemented:
+
+```swift
+public protocol ApplicationService: Sendable {
+    func boot() async throws
+    func shutdown() async throws
+}
+
+public extension Application {
+    func service<Service: ApplicationService>(_ service: Service) -> Application
+}
+```
+
+Design rules:
+
+- `Application` owns service lifecycle.
+- `Dependencies` owns lookup only.
+- The same object may be both registered in `Dependencies` and registered as an `ApplicationService`.
+- A managed service does not have to be a dependency.
+- Services boot in registration order and shut down in reverse registration order.
+- If service boot fails, already booted services should be shut down in reverse order and the original boot error must remain visible.
+- Shutdown should attempt every started service and aggregate failures.
+- Service lifecycle should map onto existing `.boot` and `.shutdown` phases; no separate lifecycle system is introduced.
+- `Application.respond(to:)` does not run service lifecycle.
 
 ## Middleware Contract
 

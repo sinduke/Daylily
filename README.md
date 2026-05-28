@@ -824,7 +824,7 @@ The most important invariants:
 
 Near-term:
 
-1. Design dependency lifecycle integration.
+1. Design `@Dependency` macro syntax.
 2. Add middleware macro attributes.
 3. Expand OpenAPI schema generation.
 4. Publish benchmark methodology.

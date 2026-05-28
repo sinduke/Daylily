@@ -66,6 +66,7 @@ This matrix tracks the current beta-facing capability surface. It is intentional
 | Capability | Status | Notes |
 | --- | --- | --- |
 | Protocol/keyed dependencies | Designed | Typed `DependencyKey<Value>` direction is documented; runtime API is not implemented. |
+| Lifecycle-managed services | Designed | `ApplicationService` direction is documented; runtime API is not implemented. |
 | Authentication | Future | Ecosystem direction, not current runtime. |
 | ORM/database module | Future | Explicitly out of current beta closure. |
 | Queue/background jobs | Future | Ecosystem direction. |

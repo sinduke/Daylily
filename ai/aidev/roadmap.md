@@ -336,7 +336,7 @@ Recommended sequence:
 0020-005 Dependencies Registry MVP (delivered)
 0020-006 DI Usage Polish (delivered)
 0020-007 Protocol / Keyed Dependencies Design (delivered)
-0020-008 Lifecycle Integration Design (planned)
+0020-008 Lifecycle Integration Design (delivered)
 0020-009 Macro @Dependency (planned)
 ```
 
@@ -362,7 +362,7 @@ Options("/health") { Status.noContent }
 Remaining:
 
 - `0.1.0-alpha.1` is the first public alpha release after macOS and Linux CI are green.
-- Next package consumer slice is dependency lifecycle integration design.
+- Next package consumer slice is macro dependency syntax design.
 
 ## Package Consumer Experience
 
@@ -380,7 +380,7 @@ Sequence:
 0020-005 Dependencies Registry MVP (delivered)
 0020-006 DI Usage Polish (delivered)
 0020-007 Protocol / Keyed Dependencies Design (delivered)
-0020-008 Lifecycle Integration Design (planned)
+0020-008 Lifecycle Integration Design (delivered)
 0020-009 Macro @Dependency (planned)
 ```
 
@@ -399,6 +399,7 @@ Delivered:
 - `0020-005` implements `Dependencies`, `Application(dependencies:)`, `Request.dependencies`, and missing dependency 500 mapping.
 - `0020-006` documents the project-owned `makeApplication` pattern, test override guidance, and the decision to keep minimal-app source dependency-free until the API is tagged.
 - `0020-007` accepts a future typed `DependencyKey<Value>` design for protocol-oriented and same-type multi-instance lookups without implementing runtime API.
+- `0020-008` accepts a future `ApplicationService` design where `Application` owns service lifecycle and `Dependencies` remains lookup-only.
 
 Dependency injection order:
 
@@ -408,7 +409,7 @@ runtime registry -> usage polish -> protocol/key design -> lifecycle design -> m
 
 Next:
 
-- `0020-008-lifecycle-integration-design`
+- `0020-009-macro-dependency`
 
 ### Future Epics
 

@@ -306,13 +306,13 @@ Implemented:
 - External SwiftPM consumer smoke script and CI coverage for local path and released package dependency modes.
 - Minimal app template in `templates/minimal-app`, plus template smoke validation for path and release dependency modes.
 - Commerce API example in `examples/commerce-api`, plus example smoke validation for current checkout path mode.
-- Dependency injection design and runtime MVP for the first `Dependencies` registry.
+- Dependency injection design and runtime MVP for the first `Dependencies` registry, plus typed key and managed service lifecycle design.
 
 Not implemented:
 
 - Macro typed input injection beyond `@Path`, `@Query`, `@Header`, and `@Body` (optional values, etc.).
 - Deep OpenAPI schema derivation.
-- Protocol/keyed dependencies, dependency lifecycle integration, and `@Dependency` macro syntax.
+- Protocol/keyed dependency runtime APIs, managed service lifecycle runtime APIs, and `@Dependency` macro syntax.
 - Macro middleware attributes.
 
 ## Read Order
@@ -396,6 +396,6 @@ Do not start with:
 
 Current strategic order:
 
-1. Design lifecycle integration in `0020-008`.
-2. Add `@Dependency` macro sugar only after keyed runtime and lifecycle contracts are clear.
-3. Keep protocol/keyed runtime implementation separate from lifecycle and macro work.
+1. Design `@Dependency` macro syntax in `0020-009`.
+2. Keep protocol/keyed runtime implementation separate from lifecycle and macro work.
+3. Implement runtime slices only after the contracts stay stable across docs and examples.

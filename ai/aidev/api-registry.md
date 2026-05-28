@@ -424,7 +424,7 @@ Rules:
 - `get` returns `nil` when the concrete type is missing.
 - `require` throws `DependencyError.missing(...)` when the concrete type is missing.
 - `DependencyError` maps to `500 Internal Server Error`.
-- Protocol/keyed runtime APIs, lifecycle integration, and macro `@Dependency` are not part of this MVP.
+- Protocol/keyed runtime APIs, managed service lifecycle runtime APIs, and macro `@Dependency` are not part of this MVP.
 - 0020-007 accepts a future typed `DependencyKey<Value>` direction for protocol-oriented and same-type multi-instance lookups; it is design-only and not public API yet.
 
 ### Lifecycle
@@ -448,6 +448,8 @@ Rules:
 - `shutdown` and `cleanup` run after server close.
 - `shutdown` and `cleanup` are attempted if server run fails after boot.
 - Lifecycle APIs do not expose NIO types.
+- 0020-008 accepts a future `ApplicationService` and `Application.service(_:)` direction for managed services; it is design-only and not public API yet.
+- Managed services belong to `Application`; `Dependencies` remains a lookup channel.
 
 ### ServerConfiguration
 
