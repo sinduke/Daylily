@@ -21,7 +21,7 @@ struct App {
 
 This is a default path, not a mandatory path. Runtime APIs are first-class, macros lower into runtime APIs, and user applications may keep their own composition roots, services, factories, or containers.
 
-Current implemented surfaces are the runtime DSL for `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, and `OPTIONS`, runtime route metadata, minimal `DaylilyOpenAPI` document generation, runtime middleware, `DaylilyObservability` request ID and request logging middleware, application lifecycle hooks, app-wide `Dependencies` registry MVP, the Daylily-owned `RequestBody` model, explicit buffered body replacement, JSON body/response helpers, the macro route/group MVP, macro `@Path`, `@Query`, `@Header`, and preferred `@Body` typed JSON input injection with route metadata lowering, `@JSONBody` compatibility alias spelling, and `DaylilyTesting` in-memory request/response helpers.
+Current implemented surfaces are the runtime DSL for `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, and `OPTIONS`, runtime route metadata, minimal `DaylilyOpenAPI` document generation, runtime middleware, `DaylilyObservability` request ID and request logging middleware, application lifecycle hooks, app-wide `Dependencies` registry MVP with concrete and typed-key lookup, the Daylily-owned `RequestBody` model, explicit buffered body replacement, JSON body/response helpers, the macro route/group MVP, macro `@Path`, `@Query`, `@Header`, `@Dependency`, and preferred `@Body` typed JSON input injection with route metadata lowering, `@JSONBody` compatibility alias spelling, and `DaylilyTesting` in-memory request/response helpers.
 
 Runtime DSL:
 
@@ -278,12 +278,13 @@ Implemented:
 - Runtime middleware at application, group, and route scope.
 - `DaylilyObservability` request ID and request logging middleware.
 - Application lifecycle hooks: `configure`, `boot`, `started`, `shutdown`, `cleanup`.
-- App-wide `Dependencies` registry MVP with concrete `Sendable` `register`, `get`, and `require`.
+- App-wide `Dependencies` registry MVP with concrete and typed-key `Sendable` `register`, `get`, and `require`.
 - Default SIGINT/SIGTERM graceful server shutdown.
 - Explicit `ServerConfiguration`.
 - Macro route/group MVP: `@DaylilyServer`, `@GET`, `@POST`, `@PUT`, `@PATCH`, `@DELETE`, `@HEAD`, `@OPTIONS`, `@GROUP`.
 - Macro `@Path` typed path parameter injection.
 - Macro `@Query` and `@Header` typed input injection.
+- Macro `@Dependency` keyed dependency parameter injection.
 - Macro `@Body` typed JSON body injection, with `@JSONBody` kept only as a compatibility alias spelling.
 - Macro typed input metadata lowering for OpenAPI.
 - Runtime typed path parameter extraction.
@@ -306,13 +307,14 @@ Implemented:
 - External SwiftPM consumer smoke script and CI coverage for local path and released package dependency modes.
 - Minimal app template in `templates/minimal-app`, plus template smoke validation for path and release dependency modes.
 - Commerce API example in `examples/commerce-api`, plus example smoke validation for current checkout path mode.
-- Dependency injection design and runtime MVP for the first `Dependencies` registry, plus typed key and managed service lifecycle design.
+- Dependency injection design and runtime MVP for the first `Dependencies` registry, typed-key runtime lookup, macro `@Dependency`, and managed service lifecycle design.
 
 Not implemented:
 
 - Macro typed input injection beyond `@Path`, `@Query`, `@Header`, and `@Body` (optional values, etc.).
 - Deep OpenAPI schema derivation.
-- Protocol/keyed dependency runtime APIs, managed service lifecycle runtime APIs, and `@Dependency` macro syntax.
+- Managed service lifecycle runtime APIs.
+- Keyless `@Dependency` inference and property injection on route owner types.
 - Macro middleware attributes.
 
 ## Read Order
@@ -396,6 +398,6 @@ Do not start with:
 
 Current strategic order:
 
-1. Design `@Dependency` macro syntax in `0020-009`.
-2. Keep protocol/keyed runtime implementation separate from lifecycle and macro work.
+1. Add middleware macro attributes.
+2. Keep lifecycle-managed services separate from dependency lookup and macro work.
 3. Implement runtime slices only after the contracts stay stable across docs and examples.

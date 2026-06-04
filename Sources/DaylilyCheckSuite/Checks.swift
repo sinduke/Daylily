@@ -19,7 +19,9 @@ public enum DaylilyChecks {
         try await testClientRequestBuilder()
         try await testClientPostJSON()
         try dependenciesRegistry()
+        try keyedDependenciesRegistry()
         try await applicationDependenciesHandler()
+        try await applicationKeyedDependenciesHandler()
         try await applicationDependenciesMissing()
         try await applicationDependenciesMiddleware()
         try await testClientApplicationDependencies()
@@ -509,6 +511,63 @@ public enum DaylilyChecks {
         }
     }
 
+    private static func keyedDependenciesRegistry() throws {
+        var dependencies = Dependencies()
+        let primary = DependencyKey<DependencyGreeting>("greeting.primary")
+        let secondary = DependencyKey<DependencyGreeting>("greeting.secondary")
+        let sameNameString = DependencyKey<String>("greeting.primary")
+        let service = DependencyKey<any DependencyServing>("service")
+
+        let missing: DependencyGreeting? = dependencies.get(primary)
+        try expect(missing == nil, "expected missing keyed dependency lookup to return nil")
+
+        dependencies.register(DependencyGreeting(message: "primary"), for: primary)
+        dependencies.register(DependencyGreeting(message: "secondary"), for: secondary)
+        dependencies.register("same-name-different-type", for: sameNameString)
+        dependencies.register(DependencyService(message: "existential"), for: service)
+
+        let primaryGreeting = try dependencies.require(primary)
+        let secondaryGreeting = try dependencies.require(secondary)
+        let sameNameStringValue = try dependencies.require(sameNameString)
+        let serviceValue = try dependencies.require(service)
+
+        try expect(
+            primaryGreeting == DependencyGreeting(message: "primary"),
+            "expected primary keyed dependency lookup"
+        )
+        try expect(
+            secondaryGreeting == DependencyGreeting(message: "secondary"),
+            "expected secondary keyed dependency lookup"
+        )
+        try expect(
+            sameNameStringValue == "same-name-different-type",
+            "expected same-name different-type keyed dependency lookup"
+        )
+        try expect(
+            serviceValue.message == "existential",
+            "expected existential keyed dependency lookup"
+        )
+
+        dependencies.register(DependencyGreeting(message: "replacement"), for: primary)
+        let replacementGreeting = try dependencies.require(primary)
+        try expect(
+            replacementGreeting == DependencyGreeting(message: "replacement"),
+            "expected same keyed dependency registration to replace previous value"
+        )
+
+        do {
+            _ = try dependencies.require(DependencyKey<DependencyGreeting>("missing"))
+            try expect(false, "expected missing keyed dependency error")
+        } catch let error as DependencyError {
+            try expect(error.status == .internalServerError, "expected missing keyed dependency 500")
+            try expect(error.keyName == "missing", "expected missing keyed dependency name")
+            try expect(
+                error.reason.contains("DependencyGreeting") && error.reason.contains("missing"),
+                "expected missing keyed dependency reason to include type and key name"
+            )
+        }
+    }
+
     private static func applicationDependenciesHandler() async throws {
         let app = Application(dependencies: { dependencies in
             dependencies.register(DependencyGreeting(message: "handler"))
@@ -523,6 +582,26 @@ public enum DaylilyChecks {
 
         try expect(response.status == .ok, "expected dependency handler response")
         try expect(response.bodyString == "handler", "expected handler to read application dependency")
+    }
+
+    private static func applicationKeyedDependenciesHandler() async throws {
+        let greeting = DependencyKey<DependencyGreeting>("handlerGreeting")
+        let service = DependencyKey<any DependencyServing>("handlerService")
+        let app = Application(dependencies: { dependencies in
+            dependencies.register(DependencyGreeting(message: "handler"), for: greeting)
+            dependencies.register(DependencyService(message: "service"), for: service)
+        }) {
+            Get("/dependency") { request in
+                let greeting = try request.dependencies.require(greeting)
+                let service = try request.dependencies.require(service)
+                return "\(greeting.message):\(service.message)"
+            }
+        }
+
+        let response = await app.respond(to: Request(method: .get, path: "/dependency"))
+
+        try expect(response.status == .ok, "expected keyed dependency handler response")
+        try expect(response.bodyString == "handler:service", "expected handler to read keyed dependencies")
     }
 
     private static func applicationDependenciesMissing() async throws {
@@ -1727,6 +1806,14 @@ private struct DependencyGreeting: Equatable, Sendable {
 }
 
 private struct MissingDependency: Sendable {}
+
+private protocol DependencyServing: Sendable {
+    var message: String { get }
+}
+
+private struct DependencyService: DependencyServing {
+    let message: String
+}
 
 private actor EventLog {
     private var events: [String] = []

@@ -18,7 +18,8 @@ Tasks:
 - `0020-006-di-usage-polish` (implemented)
 - `0020-007-protocol-keyed-dependencies-design` (implemented)
 - `0020-008-lifecycle-integration-design` (implemented)
-- `0020-009-macro-dependency` (planned)
+- `0020-009-keyed-dependencies-runtime` (implemented)
+- `0020-010-macro-dependency` (implemented)
 
 Required work:
 
@@ -30,7 +31,8 @@ Required work:
 - Usage polish for `makeApplication`, test overrides, and optional minimal template examples.
 - Protocol and keyed dependency design before any implementation beyond concrete type lookup.
 - Lifecycle integration design before lifecycle-owned services are implemented.
-- Macro dependency syntax design after keyed and lifecycle design contracts are clear.
+- Keyed dependency runtime implementation before macro dependency syntax.
+- Macro dependency syntax after keyed runtime behavior is real and lifecycle design contracts are clear.
 
 Dependency sequence:
 
@@ -40,7 +42,8 @@ Dependency sequence:
 0020-006 DI Usage Polish
 0020-007 Protocol / Keyed Dependencies Design
 0020-008 Lifecycle Integration Design
-0020-009 Macro @Dependency
+0020-009 Keyed Dependencies Runtime
+0020-010 Macro @Dependency
 ```
 
 Non-goals:

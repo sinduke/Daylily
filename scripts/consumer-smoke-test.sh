@@ -26,6 +26,9 @@ Options:
   --workdir PATH               Reuse or create the smoke package in PATH.
   --keep                       Keep the generated smoke package after the run.
   -h, --help                   Show this help.
+
+Environment:
+  CONSUMER_MACRO_PORT          Port for path-mode macro runtime smoke. Default: 18080.
 USAGE
 }
 
@@ -105,6 +108,13 @@ case "$MODE" in
         exit 2
         ;;
 esac
+
+MACRO_DEPENDENCY_SMOKE="0"
+if [[ "$MODE" == "path" ]]; then
+    MACRO_DEPENDENCY_SMOKE="1"
+fi
+
+CONSUMER_MACRO_PORT="${CONSUMER_MACRO_PORT:-18080}"
 
 if [[ -z "$WORKDIR" ]]; then
     WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/daylily-consumer-smoke.XXXXXX")"
@@ -228,7 +238,70 @@ struct SmokeFailure: Error, CustomStringConvertible {
 }
 SWIFT
 
-cat > "$WORKDIR/Sources/ConsumerMacroApp/main.swift" <<'SWIFT'
+if [[ "$MACRO_DEPENDENCY_SMOKE" == "1" ]]; then
+    cat > "$WORKDIR/Sources/ConsumerMacroApp/main.swift" <<'SWIFT'
+import Daylily
+
+@main
+@DaylilyServer
+struct ConsumerMacroApp {
+    func configureDependencies(_ dependencies: inout Dependencies) {
+        dependencies.register(ConsumerGreetingService(prefix: "Consumer macro dependency"), for: ConsumerDependencies.greeting)
+        dependencies.register("external", for: ConsumerDependencies.label)
+    }
+
+    @GET("/hello")
+    func hello() -> String {
+        "Daylily consumer macros ship."
+    }
+
+    @GET("/users/:id")
+    func user(@Path id: Int, @Query("name") name: String) -> String {
+        "User \(id): \(name)"
+    }
+
+    @GET("/dependency/:id")
+    func dependency(
+        @Path id: Int,
+        @Dependency(ConsumerDependencies.greeting) greeting: any ConsumerGreetingServing,
+        @Dependency(ConsumerDependencies.label) label: String
+    ) -> String {
+        "\(label):\(greeting.message(for: id))"
+    }
+
+    @POST("/json/echo")
+    func echo(@Body input: MacroEchoPayload) -> JSON<MacroEchoResponse> {
+        JSON(MacroEchoResponse(echo: input.message))
+    }
+}
+
+struct MacroEchoPayload: Codable, Sendable {
+    let message: String
+}
+
+struct MacroEchoResponse: Codable, Sendable {
+    let echo: String
+}
+
+enum ConsumerDependencies {
+    static let greeting = DependencyKey<any ConsumerGreetingServing>("consumer.greeting")
+    static let label = DependencyKey<String>("consumer.label")
+}
+
+protocol ConsumerGreetingServing: Sendable {
+    func message(for id: Int) -> String
+}
+
+struct ConsumerGreetingService: ConsumerGreetingServing {
+    let prefix: String
+
+    func message(for id: Int) -> String {
+        "\(prefix) \(id)"
+    }
+}
+SWIFT
+else
+    cat > "$WORKDIR/Sources/ConsumerMacroApp/main.swift" <<'SWIFT'
 import Daylily
 
 @main
@@ -258,6 +331,7 @@ struct MacroEchoResponse: Codable, Sendable {
     let echo: String
 }
 SWIFT
+fi
 
 cat > "$WORKDIR/Tests/ConsumerAppTests/ConsumerAppTests.swift" <<'SWIFT'
 import Daylily
@@ -295,8 +369,68 @@ struct EchoResponse: Codable, Sendable, Equatable {
 }
 SWIFT
 
+run_macro_dependency_smoke() {
+    local port="$CONSUMER_MACRO_PORT"
+    local log_file="$WORKDIR/ConsumerMacroApp.log"
+    local response=""
+    local started="0"
+    local status="0"
+
+    if ! command -v curl >/dev/null 2>&1; then
+        echo "curl is required for path-mode macro runtime smoke." >&2
+        return 1
+    fi
+
+    echo "Starting ConsumerMacroApp dependency smoke on http://127.0.0.1:$port"
+
+    swift run ConsumerMacroApp --port "$port" > "$log_file" 2>&1 &
+    local app_pid=$!
+
+    for _ in {1..120}; do
+        if ! kill -0 "$app_pid" 2>/dev/null; then
+            echo "ConsumerMacroApp exited before it was ready." >&2
+            sed -n '1,200p' "$log_file" >&2
+            wait "$app_pid" 2>/dev/null || true
+            return 1
+        fi
+
+        if response="$(curl --silent --show-error "http://127.0.0.1:$port/hello" 2>/dev/null)"; then
+            started="1"
+            break
+        fi
+
+        sleep 0.25
+    done
+
+    if [[ "$started" != "1" ]]; then
+        echo "Timed out waiting for ConsumerMacroApp to start." >&2
+        sed -n '1,200p' "$log_file" >&2
+        status="1"
+    elif [[ "$response" != "Daylily consumer macros ship." ]]; then
+        echo "Unexpected ConsumerMacroApp /hello response: $response" >&2
+        status="1"
+    else
+        response="$(curl --silent --show-error "http://127.0.0.1:$port/dependency/42" 2>/dev/null || true)"
+        if [[ "$response" != "external:Consumer macro dependency 42" ]]; then
+            echo "Unexpected ConsumerMacroApp dependency response: $response" >&2
+            sed -n '1,200p' "$log_file" >&2
+            status="1"
+        fi
+    fi
+
+    kill "$app_pid" 2>/dev/null || true
+    wait "$app_pid" 2>/dev/null || true
+
+    if [[ "$status" == "0" ]]; then
+        echo "ConsumerMacroApp dependency checks passed."
+    fi
+
+    return "$status"
+}
+
 echo "Consumer smoke package: $WORKDIR"
 echo "Dependency mode: $MODE"
+echo "Macro dependency runtime smoke: $MACRO_DEPENDENCY_SMOKE"
 
 (
     cd "$WORKDIR"
@@ -305,6 +439,9 @@ echo "Dependency mode: $MODE"
     swift build --product ConsumerMacroApp
     swift test
     swift run ConsumerRuntimeApp --check
+    if [[ "$MACRO_DEPENDENCY_SMOKE" == "1" ]]; then
+        run_macro_dependency_smoke
+    fi
 )
 
 echo "Daylily external consumer smoke passed ($MODE)."

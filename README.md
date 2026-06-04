@@ -128,7 +128,8 @@ Daylily is designed around modern Swift:
 | Observability middleware | MVP |
 | Transport-free testing helpers | Implemented |
 | AIDEV AI handoff system | Implemented |
-| Dependencies registry | MVP |
+| Dependencies registry | MVP + keyed runtime |
+| Macro `@Dependency` inputs | Implemented |
 | Macro middleware attributes | Planned |
 | Full Swift schema derivation | Planned |
 
@@ -450,6 +451,38 @@ let service = try dependencies.require(ProductService.self)
 let optional: ProductService? = dependencies.get()
 ```
 
+Use typed keys when dependency intent matters more than the concrete type, such
+as protocol-oriented services or multiple values of the same type:
+
+```swift
+protocol ProductServing: Sendable {
+    func list() async throws -> [Product]
+}
+
+extension ProductService: ProductServing {}
+
+enum AppDependencies {
+    static let productService = DependencyKey<any ProductServing>("productService")
+    static let primaryDatabase = DependencyKey<Database>("database.primary")
+    static let replicaDatabase = DependencyKey<Database>("database.replica")
+}
+
+dependencies.register(ProductService(), for: AppDependencies.productService)
+
+let service = try dependencies.require(AppDependencies.productService)
+```
+
+Macro handlers can read keyed dependencies directly with `@Dependency`:
+
+```swift
+@GET("/products")
+func products(
+    @Dependency(AppDependencies.productService) service: any ProductServing
+) async throws -> JSON<[Product]> {
+    JSON(try await service.list())
+}
+```
+
 This is a default tool, not mandatory architecture. Capturing your own services remains equally valid:
 
 ```swift
@@ -730,21 +763,30 @@ The rule is simple: macros must lower into the runtime route system. The runtime
 
 Macro APIs are a default convenience path, not the only supported way to build a Daylily app. If a project needs a custom composition root, non-default initialization, or a handler shape outside the macro MVP, use the runtime DSL directly.
 
-Typed macro inputs also lower into runtime route metadata. `@Path`, `@Query`, `@Header`, and preferred `@Body` inputs contribute OpenAPI-ready metadata through the same `Route.describe(...)` model used by handwritten routes. `@JSONBody` is retained as a compatibility alias spelling for `@Body`.
+Typed macro inputs also lower into runtime route behavior. `@Path`, `@Query`, `@Header`, and preferred `@Body` inputs contribute OpenAPI-ready metadata through the same `Route.describe(...)` model used by handwritten routes. `@JSONBody` is retained as a compatibility alias spelling for `@Body`. `@Dependency` lowers to keyed `Request.dependencies.require(...)` and does not contribute route metadata.
+
+Macro apps can define a dependency configuration hook:
+
+```swift
+func configureDependencies(_ dependencies: inout Dependencies) {
+    dependencies.register(ProductService(), for: AppDependencies.productService)
+}
+```
 
 MVP limits:
 
 - handlers must be instance methods;
 - the server type must be default-initializable with `Self()`;
-- handlers may use zero parameters, one `Request` parameter, `@Path`, `@Query`, `@Header`, and one `@Body` parameter, with `@JSONBody` accepted as a compatibility alias spelling;
+- handlers may use zero parameters, one `Request` parameter, `@Path`, `@Query`, `@Header`, `@Dependency`, and one `@Body` parameter, with `@JSONBody` accepted as a compatibility alias spelling;
 - `@Path` lowers into `req.parameters.require(_:as:)`;
 - `@Path` names must match `:name` route segments;
 - `@Query` lowers into `req.query.require(_:as:)`;
 - `@Header` lowers into `req.headers.require(_:as:)`;
 - `@Body` lowers into `try await req.json(Type.self)`; `@JSONBody` is a compatibility alias spelling with the same lowering;
+- `@Dependency(key)` lowers into `try req.dependencies.require(key)`;
 - the raw one-shot request body type is `RequestBody`;
 - grouped types must be default-initializable;
-- optional typed inputs, macro middleware attributes, protocol/keyed DI runtime implementation, and deep OpenAPI schema derivation are future work.
+- optional typed inputs, macro middleware attributes, keyless dependency inference, and deep OpenAPI schema derivation are future work.
 
 These are macro MVP limits, not runtime limits.
 
@@ -824,10 +866,9 @@ The most important invariants:
 
 Near-term:
 
-1. Design `@Dependency` macro syntax.
-2. Add middleware macro attributes.
-3. Expand OpenAPI schema generation.
-4. Publish benchmark methodology.
+1. Add middleware macro attributes.
+2. Expand OpenAPI schema generation.
+3. Publish benchmark methodology.
 
 ## License
 

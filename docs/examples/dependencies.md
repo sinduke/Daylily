@@ -3,8 +3,8 @@
 Daylily's `Dependencies` registry is a small default tool for service wiring. It
 is not a required application architecture.
 
-Use it when an app-wide concrete `Sendable` service should be available to
-handlers and middleware through `Request.dependencies`.
+Use it when an app-wide concrete or keyed `Sendable` service should be available
+to handlers and middleware through `Request.dependencies`.
 
 ## Application Factory Pattern
 
@@ -82,11 +82,9 @@ root when that makes the application clearer.
 
 ## Protocols and Multiple Instances
 
-The current runtime registry looks up concrete types. Protocol-oriented lookup
-and multiple values of the same concrete type are designed, but not implemented
-yet.
-
-The planned direction is a typed `DependencyKey<Value>`:
+Concrete-type lookup is the simple path. Use typed `DependencyKey<Value>` values
+when dependency intent matters more than the concrete type, including
+protocol-oriented lookup and multiple values of the same concrete type:
 
 ```swift
 protocol ProductServing: Sendable {
@@ -100,7 +98,7 @@ enum AppDependencies {
 }
 ```
 
-Future usage would look like this:
+Register and read keyed values through the same `Dependencies` registry:
 
 ```swift
 let app = Application(dependencies: { dependencies in
@@ -117,6 +115,41 @@ let app = Application(dependencies: { dependencies in
 
 This keeps dependency intent explicit without making protocol metatypes or raw
 strings the main lookup surface.
+
+## Macro Dependency Inputs
+
+Runtime routes can always read dependencies explicitly from `Request`:
+
+```swift
+Get("/products") { request in
+    let service = try request.dependencies.require(AppDependencies.productService)
+    return JSON(try await service.list())
+}
+```
+
+In `@DaylilyServer` apps, define a dependency configuration hook and use
+`@Dependency` on handler parameters:
+
+```swift
+@main
+@DaylilyServer
+struct App {
+    func configureDependencies(_ dependencies: inout Dependencies) {
+        dependencies.register(ProductService.live, for: AppDependencies.productService)
+    }
+
+    @GET("/products")
+    func products(
+        @Dependency(AppDependencies.productService) service: any ProductServing
+    ) async throws -> JSON<[Product]> {
+        JSON(try await service.list())
+    }
+}
+```
+
+`@Dependency` is keyed syntax. It requires an explicit `DependencyKey<Value>`
+expression and lowers to `try req.dependencies.require(key)`. It does not infer
+dependencies from the parameter type alone.
 
 ## Lifecycle
 

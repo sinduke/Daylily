@@ -29,6 +29,7 @@ GitHub Actions validation:
 - Linux runner: `ubuntu-latest` with the official `swift:6.3.2-noble` container
 - Commands: `swift package resolve`, `swift build`, `swift test`, `swift run HelloDaylily --check`
 - External consumer smoke: fresh SwiftPM package using both local path dependency and released package dependency
+- Path consumer smoke includes generated macro `@Dependency` HTTP coverage; release consumer smoke stays compatible with the selected published tag.
 - Template smoke: `templates/minimal-app` using both local path dependency and released package dependency
 - Example smoke: `examples/commerce-api` using local path dependency for the current checkout
 
@@ -47,7 +48,8 @@ Linux validation is CI-owned for now. Local development has been verified on mac
 - External SwiftPM consumer smoke coverage for runtime, macro, and testing package shapes.
 - Minimal app template with `AppCore`, executable startup, and in-memory tests.
 - Commerce API example with products, orders, state, metadata, dependencies, and in-memory tests.
-- App-wide `Dependencies` registry MVP for concrete `Sendable` values, with documented usage guidance.
+- App-wide `Dependencies` registry MVP for concrete and keyed `Sendable` values, with documented usage guidance.
+- Macro `@Dependency` handler parameter syntax over keyed dependencies.
 - AI-readable AIDEV project handoff.
 - Beta documentation set.
 
@@ -55,10 +57,10 @@ Linux validation is CI-owned for now. Local development has been verified on mac
 
 - Public API is still experimental.
 - Deep Swift schema derivation is not implemented.
-- Dependency injection is currently a small concrete-type registry only.
-- Protocol/keyed dependencies are designed around typed `DependencyKey<Value>`, but the runtime API is not implemented.
+- Dependency injection is currently a small app-wide registry, not a full DI framework.
+- Direct protocol metatype lookup is intentionally not the primary dependency surface; use typed `DependencyKey<Value>` keys for existential values.
 - Lifecycle-managed services are designed around future `ApplicationService`, but the runtime API is not implemented.
-- `@Dependency` syntax is not implemented.
+- `@Dependency` macro syntax requires an explicit `DependencyKey<Value>`; keyless type inference is not supported.
 - Macro middleware attributes are not implemented.
 - Production auth, ORM, queue, realtime, and deployment tooling are future ecosystem work.
 - Benchmarks are not published yet.

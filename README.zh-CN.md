@@ -128,7 +128,8 @@ Daylily 围绕现代 Swift 设计：
 | Observability middleware | MVP |
 | Transport-free testing helpers | 已实现 |
 | AIDEV AI handoff system | 已实现 |
-| Dependencies registry | MVP |
+| Dependencies registry | MVP + keyed runtime |
+| Macro `@Dependency` inputs | 已实现 |
 | Macro middleware attributes | Planned |
 | Full Swift schema derivation | Planned |
 
@@ -440,7 +441,7 @@ let app = Application(dependencies: { dependencies in
 }
 ```
 
-这个 registry 按 concrete `Sendable` 类型注册和读取：
+这个 registry 支持按 concrete `Sendable` 类型注册和读取：
 
 ```swift
 var dependencies = Dependencies()
@@ -448,6 +449,38 @@ dependencies.register(ProductService())
 
 let service = try dependencies.require(ProductService.self)
 let optional: ProductService? = dependencies.get()
+```
+
+当 dependency intent 比 concrete 类型更重要时，比如 protocol-oriented service
+或同一类型的多个实例，使用 typed key：
+
+```swift
+protocol ProductServing: Sendable {
+    func list() async throws -> [Product]
+}
+
+extension ProductService: ProductServing {}
+
+enum AppDependencies {
+    static let productService = DependencyKey<any ProductServing>("productService")
+    static let primaryDatabase = DependencyKey<Database>("database.primary")
+    static let replicaDatabase = DependencyKey<Database>("database.replica")
+}
+
+dependencies.register(ProductService(), for: AppDependencies.productService)
+
+let service = try dependencies.require(AppDependencies.productService)
+```
+
+Macro handler 可以用 `@Dependency` 直接读取 keyed dependency：
+
+```swift
+@GET("/products")
+func products(
+    @Dependency(AppDependencies.productService) service: any ProductServing
+) async throws -> JSON<[Product]> {
+    JSON(try await service.list())
+}
 ```
 
 这是默认工具，不是强制架构。继续捕获你自己的 services 也完全合法：
@@ -730,21 +763,30 @@ struct App {
 
 Macro API 是默认便利路径，不是构建 Daylily app 的唯一方式。如果项目需要自己的 composition root、非默认初始化，或者超出 macro MVP 的 handler 形状，就直接使用 runtime DSL。
 
-宏里的 typed inputs 也会降级成 runtime route metadata。`@Path`、`@Query`、`@Header` 和主写法 `@Body` 会通过手写 route 同款的 `Route.describe(...)` 模型贡献 OpenAPI-ready metadata。`@JSONBody` 只作为 `@Body` 的兼容别名写法保留。
+宏里的 typed inputs 也会降级成 runtime 行为。`@Path`、`@Query`、`@Header` 和主写法 `@Body` 会通过手写 route 同款的 `Route.describe(...)` 模型贡献 OpenAPI-ready metadata。`@JSONBody` 只作为 `@Body` 的兼容别名写法保留。`@Dependency` 会降级到 keyed `Request.dependencies.require(...)`，不贡献 route metadata。
+
+Macro app 可以定义 dependency configuration hook：
+
+```swift
+func configureDependencies(_ dependencies: inout Dependencies) {
+    dependencies.register(ProductService(), for: AppDependencies.productService)
+}
+```
 
 MVP 限制：
 
 - handler 必须是 instance method；
 - server type 必须可以通过 `Self()` 默认初始化；
-- handler 可以没有参数，可以有一个 `Request` 参数，可以有 `@Path`、`@Query`、`@Header` 参数，也可以有一个 `@Body` 参数；`@JSONBody` 作为兼容别名写法也会被接受；
+- handler 可以没有参数，可以有一个 `Request` 参数，可以有 `@Path`、`@Query`、`@Header`、`@Dependency` 参数，也可以有一个 `@Body` 参数；`@JSONBody` 作为兼容别名写法也会被接受；
 - `@Path` 会降级到 `req.parameters.require(_:as:)`；
 - `@Path` 名称必须匹配 `:name` route segment；
 - `@Query` 会降级到 `req.query.require(_:as:)`；
 - `@Header` 会降级到 `req.headers.require(_:as:)`；
 - `@Body` 会降级到 `try await req.json(Type.self)`；`@JSONBody` 是同样 lowering 的兼容别名写法；
+- `@Dependency(key)` 会降级到 `try req.dependencies.require(key)`；
 - raw one-shot request body 类型是 `RequestBody`；
 - group type 必须可以默认初始化；
-- optional typed inputs、macro middleware attributes、protocol/keyed DI runtime implementation 和深度 OpenAPI schema 推导都是后续工作。
+- optional typed inputs、macro middleware attributes、keyless dependency inference 和深度 OpenAPI schema 推导都是后续工作。
 
 这些是 macro MVP 的限制，不是 runtime 的限制。
 
@@ -824,10 +866,9 @@ Daylily/
 
 近期：
 
-1. 设计 `@Dependency` macro syntax。
-2. 增加 middleware macro attributes。
-3. 扩展 OpenAPI schema generation。
-4. 发布 benchmark methodology。
+1. 增加 middleware macro attributes。
+2. 扩展 OpenAPI schema generation。
+3. 发布 benchmark methodology。
 
 ## License
 

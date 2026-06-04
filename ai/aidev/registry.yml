@@ -547,7 +547,9 @@ implemented_features:
       - "0020-006-di-usage-polish"
       - "0020-007-protocol-keyed-dependencies-design"
       - "0020-008-lifecycle-integration-design"
-    next_task: "0020-009-macro-dependency"
+      - "0020-009-keyed-dependencies-runtime"
+      - "0020-010-macro-dependency"
+    next_task: null
     files:
       - scripts/consumer-smoke-test.sh
       - scripts/template-smoke-test.sh
@@ -557,9 +559,13 @@ implemented_features:
       - ai/tasks/0020-006-di-usage-polish.md
       - ai/tasks/0020-007-protocol-keyed-dependencies-design.md
       - ai/tasks/0020-008-lifecycle-integration-design.md
+      - ai/tasks/0020-009-keyed-dependencies-runtime.md
+      - ai/tasks/0020-010-macro-dependency.md
       - Sources/DaylilyCore/Dependencies.swift
       - Sources/DaylilyCore/Application.swift
       - Sources/DaylilyCore/Request.swift
+      - Sources/DaylilyMacros/DaylilyMacros.swift
+      - Sources/HelloDaylily/MacroSmoke.swift
       - templates/minimal-app/Package.swift
       - templates/minimal-app/Sources/AppCore/App.swift
       - templates/minimal-app/Sources/App/main.swift
@@ -585,7 +591,9 @@ implemented_features:
       - "dependency injection design grounded in external package, minimal app, and commerce API shapes"
       - "Dependencies registry with register/get/require, Request.dependencies, handler/middleware/TestClient checks"
       - "dependency usage guide covering makeApplication, test overrides, and optional minimal template guidance"
-      - "protocol/keyed dependency design centered on future typed DependencyKey<Value>"
+      - "protocol/keyed dependency design centered on typed DependencyKey<Value>"
+      - "keyed dependency runtime with DependencyKey<Value>, existential values, and same-type multi-instance lookup"
+      - "macro @Dependency handler parameter lowering over keyed dependency runtime"
       - "lifecycle integration design centered on future ApplicationService and Application.service(_:)"
     decisions:
       - "The DI public concept is Dependencies, not Container or Services."
@@ -596,10 +604,10 @@ implemented_features:
       - "Domain-specific makeApplication parameters are preferred for common test overrides."
       - "configureDependencies remains the registry-level escape hatch."
       - "The minimal app template source remains dependency-free until the Dependencies API is included in a release tag."
-      - "Protocol-oriented and same-type multi-instance lookups should use typed DependencyKey<Value> in a future runtime slice."
+      - "Protocol-oriented and same-type multi-instance lookups use typed DependencyKey<Value> in the runtime registry."
       - "Direct protocol metatype lookup is not the preferred Daylily surface."
       - "Application, not Dependencies, should own managed service lifecycle."
-      - "@Dependency is deferred."
+      - "@Dependency requires an explicit DependencyKey<Value> expression and does not infer from parameter type alone."
     sequence:
       - "0020-001-external-consumer-smoke-test"
       - "0020-002-minimal-app-template"
@@ -609,7 +617,8 @@ implemented_features:
       - "0020-006-di-usage-polish"
       - "0020-007-protocol-keyed-dependencies-design"
       - "0020-008-lifecycle-integration-design"
-      - "0020-009-macro-dependency"
+      - "0020-009-keyed-dependencies-runtime"
+      - "0020-010-macro-dependency"
   dependency_injection_design:
     status: implemented
     epic: "0020-package-consumer-experience"
@@ -723,6 +732,7 @@ implemented_features:
       - ai/aidev/project-map.md
       - ai/aidev/runtime-contracts.md
       - ai/aidev/api-registry.md
+      - ai/aidev/project-map.md
       - ai/aidev/roadmap.md
       - ai/aidev/start-here.md
       - ai/epics/0020-package-consumer-experience.md
@@ -748,6 +758,93 @@ implemented_features:
       - "async factories"
       - "request-scoped mutation"
       - "@Dependency macro"
+    implemented_by: "0020-009-keyed-dependencies-runtime"
+    next_task: null
+  keyed_dependencies_runtime:
+    status: implemented
+    epic: "0020-package-consumer-experience"
+    task: "0020-009-keyed-dependencies-runtime"
+    module: DaylilyCore
+    files:
+      - Sources/DaylilyCore/Dependencies.swift
+      - Sources/DaylilyCheckSuite/Checks.swift
+      - ai/tasks/0020-009-keyed-dependencies-runtime.md
+      - docs/examples/dependencies.md
+      - docs/capability-matrix.md
+      - docs/release-readiness.md
+      - ai/aidev/runtime-contracts.md
+      - ai/aidev/api-registry.md
+      - ai/aidev/roadmap.md
+      - ai/aidev/start-here.md
+    public_api:
+      - "DependencyKey<Value>"
+      - "Dependencies.register(_:for:)"
+      - "Dependencies.get(_:)"
+      - "Dependencies.require(_:)"
+      - "DependencyError.keyName"
+      - "DependencyError.missing(_:)"
+    decisions:
+      - "Concrete-type lookup remains the simple path."
+      - "Keyed lookup identity includes the value type and key name."
+      - "Re-registering the same key replaces the previous value."
+      - "Two keys with the same value type and different names address different slots."
+      - "Two keys with different value types and the same name address different slots."
+      - "Protocol-oriented lookup is expressed through existential value keys such as DependencyKey<any ProductServing>."
+      - "Direct protocol metatype lookup is not the preferred Daylily surface."
+      - "Missing keyed dependency errors include both value type and key name."
+    non_goals:
+      - "@Dependency macro"
+      - "lifecycle-managed services"
+      - "async factories"
+      - "request-scoped dependency registration"
+      - "default values"
+      - "direct protocol metatype lookup"
+      - "string-only lookup"
+      - "replacing project-owned composition roots or service containers"
+    next_task: null
+  macro_dependency:
+    status: implemented
+    epic: "0020-package-consumer-experience"
+    task: "0020-010-macro-dependency"
+    modules:
+      - DaylilyCore
+      - DaylilyMacros
+    files:
+      - Sources/DaylilyCore/Dependencies.swift
+      - Sources/DaylilyMacros/DaylilyMacros.swift
+      - Sources/HelloDaylily/MacroSmoke.swift
+      - scripts/consumer-smoke-test.sh
+      - ai/tasks/0020-010-macro-dependency.md
+      - docs/examples/dependencies.md
+      - docs/capability-matrix.md
+      - docs/release-readiness.md
+      - ai/aidev/runtime-contracts.md
+      - ai/aidev/api-registry.md
+      - ai/aidev/roadmap.md
+      - ai/aidev/start-here.md
+    public_api:
+      - "Dependency<Value>"
+      - "Dependency.init(wrappedValue:_:)"
+    macro_lowering:
+      - "@Dependency(key) -> try req.dependencies.require(key)"
+      - "configureDependencies hook -> Application(routes:dependencies:)"
+    decisions:
+      - "@Dependency is a handler parameter marker, not property injection on route owner types."
+      - "@Dependency requires an explicit DependencyKey<Value> expression."
+      - "The macro does not infer dependencies from parameter type alone."
+      - "The macro does not contribute route metadata."
+      - "Macro apps may define func configureDependencies(_ dependencies: inout Dependencies) to register app dependencies."
+      - "Runtime Request.dependencies.require(key) remains the source of truth."
+    non_goals:
+      - "keyless dependency inference"
+      - "property injection on route owner types"
+      - "concrete-type macro lookup without DependencyKey<Value>"
+      - "lifecycle-managed services"
+      - "async factories"
+      - "request-scoped dependency registration"
+      - "default values"
+      - "direct protocol metatype lookup"
+      - "middleware macro attributes"
     next_task: null
   lifecycle_integration_design:
     status: implemented
@@ -785,7 +882,7 @@ implemented_features:
       - "async factories"
       - "keyed dependency runtime implementation"
       - "@Dependency macro"
-    next_task: "0020-009-macro-dependency"
+    next_task: null
   macro_route_mvp:
     status: implemented
     task: "0003-001-macro-route-mvp"
@@ -1133,7 +1230,7 @@ planned_features:
       - "0014-003-macro-metadata-bridge"
     next_task: null
   dependency_injection:
-    status: in-progress
+    status: implemented
     epic: "0020-package-consumer-experience"
     completed:
       - "0020-004-dependency-injection-design"
@@ -1141,14 +1238,17 @@ planned_features:
       - "0020-006-di-usage-polish"
       - "0020-007-protocol-keyed-dependencies-design"
       - "0020-008-lifecycle-integration-design"
-    next_task: "0020-009-macro-dependency"
+      - "0020-009-keyed-dependencies-runtime"
+      - "0020-010-macro-dependency"
+    next_task: null
     sequence:
       - "0020-004-dependency-injection-design"
       - "0020-005-dependencies-registry-mvp"
       - "0020-006-di-usage-polish"
       - "0020-007-protocol-keyed-dependencies-design"
       - "0020-008-lifecycle-integration-design"
-      - "0020-009-macro-dependency"
+      - "0020-009-keyed-dependencies-runtime"
+      - "0020-010-macro-dependency"
   beta_closure:
     status: implemented
     completed:
@@ -1180,7 +1280,9 @@ planned_features:
       - "0020-006-di-usage-polish"
       - "0020-007-protocol-keyed-dependencies-design"
       - "0020-008-lifecycle-integration-design"
-    next_task: "0020-009-macro-dependency"
+      - "0020-009-keyed-dependencies-runtime"
+      - "0020-010-macro-dependency"
+    next_task: null
     sequence:
       - "0020-001-external-consumer-smoke-test"
       - "0020-002-minimal-app-template"
@@ -1190,7 +1292,8 @@ planned_features:
       - "0020-006-di-usage-polish"
       - "0020-007-protocol-keyed-dependencies-design"
       - "0020-008-lifecycle-integration-design"
-      - "0020-009-macro-dependency"
+      - "0020-009-keyed-dependencies-runtime"
+      - "0020-010-macro-dependency"
 
 public_api:
   Daylily:
@@ -1211,7 +1314,7 @@ public_api:
     macros:
       DaylilyServer:
         signature: "public macro DaylilyServer()"
-        role: "generate static main and Application route registration"
+        role: "generate static main, optional dependency configuration hook, and Application route registration"
       GET:
         signature: "public macro GET(_ path: String)"
         role: "mark instance method as GET route"
@@ -1482,6 +1585,27 @@ public_api:
         - "public func describeRoutes() -> [RouteDescription]"
         - "public func respond(to request: Request) async -> Response"
       contract: "Always returns a Response; stamps application dependencies onto the request; runs application middleware around router dispatch; converts ResponseError and unknown errors; lifecycle hooks are explicit and not run by respond(to:); describeRoutes exposes route metadata without invoking handlers."
+    DependencyKey:
+      kind: struct
+      conforms:
+        - Sendable
+      generic_parameters:
+        - Value
+      properties:
+        - "name: String"
+      methods:
+        - "public init(_ name: String)"
+      contract: "Typed app-owned dependency key; keyed lookup identity combines Value type and name."
+    Dependency:
+      kind: propertyWrapper
+      conforms:
+        - Sendable
+      generic: "Value: Sendable"
+      properties:
+        - "wrappedValue: Value"
+      initializers:
+        - "public init(wrappedValue: Value, _ key: DependencyKey<Value>)"
+      contract: "Marker for @DaylilyServer macro keyed dependency input lowering; extraction is performed by Request.dependencies.require(key)."
     Dependencies:
       kind: struct
       conforms:
@@ -1489,20 +1613,25 @@ public_api:
       methods:
         - "public init()"
         - "public mutating func register<Value: Sendable>(_ value: Value)"
+        - "public mutating func register<Value: Sendable>(_ value: Value, for key: DependencyKey<Value>)"
         - "public func get<Value: Sendable>(_ type: Value.Type = Value.self) -> Value?"
+        - "public func get<Value: Sendable>(_ key: DependencyKey<Value>) -> Value?"
         - "public func require<Value: Sendable>(_ type: Value.Type = Value.self) throws -> Value"
-      contract: "App-wide default dependency registry storing concrete Sendable values by concrete metatype; optional helper, not mandatory application architecture."
+        - "public func require<Value: Sendable>(_ key: DependencyKey<Value>) throws -> Value"
+      contract: "App-wide default dependency registry storing concrete Sendable values by concrete metatype and keyed Sendable values by DependencyKey<Value>; optional helper, not mandatory application architecture."
     DependencyError:
       kind: struct
       conforms:
         - ResponseError
       properties:
         - "typeName: String"
+        - "keyName: String?"
         - "status: Status"
         - "reason: String"
       methods:
         - "public static func missing<Value>(_ type: Value.Type) -> DependencyError"
-      contract: "Missing required dependency response error; maps to 500 Internal Server Error."
+        - "public static func missing<Value>(_ key: DependencyKey<Value>) -> DependencyError"
+      contract: "Missing required dependency response error; keyed misses include value type and key name; maps to 500 Internal Server Error."
     LifecyclePhase:
       kind: enum
       conforms:
@@ -1997,7 +2126,7 @@ runtime_rules:
   query_and_header_input_policy: "Request.query uses QueryParameters; Headers has typed require/get; @Query lowers to req.query.require plus RouteInputMetadata.query(...) and @Header lowers to req.headers.require plus RouteInputMetadata.header(...)."
   macro_json_body_policy: "@Body parameters are the preferred marker wrappers in DaylilyJSON; @DaylilyServer lowers them into try await req.json(Type.self) plus RouteBodyMetadata.json(...). @JSONBody remains as a compatibility alias spelling with the same lowering. The raw one-shot request body type is RequestBody."
   lifecycle_policy: "Application lifecycle phases are configure, boot, started, shutdown, cleanup. Application.run binds lifecycle to transport; Application.respond(to:) does not run lifecycle. The default NIO server closes on SIGINT/SIGTERM. Managed service lifecycle is designed around future ApplicationService and Application.service(_:), with Application owning lifecycle and Dependencies remaining lookup-only."
-  dependencies_policy: "Dependencies is an app-wide concrete Sendable registry in DaylilyCore. Application.respond(to:) stamps dependencies onto each request. Missing required dependencies map to 500 Internal Server Error. Protocol/keyed lookup is designed around a future typed DependencyKey<Value> API but not implemented. Managed service lifecycle is designed around future ApplicationService but not implemented. @Dependency is deferred."
+  dependencies_policy: "Dependencies is an app-wide concrete and keyed Sendable registry in DaylilyCore. Application.respond(to:) stamps dependencies onto each request. Missing required dependencies map to 500 Internal Server Error. Protocol-oriented and same-type multi-instance lookup uses typed DependencyKey<Value>; direct protocol metatype lookup is not the preferred surface. @Dependency lowers keyed handler parameters to Request.dependencies.require(key). Managed service lifecycle is designed around future ApplicationService but not implemented."
   server_configuration_policy: "ServerConfiguration is the NIO-free user-facing server control type. Application.run(configuration:) bridges it into DaylilyNIO."
   test_client_policy: "TestClient is an in-memory helper in DaylilyTesting; it calls Application.respond(to:) directly and does not use transport. TestRequest and response assertions are testing helpers, not runtime behavior."
   route_metadata_policy: "Route metadata lives in DaylilyCore and is exposed through Route.describe(...) and Application.describeRoutes(); it does not affect routing and is the source of truth for OpenAPI generation."
@@ -2203,7 +2332,7 @@ roadmap:
     in_progress:
       - "0020-package-consumer-experience"
     next_recommended:
-      - "0020-009-macro-dependency"
+      - "macro-middleware-attributes"
   completed:
     - "0001-001-minimal-http-server"
     - "0002-001-aidev-project-contract"
@@ -2247,8 +2376,10 @@ roadmap:
     - "0020-006-di-usage-polish"
     - "0020-007-protocol-keyed-dependencies-design"
     - "0020-008-lifecycle-integration-design"
+    - "0020-009-keyed-dependencies-runtime"
+    - "0020-010-macro-dependency"
   in_progress: []
   next_recommended:
-    - "0020-009-macro-dependency"
+    - "macro-middleware-attributes"
   later:
     - "0013-003-observability-hooks"

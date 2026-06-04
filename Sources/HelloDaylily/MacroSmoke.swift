@@ -2,6 +2,11 @@ import Daylily
 
 @DaylilyServer
 struct MacroSmoke {
+    func configureDependencies(_ dependencies: inout Dependencies) {
+        dependencies.register(MacroGreetingService(prefix: "Macro dependency"), for: MacroDependencies.greeting)
+        dependencies.register("root", for: MacroDependencies.label)
+    }
+
     @GET("/macro/hello")
     func hello() -> String {
         "Daylily macros ship."
@@ -34,6 +39,15 @@ struct MacroSmoke {
         @Header("x-daylily") token: String
     ) -> String {
         "Macro search \(term):\(pageNumber):\(token)"
+    }
+
+    @GET("/macro/dependency/:id")
+    func dependency(
+        @Path id: Int,
+        @Dependency(MacroDependencies.greeting) greeting: any MacroGreetingServing,
+        @Dependency(MacroDependencies.label) label: String
+    ) -> String {
+        "\(label):\(greeting.message(for: id))"
     }
 
     @POST("/macro/echo")
@@ -106,6 +120,14 @@ struct MacroSmoke {
             "Macro group search \(term):\(token)"
         }
 
+        @GET("/dependency/:id")
+        func dependency(
+            @Path id: Int,
+            @Dependency(MacroDependencies.greeting) greeting: any MacroGreetingServing
+        ) -> String {
+            greeting.message(for: id)
+        }
+
         @POST("/echo")
         func echo(req: Request) async throws -> String {
             try await req.body.string(upTo: .kilobytes(64))
@@ -163,4 +185,21 @@ struct MacroEchoPayload: Codable, Sendable {
 
 struct MacroEchoResponse: Codable, Sendable {
     let echo: String
+}
+
+enum MacroDependencies {
+    static let greeting = DependencyKey<any MacroGreetingServing>("macro.greeting")
+    static let label = DependencyKey<String>("macro.label")
+}
+
+protocol MacroGreetingServing: Sendable {
+    func message(for id: Int) -> String
+}
+
+struct MacroGreetingService: MacroGreetingServing {
+    let prefix: String
+
+    func message(for id: Int) -> String {
+        "\(prefix) \(id)"
+    }
 }

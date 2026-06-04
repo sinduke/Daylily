@@ -190,7 +190,7 @@ let app = Application {
 }
 ```
 
-The `Dependencies` registry provides a Daylily-owned default channel for common cases:
+The `Dependencies` registry provides a Daylily-owned default channel for concrete or keyed service lookup:
 
 ```swift
 let app = Application(dependencies: { dependencies in

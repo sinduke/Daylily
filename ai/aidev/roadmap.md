@@ -337,7 +337,8 @@ Recommended sequence:
 0020-006 DI Usage Polish (delivered)
 0020-007 Protocol / Keyed Dependencies Design (delivered)
 0020-008 Lifecycle Integration Design (delivered)
-0020-009 Macro @Dependency (planned)
+0020-009 Keyed Dependencies Runtime (delivered)
+0020-010 Macro @Dependency (delivered)
 ```
 
 ### 0015 HTTP Verbs Beta Closure
@@ -362,7 +363,7 @@ Options("/health") { Status.noContent }
 Remaining:
 
 - `0.1.0-alpha.1` is the first public alpha release after macOS and Linux CI are green.
-- Next package consumer slice is macro dependency syntax design.
+- Next package consumer slice is middleware macro attributes.
 
 ## Package Consumer Experience
 
@@ -381,7 +382,8 @@ Sequence:
 0020-006 DI Usage Polish (delivered)
 0020-007 Protocol / Keyed Dependencies Design (delivered)
 0020-008 Lifecycle Integration Design (delivered)
-0020-009 Macro @Dependency (planned)
+0020-009 Keyed Dependencies Runtime (delivered)
+0020-010 Macro @Dependency (delivered)
 ```
 
 Delivered:
@@ -398,18 +400,20 @@ Delivered:
 - `0020-004` converges DI around a small app-wide `Dependencies` registry before protocol, keyed, lifecycle, or macro work.
 - `0020-005` implements `Dependencies`, `Application(dependencies:)`, `Request.dependencies`, and missing dependency 500 mapping.
 - `0020-006` documents the project-owned `makeApplication` pattern, test override guidance, and the decision to keep minimal-app source dependency-free until the API is tagged.
-- `0020-007` accepts a future typed `DependencyKey<Value>` design for protocol-oriented and same-type multi-instance lookups without implementing runtime API.
+- `0020-007` accepts a typed `DependencyKey<Value>` design for protocol-oriented and same-type multi-instance lookups.
 - `0020-008` accepts a future `ApplicationService` design where `Application` owns service lifecycle and `Dependencies` remains lookup-only.
+- `0020-009` implements keyed `Dependencies` runtime lookup with `DependencyKey<Value>`, existential values, and same-type multi-instance support.
+- `0020-010` implements macro `@Dependency` handler parameter lowering over keyed dependencies and an optional `configureDependencies` hook for macro apps.
 
 Dependency injection order:
 
 ```text
-runtime registry -> usage polish -> protocol/key design -> lifecycle design -> macro sugar
+runtime registry -> usage polish -> protocol/key design -> lifecycle design -> keyed runtime -> macro sugar
 ```
 
 Next:
 
-- `0020-009-macro-dependency`
+- middleware macro attributes
 
 ### Future Epics
 

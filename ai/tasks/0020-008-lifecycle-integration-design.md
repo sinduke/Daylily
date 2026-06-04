@@ -122,7 +122,8 @@ Non-goals:
 Follow-up:
 
 - A future implementation task should add runtime service storage, tests, and error types.
-- 0020-009 should design `@Dependency` after keyed runtime and service lifecycle contracts are stable.
+- 0020-009 implemented keyed dependency runtime lookup.
+- 0020-010 should design `@Dependency` after keyed runtime and service lifecycle contracts are stable.
 
 Validation:
 

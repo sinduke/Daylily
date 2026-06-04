@@ -147,7 +147,8 @@ Future extension sequence:
 0020-006 DI Usage Polish
 0020-007 Protocol / Keyed Dependencies Design
 0020-008 Lifecycle Integration Design
-0020-009 Macro @Dependency
+0020-009 Keyed Dependencies Runtime
+0020-010 Macro @Dependency
 ```
 
 Future extension points:

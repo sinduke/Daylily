@@ -81,6 +81,8 @@ Daylily/
 - Generates a fresh external SwiftPM package outside the repository.
 - Validates `Daylily` as a local path dependency or released package dependency.
 - Builds runtime and macro executable targets.
+- In path mode, starts the generated macro app and verifies a macro `@Dependency` route over HTTP.
+- In release mode, keeps the generated macro source compatible with the selected published tag.
 - Runs a Swift Testing target that imports `DaylilyTesting`.
 
 `scripts/template-smoke-test.sh`
@@ -233,8 +235,9 @@ Daylily/
 `Sources/DaylilyCore/Dependencies.swift`
 
 - Defines the app-wide `Dependencies` registry MVP.
+- Defines `DependencyKey<Value>` and the `Dependency<Value>` macro marker.
 - Defines `DependencyError` for missing required dependencies.
-- Stores concrete `Sendable` values by concrete metatype.
+- Stores concrete `Sendable` values by concrete metatype and keyed values by typed dependency key.
 
 `Sources/DaylilyCore/Handler.swift`
 

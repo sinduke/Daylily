@@ -135,7 +135,8 @@ Non-goals:
 Follow-up:
 
 - 0020-008 should design lifecycle integration separately.
-- 0020-009 should revisit `@Dependency` only after the keyed runtime contract is real.
+- 0020-009 implemented the keyed runtime contract.
+- 0020-010 should revisit `@Dependency` over the implemented keyed runtime.
 
 Validation:
 

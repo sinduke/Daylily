@@ -404,6 +404,12 @@ Implemented macro flow:
   used by @DaylilyServer
   lowers into Headers.require(_:as:)
 
+@Dependency
+  parameter marker
+  used by @DaylilyServer
+  lowers into Request.dependencies.require(key)
+  does not contribute route metadata
+
 @Body
 @JSONBody compatibility alias spelling for @Body
   parameter marker
@@ -411,20 +417,22 @@ Implemented macro flow:
   lowers into Request.json(_:upTo:) through request.json(Type.self)
 ```
 
-Typed macro inputs lower twice:
+Route-data macro inputs lower twice:
 
 - into runtime extraction calls used by handlers
 - into `Route.describe(...)` metadata used by OpenAPI
+
+`@Dependency` only lowers into dependency lookup. It is not route metadata.
 
 MVP limits:
 
 - server type must be default-initializable with `Self()`
 - group types must be default-initializable
 - route handlers must be instance methods
-- route handlers may have zero parameters, one `Request` parameter, `@Path`, `@Query`, `@Header`, and one `@Body` parameter; `@JSONBody` remains as a compatibility alias spelling
+- route handlers may have zero parameters, one `Request` parameter, `@Path`, `@Query`, `@Header`, `@Dependency`, and one `@Body` parameter; `@JSONBody` remains as a compatibility alias spelling
 - `@Path` names must match `:name` route segments
 - raw one-shot request body values use `RequestBody`
-- optional typed inputs, DI, macro middleware attributes, and deep OpenAPI schema derivation are not part of this MVP
+- optional typed inputs, keyless dependency inference, macro middleware attributes, and deep OpenAPI schema derivation are not part of this MVP
 
 Important rule:
 

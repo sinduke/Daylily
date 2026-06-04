@@ -53,8 +53,10 @@ Rules:
 
 - `@DaylilyServer` generates `static func main() async throws`.
 - The generated main creates `let server = Self()`.
+- If the server type defines `func configureDependencies(_ dependencies: inout Dependencies)`, the generated main calls it and passes the result to `Application(routes:dependencies:)`.
+- The generated main accepts an optional `--port <number>` command-line argument and otherwise listens on port `8080`.
 - Route handlers must be instance methods.
-- Route handlers may have zero parameters, one `Request` parameter, `@Path`, `@Query`, `@Header`, and one `@Body` parameter, with `@JSONBody` accepted as a compatibility alias spelling.
+- Route handlers may have zero parameters, one `Request` parameter, `@Path`, `@Query`, `@Header`, `@Dependency`, and one `@Body` parameter, with `@JSONBody` accepted as a compatibility alias spelling.
 - `@GET` lowers to runtime `Get`.
 - `@POST` lowers to runtime `Post`.
 - `@PUT` lowers to runtime `Put`.
@@ -79,6 +81,9 @@ Rules:
 - `@Body` lowers into `try await req.json(Type.self)`.
 - `@Body` also lowers into `RouteBodyMetadata.json(...)`.
 - `@JSONBody` is a compatibility alias spelling for `@Body` and uses the same lowering.
+- `@Dependency(key)` lowers into `try req.dependencies.require(key)`.
+- `@Dependency` requires exactly one `DependencyKey<Value>` expression and does not infer dependencies from parameter type alone.
+- `@Dependency` does not contribute route metadata.
 - The raw one-shot request body type is `RequestBody`.
 - Grouped types are instantiated with `Self.GroupType()`.
 - These are macro rules, not runtime rules. Runtime route DSL remains a first-class supported API when macro limits do not fit an application.
@@ -400,17 +405,34 @@ Rules:
 ### Dependencies
 
 ```swift
+public struct DependencyKey<Value>: Sendable {
+    public let name: String
+
+    public init(_ name: String)
+}
+
+@propertyWrapper
+public struct Dependency<Value: Sendable>: Sendable {
+    public var wrappedValue: Value
+    public init(wrappedValue: Value, _ key: DependencyKey<Value>)
+}
+
 public struct Dependencies: Sendable {
     public init()
 
     public mutating func register<Value: Sendable>(_ value: Value)
+    public mutating func register<Value: Sendable>(_ value: Value, for key: DependencyKey<Value>)
     public func get<Value: Sendable>(_ type: Value.Type = Value.self) -> Value?
+    public func get<Value: Sendable>(_ key: DependencyKey<Value>) -> Value?
     public func require<Value: Sendable>(_ type: Value.Type = Value.self) throws -> Value
+    public func require<Value: Sendable>(_ key: DependencyKey<Value>) throws -> Value
 }
 
 public struct DependencyError: ResponseError {
     public let typeName: String
+    public let keyName: String?
     public static func missing<Value>(_ type: Value.Type) -> DependencyError
+    public static func missing<Value>(_ key: DependencyKey<Value>) -> DependencyError
     public var status: Status { get }
     public var reason: String { get }
 }
@@ -419,13 +441,20 @@ public struct DependencyError: ResponseError {
 Rules:
 
 - `Dependencies` is a default Daylily service channel, not mandatory application architecture.
-- The MVP stores concrete `Sendable` values by concrete metatype.
+- The MVP stores concrete `Sendable` values by concrete metatype and keyed `Sendable` values by `DependencyKey<Value>`.
 - Re-registering the same concrete type replaces the previous value.
-- `get` returns `nil` when the concrete type is missing.
-- `require` throws `DependencyError.missing(...)` when the concrete type is missing.
+- Re-registering the same typed key replaces the previous keyed value.
+- Keyed identity includes both the `Value` type and key name.
+- Typed keys support protocol-oriented lookup through existential values such as `DependencyKey<any ProductServing>`.
+- Typed keys support same-type multi-instance lookup through distinct key names.
+- `Dependency` is the `@Dependency` macro marker for keyed handler parameter injection.
+- `@Dependency(key)` lowers into `Request.dependencies.require(key)`.
+- Keyless `@Dependency` inference is not supported.
+- `get` returns `nil` when the requested concrete or keyed value is missing.
+- `require` throws `DependencyError.missing(...)` when the requested concrete or keyed value is missing.
+- Missing keyed dependency errors include both the value type and key name.
 - `DependencyError` maps to `500 Internal Server Error`.
-- Protocol/keyed runtime APIs, managed service lifecycle runtime APIs, and macro `@Dependency` are not part of this MVP.
-- 0020-007 accepts a future typed `DependencyKey<Value>` direction for protocol-oriented and same-type multi-instance lookups; it is design-only and not public API yet.
+- Managed service lifecycle runtime APIs are not part of this MVP.
 
 ### Lifecycle
 

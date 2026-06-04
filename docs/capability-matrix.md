@@ -23,7 +23,7 @@ This matrix tracks the current beta-facing capability surface. It is intentional
 | Middleware | Implemented | Application, group, and route scope. |
 | Lifecycle hooks | Implemented | `configure`, `boot`, `started`, `shutdown`, `cleanup`. |
 | Server configuration | Implemented | Host, port, backlog, address reuse, read batching, shutdown signals. |
-| Dependencies registry | MVP | App-wide concrete `Sendable` registry with `register`, `get`, `require`, `Request.dependencies`, and documented `makeApplication` usage guidance. |
+| Dependencies registry | MVP + keyed runtime | App-wide concrete and keyed `Sendable` registry with `register`, `get`, `require`, `DependencyKey<Value>`, `Request.dependencies`, and documented `makeApplication` usage guidance. |
 
 ## Macro Layer
 
@@ -37,6 +37,7 @@ This matrix tracks the current beta-facing capability surface. It is intentional
 | `@Header` | Implemented | Typed header input lowering plus metadata. |
 | `@Body` | Implemented | Preferred typed JSON body input marker. |
 | `@JSONBody` | Compatibility | Alias spelling for `@Body`; retained for existing code. |
+| `@Dependency` | Implemented | Handler parameter lowering to keyed `Request.dependencies.require(...)`; keyless inference is not supported. |
 | Optional typed inputs | Planned | Not implemented yet. |
 | Macro middleware attributes | Planned | Runtime middleware exists; macro attributes are future work. |
 
@@ -65,7 +66,7 @@ This matrix tracks the current beta-facing capability surface. It is intentional
 
 | Capability | Status | Notes |
 | --- | --- | --- |
-| Protocol/keyed dependencies | Designed | Typed `DependencyKey<Value>` direction is documented; runtime API is not implemented. |
+| Protocol/keyed dependencies | Implemented | Typed `DependencyKey<Value>` supports existential values and same-type multi-instance lookup. |
 | Lifecycle-managed services | Designed | `ApplicationService` direction is documented; runtime API is not implemented. |
 | Authentication | Future | Ecosystem direction, not current runtime. |
 | ORM/database module | Future | Explicitly out of current beta closure. |

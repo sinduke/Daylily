@@ -15,7 +15,9 @@ Daylily is currently experimental. Public APIs may change before beta or stable 
 - Documentation principle that Daylily defaults are recommended paths, not mandatory application architecture.
 - `Dependencies` registry MVP with `Application(dependencies:)`, `Request.dependencies`, `register`, `get`, and `require`.
 - Dependency usage guide covering `makeApplication`, test overrides, and when to keep custom service wiring.
-- Protocol/keyed dependency design centered on a future typed `DependencyKey<Value>` API.
+- Protocol/keyed dependency design centered on typed `DependencyKey<Value>`.
+- Keyed dependency runtime API with `DependencyKey<Value>` and keyed `register`, `get`, and `require`.
+- Macro `@Dependency` handler parameters over keyed dependency runtime lookup.
 - Lifecycle integration design that keeps service ownership on `Application` and lookup in `Dependencies`.
 
 ## 0.1.0-alpha.1 - 2026-05-26

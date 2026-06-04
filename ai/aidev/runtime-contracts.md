@@ -86,6 +86,7 @@ Status:
 
 - Designed in `ai/tasks/0020-004-dependency-injection-design.md`.
 - Runtime MVP implemented in `ai/tasks/0020-005-dependencies-registry-mvp.md`.
+- Keyed runtime API implemented in `ai/tasks/0020-009-keyed-dependencies-runtime.md`.
 
 Owner:
 
@@ -94,12 +95,21 @@ Owner:
 MVP shape:
 
 ```swift
+public struct DependencyKey<Value>: Sendable {
+    public let name: String
+
+    public init(_ name: String)
+}
+
 public struct Dependencies: Sendable {
     public init()
 
     public mutating func register<Value: Sendable>(_ value: Value)
+    public mutating func register<Value: Sendable>(_ value: Value, for key: DependencyKey<Value>)
     public func get<Value: Sendable>(_ type: Value.Type = Value.self) -> Value?
+    public func get<Value: Sendable>(_ key: DependencyKey<Value>) -> Value?
     public func require<Value: Sendable>(_ type: Value.Type = Value.self) throws -> Value
+    public func require<Value: Sendable>(_ key: DependencyKey<Value>) throws -> Value
 }
 
 public struct Application: Sendable {
@@ -120,12 +130,18 @@ MVP guarantees:
 - The public concept is `Dependencies`, not `Container`, `Services`, or `ServiceContainer`.
 - `Dependencies` is a Daylily default path, not mandatory application architecture.
 - Applications may keep their own composition roots, factories, service containers, or closure-captured services.
-- The first registry is app-wide and concrete-type based.
+- The registry is app-wide and supports concrete-type and typed-key lookup.
 - `Application` owns the configured registry and stamps it onto requests in `respond(to:)`.
 - Handlers and middleware read the same `Request.dependencies`.
 - `Application { ... }` remains valid and creates an empty dependency registry.
 - `register` stores one concrete `Sendable` value per concrete metatype.
 - Re-registering the same concrete type replaces the previous value.
+- `DependencyKey<Value>` stores a stable app-owned key name for a `Value`.
+- Keyed lookup identity includes the key's `Value` type and key name.
+- Re-registering the same typed key replaces the previous value.
+- Two keys with the same value type and different names address different slots.
+- Two keys with different value types and the same name address different slots.
+- Protocol-oriented lookup is expressed through existential value keys such as `DependencyKey<any ProductServing>`.
 - `get` returns `nil` for missing values.
 - `require` throws a Daylily-owned missing dependency error.
 - Missing dependency errors map to `500 Internal Server Error`.
@@ -134,10 +150,8 @@ MVP guarantees:
 
 0020-005 non-goals:
 
-- protocol or existential lookup
-- keyed dependencies
-- `@Dependency`
-- property-wrapper handler injection
+- property injection on route owner types
+- keyless `@Dependency` inference
 - lifecycle start/stop management
 - async factories
 - request-scoped registration
@@ -147,12 +161,10 @@ MVP guarantees:
 
 Future extension points:
 
-- keyed dependency runtime API based on the accepted `DependencyKey<Value>` design
 - request-scoped values
 - lifecycle-aware services based on the accepted `ApplicationService` design
-- macro `@Dependency` syntax
 
-0020-007 accepted design, not implemented:
+0020-009 implemented keyed runtime shape:
 
 ```swift
 public struct DependencyKey<Value>: Sendable {
@@ -767,7 +779,8 @@ Output:
 Guarantees:
 
 - Generated code creates `let server = Self()`.
-- Generated code creates `Application { ... }`.
+- Generated code creates `Application(routes:)` or `Application(routes:dependencies:)`.
+- If the server type defines `func configureDependencies(_ dependencies: inout Dependencies)`, generated code calls it before creating the application.
 - `@GET` lowers to runtime `Get`.
 - `@POST` lowers to runtime `Post`.
 - `@PUT` lowers to runtime `Put`.
@@ -784,6 +797,8 @@ Guarantees:
 - `@Header` parameters lower into `req.headers.require(_:as:)`.
 - `@Body` parameters lower into `try await req.json(Type.self)`.
 - `@JSONBody` remains as a compatibility alias spelling with the same lowering.
+- `@Dependency(key)` parameters lower into `try req.dependencies.require(key)`.
+- `@Dependency` requires an explicit `DependencyKey<Value>` expression and does not infer dependencies from parameter type alone.
 - A handler may have at most one `@Body` or `@JSONBody` parameter.
 - Grouped handlers are called on default-initialized group instances.
 
@@ -792,7 +807,7 @@ Known limitations:
 - Server type must be default-initializable.
 - Group types must be default-initializable.
 - Static route handlers are not supported.
-- Optional typed inputs, macro middleware attributes, and DI are not supported yet.
+- Optional typed inputs, keyless dependency inference, and macro middleware attributes are not supported yet.
 - OpenAPI metadata lowering exists for typed inputs; deeper schema inference and richer operation metadata are deferred.
 
 These are macro limitations, not runtime limitations.

@@ -33,11 +33,24 @@ public struct DaylilyServerMacro: MemberMacro {
             throw DaylilyMacroError("@DaylilyServer requires at least one route method.")
         }
 
-        let routeDeclarations = collection.routes.map { $0.routeDeclaration }.joined(separator: "\n\n")
+        let routeDeclarations = collection.routes.map { $0.routeDeclaration }.joined(separator: ",\n\n")
+        let configuresDependencies = try Self.configuresDependencies(in: declaration.memberBlock.members)
         var lines = [
             "static func main() async throws {",
             "    let server = Self()",
+            "    var port = 8080",
+            "    if let portIndex = CommandLine.arguments.firstIndex(of: \"--port\") {",
+            "        let valueIndex = CommandLine.arguments.index(after: portIndex)",
+            "        if CommandLine.arguments.indices.contains(valueIndex), let parsedPort = Int(CommandLine.arguments[valueIndex]) {",
+            "            port = parsedPort",
+            "        }",
+            "    }",
         ]
+
+        if configuresDependencies {
+            lines.append("    var dependencies = Dependencies()")
+            lines.append("    server.configureDependencies(&dependencies)")
+        }
 
         if !collection.instanceDeclarations.isEmpty {
             lines.append("")
@@ -45,16 +58,67 @@ public struct DaylilyServerMacro: MemberMacro {
         }
 
         lines.append("")
-        lines.append("    let app = Application {")
+        lines.append("    let app = Application(routes: [")
         lines.append(routeDeclarations.indented(by: 8))
-        lines.append("    }")
+        if configuresDependencies {
+            lines.append("    ], dependencies: dependencies)")
+        } else {
+            lines.append("    ])")
+        }
         lines.append("")
-        lines.append("    try await app.run()")
+        lines.append("    try await app.run(port: port)")
         lines.append("}")
 
         let generated = lines.joined(separator: "\n")
 
         return [DeclSyntax(stringLiteral: generated)]
+    }
+
+    private static func configuresDependencies(
+        in members: MemberBlockItemListSyntax
+    ) throws -> Bool {
+        var found = false
+
+        for member in members {
+            guard let function = member.decl.as(FunctionDeclSyntax.self),
+                  function.name.text == "configureDependencies"
+            else {
+                continue
+            }
+
+            guard !found else {
+                throw DaylilyMacroError("@DaylilyServer types may only define one configureDependencies hook.")
+            }
+
+            if function.modifiers.contains(where: { modifier in
+                let name = modifier.name.text
+                return name == "static" || name == "class"
+            }) {
+                throw DaylilyMacroError("@DaylilyServer configureDependencies hook must be an instance method.")
+            }
+
+            let parameters = Array(function.signature.parameterClause.parameters)
+            guard parameters.count == 1 else {
+                throw DaylilyMacroError("@DaylilyServer configureDependencies hook must be func configureDependencies(_ dependencies: inout Dependencies).")
+            }
+
+            let parameter = parameters[0]
+            guard parameter.firstName.text == "_" else {
+                throw DaylilyMacroError("@DaylilyServer configureDependencies hook must use an unlabeled Dependencies parameter.")
+            }
+
+            let typeName = parameter.type.description.trimmed
+            guard typeName == "inout Dependencies"
+                || typeName == "inout Daylily.Dependencies"
+                || typeName == "inout DaylilyCore.Dependencies"
+            else {
+                throw DaylilyMacroError("@DaylilyServer configureDependencies hook parameter must be inout Dependencies.")
+            }
+
+            found = true
+        }
+
+        return found
     }
 }
 
@@ -279,6 +343,12 @@ private struct RouteMethod {
                 continue
             }
 
+            if let dependencyAttribute = try DependencyAttribute(parameter) {
+                let value = "try req.dependencies.require(\(dependencyAttribute.keyExpression))"
+                arguments.append(callArgument(for: parameter, value: value))
+                continue
+            }
+
             if isRequestParameter(parameter) {
                 guard !hasRequestParameter else {
                     throw DaylilyMacroError("@\(routeName) handlers may only have one Request parameter.")
@@ -289,7 +359,7 @@ private struct RouteMethod {
                 continue
             }
 
-            throw DaylilyMacroError("@\(routeName) handler parameters must be Request or annotated with @Path, @Query, @Header, @Body, or @JSONBody.")
+            throw DaylilyMacroError("@\(routeName) handler parameters must be Request or annotated with @Path, @Query, @Header, @Body, @JSONBody, or @Dependency.")
         }
 
         return HandlerCall(
@@ -381,6 +451,120 @@ private struct HandlerCall {
         }
 
         return "\n.describe(\(arguments.joined(separator: ", ")))"
+    }
+}
+
+private struct DependencyAttribute {
+    let keyExpression: String
+
+    init?(_ parameter: FunctionParameterSyntax) throws {
+        var found: DependencyAttribute?
+
+        for attributeElement in parameter.attributes {
+            guard case let .attribute(attribute) = attributeElement else {
+                continue
+            }
+
+            let name = RouteAttribute.routeName(for: attribute.attributeName.description.trimmed)
+            guard name == "Dependency" else {
+                continue
+            }
+
+            if found != nil {
+                throw DaylilyMacroError("Handler parameters may only have one @Dependency attribute.")
+            }
+
+            found = DependencyAttribute(
+                keyExpression: try Self.keyExpression(from: attribute)
+            )
+        }
+
+        guard let found else {
+            return nil
+        }
+
+        self = found
+    }
+
+    private init(keyExpression: String) {
+        self.keyExpression = keyExpression
+    }
+
+    private static func keyExpression(from attribute: AttributeSyntax) throws -> String {
+        let text = attribute.description.trimmed
+        guard let open = text.firstIndex(of: "("),
+              let close = text.lastIndex(of: ")"),
+              open < close
+        else {
+            throw DaylilyMacroError("@Dependency requires one DependencyKey expression.")
+        }
+
+        let expressionStart = text.index(after: open)
+        let expression = String(text[expressionStart..<close]).trimmed
+
+        guard !expression.isEmpty else {
+            throw DaylilyMacroError("@Dependency requires one DependencyKey expression.")
+        }
+
+        guard hasSingleTopLevelExpression(expression) else {
+            throw DaylilyMacroError("@Dependency accepts exactly one DependencyKey expression.")
+        }
+
+        return expression
+    }
+
+    private static func hasSingleTopLevelExpression(_ expression: String) -> Bool {
+        var parenDepth = 0
+        var bracketDepth = 0
+        var angleDepth = 0
+        var isInString = false
+        var isEscaped = false
+
+        for character in expression {
+            if isEscaped {
+                isEscaped = false
+                continue
+            }
+
+            if character == "\\" {
+                isEscaped = isInString
+                continue
+            }
+
+            if character == "\"" {
+                isInString.toggle()
+                continue
+            }
+
+            guard !isInString else {
+                continue
+            }
+
+            switch character {
+            case "(":
+                parenDepth += 1
+            case ")":
+                parenDepth -= 1
+            case "[":
+                bracketDepth += 1
+            case "]":
+                bracketDepth -= 1
+            case "<":
+                angleDepth += 1
+            case ">":
+                angleDepth = max(0, angleDepth - 1)
+            case "," where parenDepth == 0 && bracketDepth == 0 && angleDepth == 0:
+                return false
+            default:
+                break
+            }
+
+            if parenDepth < 0 || bracketDepth < 0 {
+                return false
+            }
+        }
+
+        return !isInString && parenDepth == 0 && bracketDepth == 0
     }
 }
 
