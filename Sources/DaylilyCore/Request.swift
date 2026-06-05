@@ -1,34 +1,82 @@
 public struct Request: Sendable {
     public let method: HTTPMethod
+    public let rawTarget: String?
     public let path: String
+    public let scheme: String?
+    public let authority: String?
+    public let extendedConnectProtocol: String?
     public let headers: Headers
     public let body: RequestBody
     public let parameters: Parameters
     public let query: QueryParameters
     public let dependencies: Dependencies
 
+    public var target: String {
+        rawTarget ?? path
+    }
+
     public init(
         method: HTTPMethod,
         path: String,
+        scheme: String? = nil,
+        authority: String? = nil,
+        extendedConnectProtocol: String? = nil,
         headers: Headers = [:],
         body: RequestBody = .bytes([]),
         parameters: Parameters = Parameters(),
         query: QueryParameters? = nil,
         dependencies: Dependencies = Dependencies()
     ) {
-        let parsedPath = Self.parsePath(path)
+        self.init(
+            method: method,
+            rawTarget: path.isEmpty ? "/" : path,
+            scheme: scheme,
+            authority: authority,
+            extendedConnectProtocol: extendedConnectProtocol,
+            headers: headers,
+            body: body,
+            parameters: parameters,
+            query: query,
+            dependencies: dependencies
+        )
+    }
+
+    public init(
+        method: HTTPMethod,
+        rawTarget: String?,
+        scheme: String? = nil,
+        authority: String? = nil,
+        extendedConnectProtocol: String? = nil,
+        headers: Headers = [:],
+        body: RequestBody = .bytes([]),
+        parameters: Parameters = Parameters(),
+        query: QueryParameters? = nil,
+        dependencies: Dependencies = Dependencies()
+    ) {
+        let parsedTarget = rawTarget.map(Self.parseTarget) ?? (path: "/", query: QueryParameters())
         self.method = method
-        self.path = parsedPath.path
+        if let query {
+            self.rawTarget = rawTarget == nil && query.queryString == nil ? nil : Self.makeTarget(path: parsedTarget.path, query: query)
+        } else {
+            self.rawTarget = rawTarget.map { $0.isEmpty ? "/" : $0 }
+        }
+        self.path = parsedTarget.path
+        self.scheme = scheme
+        self.authority = authority
+        self.extendedConnectProtocol = extendedConnectProtocol
         self.headers = headers
         self.body = body
         self.parameters = parameters
-        self.query = query ?? parsedPath.query
+        self.query = query ?? parsedTarget.query
         self.dependencies = dependencies
     }
 
     public init(
         method: HTTPMethod,
         path: String,
+        scheme: String? = nil,
+        authority: String? = nil,
+        extendedConnectProtocol: String? = nil,
         headers: Headers = [:],
         body: [UInt8],
         parameters: Parameters = Parameters(),
@@ -38,6 +86,9 @@ public struct Request: Sendable {
         self.init(
             method: method,
             path: path,
+            scheme: scheme,
+            authority: authority,
+            extendedConnectProtocol: extendedConnectProtocol,
             headers: headers,
             body: .bytes(body),
             parameters: parameters,
@@ -49,7 +100,10 @@ public struct Request: Sendable {
     public func with(parameters: Parameters) -> Request {
         Request(
             method: method,
-            path: path,
+            rawTarget: rawTarget,
+            scheme: scheme,
+            authority: authority,
+            extendedConnectProtocol: extendedConnectProtocol,
             headers: headers,
             body: body,
             parameters: parameters,
@@ -61,7 +115,10 @@ public struct Request: Sendable {
     public func with(body: RequestBody) -> Request {
         Request(
             method: method,
-            path: path,
+            rawTarget: rawTarget,
+            scheme: scheme,
+            authority: authority,
+            extendedConnectProtocol: extendedConnectProtocol,
             headers: headers,
             body: body,
             parameters: parameters,
@@ -73,7 +130,10 @@ public struct Request: Sendable {
     public func with(headers: Headers) -> Request {
         Request(
             method: method,
-            path: path,
+            rawTarget: rawTarget,
+            scheme: scheme,
+            authority: authority,
+            extendedConnectProtocol: extendedConnectProtocol,
             headers: headers,
             body: body,
             parameters: parameters,
@@ -85,7 +145,25 @@ public struct Request: Sendable {
     public func with(dependencies: Dependencies) -> Request {
         Request(
             method: method,
-            path: path,
+            rawTarget: rawTarget,
+            scheme: scheme,
+            authority: authority,
+            extendedConnectProtocol: extendedConnectProtocol,
+            headers: headers,
+            body: body,
+            parameters: parameters,
+            query: query,
+            dependencies: dependencies
+        )
+    }
+
+    public func with(query: QueryParameters) -> Request {
+        Request(
+            method: method,
+            rawTarget: Self.makeTarget(path: path, query: query),
+            scheme: scheme,
+            authority: authority,
+            extendedConnectProtocol: extendedConnectProtocol,
             headers: headers,
             body: body,
             parameters: parameters,
@@ -103,83 +181,23 @@ public struct Request: Sendable {
         return try await operation(replayedRequest, bytes)
     }
 
-    private static func parsePath(_ path: String) -> (path: String, query: QueryParameters) {
-        let parts = path.split(separator: "?", maxSplits: 1, omittingEmptySubsequences: false)
+    private static func parseTarget(_ target: String) -> (path: String, query: QueryParameters) {
+        let normalizedTarget = target.isEmpty ? "/" : target
+        let parts = normalizedTarget.split(separator: "?", maxSplits: 1, omittingEmptySubsequences: false)
         let requestPath = parts.first.map(String.init).flatMap { $0.isEmpty ? nil : $0 } ?? "/"
 
         guard parts.count == 2 else {
             return (requestPath, QueryParameters())
         }
 
-        return (requestPath, QueryParameters(parseQuery(parts[1])))
+        return (requestPath, QueryParameters(rawValue: String(parts[1])))
     }
 
-    private static func parseQuery(_ query: Substring) -> [String: String] {
-        var values: [String: String] = [:]
-
-        for pair in query.split(separator: "&", omittingEmptySubsequences: false) {
-            guard !pair.isEmpty else {
-                continue
-            }
-
-            let parts = pair.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
-            let name = percentDecode(parts[0])
-            let value = parts.count == 2 ? percentDecode(parts[1]) : ""
-            values[name] = value
+    private static func makeTarget(path: String, query: QueryParameters) -> String {
+        guard let queryString = query.queryString else {
+            return path
         }
 
-        return values
-    }
-
-    private static func percentDecode(_ value: Substring) -> String {
-        var bytes: [UInt8] = []
-        var index = value.startIndex
-
-        while index < value.endIndex {
-            let character = value[index]
-
-            if character == "+" {
-                bytes.append(0x20)
-                index = value.index(after: index)
-                continue
-            }
-
-            if character == "%",
-               let first = value.index(index, offsetBy: 1, limitedBy: value.endIndex),
-               first < value.endIndex,
-               let second = value.index(first, offsetBy: 1, limitedBy: value.endIndex),
-               second < value.endIndex,
-               let byte = hexByte(value[first], value[second]) {
-                bytes.append(byte)
-                index = value.index(after: second)
-                continue
-            }
-
-            bytes.append(contentsOf: String(character).utf8)
-            index = value.index(after: index)
-        }
-
-        return String(decoding: bytes, as: UTF8.self)
-    }
-
-    private static func hexByte(_ first: Character, _ second: Character) -> UInt8? {
-        guard let high = hexValue(first), let low = hexValue(second) else {
-            return nil
-        }
-
-        return high * 16 + low
-    }
-
-    private static func hexValue(_ character: Character) -> UInt8? {
-        switch character {
-        case "0"..."9":
-            return character.asciiValue.map { $0 - Character("0").asciiValue! }
-        case "a"..."f":
-            return character.asciiValue.map { $0 - Character("a").asciiValue! + 10 }
-        case "A"..."F":
-            return character.asciiValue.map { $0 - Character("A").asciiValue! + 10 }
-        default:
-            return nil
-        }
+        return "\(path)?\(queryString)"
     }
 }

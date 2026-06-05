@@ -50,6 +50,7 @@ Guarantees:
 - `Application.run` calls `cleanup` after shutdown.
 - `shutdown` and `cleanup` are attempted if server run fails after boot.
 - SIGINT/SIGTERM close the default NIO server channel so lifecycle shutdown can continue.
+- Cancelling the NIO server run task closes the server channel so external lifecycle systems can stop the server.
 - Lifecycle APIs do not expose NIO types.
 
 ## Server Configuration Contract
@@ -315,13 +316,160 @@ Boundaries:
 - `DaylilyObservability` depends on `DaylilyCore`.
 - `DaylilyObservability` may use Foundation for default UUID request ID generation.
 - `DaylilyCore` does not depend on `DaylilyObservability`.
-- No logging backend, metrics backend, tracing SDK, or transport dependency is required by the current observability slice.
+- No logging backend, metrics backend, tracing SDK, or transport dependency is required by `DaylilyCore` or `DaylilyObservability`.
+- `DaylilySwiftLog` is an optional adapter module that depends on `DaylilyObservability` and SwiftLog's `Logging` product.
+- `DaylilySwiftLog` is not re-exported by `Daylily`.
+- `DaylilySwiftLog` must not call `LoggingSystem.bootstrap(...)`.
+- `DaylilyServiceLifecycle` is an optional adapter module that depends on `DaylilyCore`, `DaylilyNIO`, and ServiceLifecycle's `ServiceLifecycle` product.
+- `DaylilyServiceLifecycle` is not re-exported by `Daylily`.
+- `DaylilyServiceLifecycle` must not create or configure a global `ServiceGroup`.
+- `DaylilyHTTPTypes` is an optional adapter module that depends on `DaylilyCore` and Swift HTTP Types' `HTTPTypes` product.
+- `DaylilyHTTPTypes` is not re-exported by `Daylily`.
+- `DaylilyHTTPTypes` must not replace Daylily-owned `Request` or `Response` models.
 
 Extension points:
 
 - structured log fields
 - OpenTelemetry bridge
 - metrics hooks
+
+## SwiftLog Adapter Contract
+
+Owner:
+
+- `DaylilySwiftLog`
+
+Implemented by:
+
+- `ai/tasks/0021-001-swift-log-adapter.md`
+
+Shape:
+
+```swift
+public struct SwiftLogRequestLogSink: RequestLogSink
+
+public struct SwiftLogRequestLogLevelStrategy: Sendable
+
+public struct SwiftLogRequestLogMetadataStrategy: Sendable
+```
+
+Guarantees:
+
+- SwiftLog integration is a `RequestLogSink`.
+- `RequestLoggingMiddleware` remains the request logging middleware.
+- `RequestLog` remains Daylily-owned and does not store SwiftLog metadata.
+- Applications may pass a user-owned `Logger`.
+- Applications may use `SwiftLogRequestLogSink(label:)` for low-friction setup.
+- Label-based setup creates a `Logger(label:)` but does not bootstrap SwiftLog.
+- Level mapping and metadata mapping are configurable through strategies.
+- Default metadata keys are namespaced with `daylily.*` to reduce collision risk with user logger metadata.
+
+Non-goals:
+
+- backend-specific middleware
+- global SwiftLog configuration
+- forced umbrella re-export
+- multi-sink fan-out
+- sampling, batching, redaction, tracing, or metrics
+
+## ServiceLifecycle Adapter Contract
+
+Owner:
+
+- `DaylilyServiceLifecycle`
+
+Implemented by:
+
+- `ai/tasks/0021-002-service-lifecycle-integration.md`
+
+Shape:
+
+```swift
+public struct DaylilyApplicationService: Service
+
+public extension Application {
+    func serviceLifecycleService(
+        configuration: ServerConfiguration = .serviceLifecycleDefault
+    ) -> DaylilyApplicationService
+}
+
+public extension ServerConfiguration {
+    static var serviceLifecycleDefault: ServerConfiguration
+
+    func withGracefulShutdownSignals(_ enabled: Bool) -> ServerConfiguration
+}
+```
+
+Guarantees:
+
+- ServiceLifecycle integration exposes a Daylily `Application` as a ServiceLifecycle `Service`.
+- `DaylilyApplicationService.run()` mirrors existing `Application.run(configuration:)` lifecycle order.
+- ServiceLifecycle graceful shutdown closes the Daylily NIO server channel through an adapter-owned shutdown stream.
+- `NIOHTTPServer.run` closes its server channel when the run task is cancelled.
+- `ServerConfiguration.serviceLifecycleDefault` disables Daylily's own graceful shutdown signal handlers by default so `ServiceGroup` owns signals.
+- Applications may pass any `ServerConfiguration` to choose a different signal policy.
+- Applications own `ServiceGroup` creation, ordering, logger, graceful shutdown signals, cancellation signals, and timeouts.
+
+Non-goals:
+
+- replacing `Application.run(...)`
+- replacing Daylily lifecycle hooks
+- global `ServiceGroup` bootstrap
+- forced umbrella re-export
+- moving lifecycle ownership into `Dependencies`
+- implementing Daylily-owned managed `ApplicationService`
+
+## Swift HTTP Types Adapter Contract
+
+Owner:
+
+- `DaylilyHTTPTypes`
+
+Implemented by:
+
+- `ai/tasks/0021-003-swift-http-types-adapter.md`
+
+Shape:
+
+```swift
+public enum DaylilyHTTPTypesError: Error, Equatable, Sendable
+
+public extension Request {
+    init(httpTypesRequest: HTTPRequest, body: RequestBody = .bytes([]), parameters: Parameters = Parameters(), dependencies: Dependencies = Dependencies())
+    func httpTypesRequest() throws -> HTTPRequest
+}
+
+public extension Response {
+    init(httpTypesResponse: HTTPResponse, body: [UInt8] = [])
+    func httpTypesResponse() throws -> HTTPResponse
+}
+
+public extension Headers {
+    init(httpTypesHeaderFields: HTTPFields)
+    func httpTypesHeaderFields() throws -> HTTPFields
+}
+```
+
+Guarantees:
+
+- Swift HTTP Types integration is an optional boundary adapter.
+- `DaylilyCore` does not import Swift HTTP Types.
+- `DaylilyHTTPTypes` is not re-exported by `Daylily`.
+- Custom method tokens are preserved.
+- Repeated headers and repeated query parameters are preserved.
+- Raw request target is preserved separately from parsed route path.
+- HTTPTypes `scheme`, `authority`, and `extendedConnectProtocol` are preserved on `Request`.
+- Header dynamic table indexing hints are preserved through `HeaderField.DynamicTableIndexingStrategy`.
+- `RequestBody` is not consumed by the adapter.
+- Daylily-to-HTTPTypes conversion throws instead of silently legalizing invalid method, header, status, or reason phrase values.
+
+Non-goals:
+
+- new transport
+- body streaming adapter
+- replacing Daylily `Request` or `Response`
+- forced umbrella re-export
+- Swift OpenAPI Generator transport
 
 ## Route Contract
 
@@ -659,12 +807,17 @@ Input:
 
 Guarantees:
 
-- Header names are normalized to lowercase.
-- Subscript lookup is case-insensitive through normalization.
+- Header fields are stored as an ordered list.
+- Repeated header fields are preserved.
+- Header field names are case-preserving and matched case-insensitively for lookup.
+- Subscript lookup returns the last value for convenience.
+- Subscript assignment replaces all existing values for that header name.
+- `values(for:)` returns every value for a header name in stored order.
+- `HeaderField.DynamicTableIndexingStrategy` preserves Swift HTTP Types indexing hints without making `DaylilyCore` import Swift HTTP Types.
 
 Known limitation:
 
-- Multiple values for one header name are not represented yet.
+- Header field value validation is enforced at adapter boundaries, not at Daylily core construction time.
 
 ## Parameters Contract
 

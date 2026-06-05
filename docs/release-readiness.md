@@ -50,6 +50,10 @@ Linux validation is CI-owned for now. Local development has been verified on mac
 - Commerce API example with products, orders, state, metadata, dependencies, and in-memory tests.
 - App-wide `Dependencies` registry MVP for concrete and keyed `Sendable` values, with documented usage guidance.
 - Macro `@Dependency` handler parameter syntax over keyed dependencies.
+- Optional `DaylilySwiftLog` request log adapter for SwiftLog users.
+- Optional `DaylilyServiceLifecycle` adapter for running Daylily applications inside Swift ServiceLifecycle `ServiceGroup`.
+- Optional `DaylilyHTTPTypes` adapter for Swift HTTP Types boundary interop.
+- Lossless HTTP boundary representation for custom method tokens, repeated headers, raw request targets, and repeated query parameters.
 - AI-readable AIDEV project handoff.
 - Beta documentation set.
 
@@ -62,6 +66,10 @@ Linux validation is CI-owned for now. Local development has been verified on mac
 - Lifecycle-managed services are designed around future `ApplicationService`, but the runtime API is not implemented.
 - `@Dependency` macro syntax requires an explicit `DependencyKey<Value>`; keyless type inference is not supported.
 - Macro middleware attributes are not implemented.
+- `DaylilySwiftLog` adapts request logs but does not bootstrap or configure global SwiftLog handlers.
+- `DaylilyServiceLifecycle` adapts `Application` into a ServiceLifecycle `Service`, but applications still own `ServiceGroup` configuration and signal policy.
+- `DaylilyHTTPTypes` is an adapter boundary, not a new transport; application code still owns request/response bodies and any OpenAPI transport wiring.
+- `DaylilyHTTPTypes` throws when Daylily values cannot be represented by Swift HTTP Types without lossy header/status legalization.
 - Production auth, ORM, queue, realtime, and deployment tooling are future ecosystem work.
 - Benchmarks are not published yet.
 

@@ -343,6 +343,10 @@ configure -> boot -> NIO bind -> started -> server close -> shutdown -> cleanup
 
 `respond(to:)` does not run lifecycle hooks. In-memory tests can invoke individual phases with `runLifecycle(_:)`.
 
+`DaylilyServiceLifecycle` optionally adapts an `Application` into a Swift ServiceLifecycle `Service`. Applications still own `ServiceGroup` configuration and signal policy.
+
+`DaylilyHTTPTypes` optionally adapts Daylily request/response values to Swift HTTP Types at the boundary. It preserves custom methods, repeated headers, raw request targets, repeated query parameters, and HTTPTypes pseudo fields; it does not replace Daylily-owned runtime models.
+
 ## Router
 
 `Router` matches an incoming `Request` to a `Route`.

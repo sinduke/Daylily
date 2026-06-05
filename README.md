@@ -420,6 +420,44 @@ try await app.run(
 )
 ```
 
+Swift ServiceLifecycle support lives in the optional `DaylilyServiceLifecycle` module:
+
+```swift
+import Daylily
+import DaylilyServiceLifecycle
+import Logging
+import ServiceLifecycle
+
+let serviceGroup = ServiceGroup(
+    services: [
+        app.serviceLifecycleService()
+    ],
+    gracefulShutdownSignals: [.sigint, .sigterm],
+    logger: Logger(label: "hello-daylily")
+)
+
+try await serviceGroup.run()
+```
+
+`DaylilyServiceLifecycle` adapts `Application` into a ServiceLifecycle `Service`. It does not replace Daylily lifecycle hooks and is not re-exported by the umbrella `Daylily` module. The default `ServerConfiguration.serviceLifecycleDefault` disables Daylily's own signal handling so `ServiceGroup` owns graceful shutdown signals; pass your own `ServerConfiguration` if you want a different policy.
+
+Swift HTTP Types support lives in the optional `DaylilyHTTPTypes` module:
+
+```swift
+import Daylily
+import DaylilyHTTPTypes
+
+let request = Request(
+    method: HTTPMethod("PROPFIND")!,
+    path: "/items?tag=tea&tag=oolong"
+)
+
+let httpRequest = try request.httpTypesRequest()
+let daylilyRequest = Request(httpTypesRequest: httpRequest)
+```
+
+`DaylilyHTTPTypes` converts between Daylily `Request`/`Response` values and Swift HTTP Types `HTTPRequest`/`HTTPResponse` values. It is not re-exported by the umbrella `Daylily` module. The adapter preserves custom method tokens, raw request targets, repeated headers, repeated query parameters, and HTTPTypes pseudo fields; conversions that would require lossy header/status legalization throw instead of silently changing values.
+
 ## Dependencies
 
 Daylily includes a small app-wide `Dependencies` registry for common service wiring:
@@ -593,6 +631,26 @@ let app = Application {
 `RequestIDMiddleware` always generates a Daylily-owned `x-daylily-request-id`. Incoming `x-request-id` is treated as external correlation data, not as Daylily's unique request identity. When no incoming `x-request-id` exists, Daylily writes its generated request ID to `x-request-id` for ecosystem compatibility.
 
 `RequestLoggingMiddleware` records method, path, final status, request ID, external correlation ID, duration, and public error reason. `InMemoryRequestLogSink` is available for behavior checks and early tests.
+
+SwiftLog support lives in the optional `DaylilySwiftLog` module:
+
+```swift
+import Daylily
+import DaylilySwiftLog
+
+let app = Application {
+    Get("/hello") {
+        "Daylily ships."
+    }
+}
+.middleware(
+    RequestLoggingMiddleware(
+        sink: SwiftLogRequestLogSink(label: "hello-daylily")
+    )
+)
+```
+
+`DaylilySwiftLog` adapts `RequestLog` into SwiftLog metadata without replacing `RequestLoggingMiddleware`. It does not call `LoggingSystem.bootstrap(...)`, and it is not re-exported by the umbrella `Daylily` module.
 
 ## Route Metadata
 
@@ -866,9 +924,8 @@ The most important invariants:
 
 Near-term:
 
-1. Add middleware macro attributes.
-2. Expand OpenAPI schema generation.
-3. Publish benchmark methodology.
+1. Add Swift OpenAPI Generator Daylily transport.
+2. Continue macro middleware attributes and OpenAPI schema expansion after ecosystem boundaries are clear.
 
 ## License
 

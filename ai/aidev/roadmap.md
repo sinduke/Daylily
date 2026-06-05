@@ -363,7 +363,7 @@ Options("/health") { Status.noContent }
 Remaining:
 
 - `0.1.0-alpha.1` is the first public alpha release after macOS and Linux CI are green.
-- Next package consumer slice is middleware macro attributes.
+- Ecosystem compatibility now continues in `0021`.
 
 ## Package Consumer Experience
 
@@ -413,8 +413,51 @@ runtime registry -> usage polish -> protocol/key design -> lifecycle design -> k
 
 Next:
 
-- middleware macro attributes
+- `0021-001-swift-log-adapter`
+
+## Ecosystem Compatibility
+
+Goal:
+
+- Make Daylily interoperate cleanly with established Swift server ecosystem packages.
+- Keep external ecosystem packages behind optional adapters or boundary layers.
+- Preserve Daylily-owned runtime models and application control over global configuration.
+
+Sequence:
+
+```text
+0021-001 SwiftLog Adapter (delivered)
+0021-002 ServiceLifecycle Integration (delivered)
+0021-003 Swift HTTP Types Adapter (delivered)
+0021-004 Swift OpenAPI Generator Transport (planned)
+```
+
+Delivered:
+
+- `0021-001` adds optional `DaylilySwiftLog` with `SwiftLogRequestLogSink`, configurable level mapping, and metadata mapping.
+- SwiftLog remains outside `DaylilyCore`, `DaylilyObservability`, and the umbrella `Daylily` re-export surface.
+- `0021-002` adds optional `DaylilyServiceLifecycle` with `DaylilyApplicationService`, adapting `Application` into a ServiceLifecycle `Service`.
+- ServiceLifecycle remains outside `DaylilyCore`, `DaylilyNIO`, and the umbrella `Daylily` re-export surface.
+- ServiceLifecycle graceful shutdown closes the Daylily NIO server channel through an adapter-owned shutdown stream, while task cancellation remains a transport-level fallback.
+- `0021-003` adds optional `DaylilyHTTPTypes` and a lossless Daylily HTTP boundary for custom method tokens, repeated headers, raw request targets, repeated query parameters, and HTTPTypes pseudo fields.
+- Swift HTTP Types remains outside `DaylilyCore` and the umbrella `Daylily` re-export surface.
+
+Next:
+
+- `0021-004-swift-openapi-generator-transport`
+
+Design stance:
+
+- SwiftLog integration should be a `RequestLogSink`, not a replacement request logging middleware.
+- `DaylilySwiftLog` should be an optional module and must not make `DaylilyCore` or `DaylilyObservability` import SwiftLog.
+- Daylily should not call `LoggingSystem.bootstrap(...)`; applications own logging backend configuration.
+- Provide defaults for low-friction usage, but let users pass their own `Logger`, level strategy, and metadata strategy.
+- ServiceLifecycle integration should expose a `Service`, not replace `Application.run(...)`.
+- Daylily should not create a global `ServiceGroup`; applications own ServiceLifecycle configuration and signal policy.
+- `ServerConfiguration.serviceLifecycleDefault` should avoid double signal handling by leaving graceful shutdown signals to `ServiceGroup`.
+- Swift HTTP Types integration should stay an optional boundary adapter and must not replace Daylily-owned request/response models.
+- Adapter conversions should throw instead of silently legalizing values when conversion would be lossy.
 
 ### Future Epics
 
-- Future ecosystem packages after Daylily's core experience stabilizes.
+- Middleware macro attributes remain future macro polish.

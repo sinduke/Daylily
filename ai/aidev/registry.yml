@@ -5,7 +5,7 @@ project:
   license: MIT
   license_file: LICENSE
   swift_tools_version: "6.0"
-  current_phase: "package_consumer_experience"
+  current_phase: "ecosystem_compatibility"
   authoritative_ai_entry:
     - AIDEV.md
     - ai/aidev/start-here.md
@@ -40,6 +40,18 @@ dependencies:
     url: "https://github.com/apple/swift-nio.git"
     requirement: "from 2.74.0"
     resolved: "2.100.0"
+  swift-http-types:
+    url: "https://github.com/apple/swift-http-types.git"
+    requirement: "from 1.5.1"
+    resolved: "1.5.1"
+  swift-log:
+    url: "https://github.com/apple/swift-log.git"
+    requirement: "from 1.13.0"
+    resolved: "1.13.1"
+  swift-service-lifecycle:
+    url: "https://github.com/swift-server/swift-service-lifecycle.git"
+    requirement: "from 2.11.0"
+    resolved: "2.11.0"
   swift-syntax:
     url: "https://github.com/swiftlang/swift-syntax.git"
     requirement: "from 603.0.0-latest"
@@ -172,6 +184,51 @@ products:
       - NIOCore
       - NIOHTTP1
       - NIOPosix
+      - Logging
+  DaylilySwiftLog:
+    kind: library
+    role: swift_log_adapter
+    responsibility:
+      - adapt_request_log_to_swift_log
+      - provide_swift_log_request_log_sink
+      - keep_swift_log_out_of_core_and_observability
+      - avoid_global_logging_bootstrap
+    depends_on:
+      - DaylilyObservability
+      - Logging
+    not_reexported_by:
+      - Daylily
+  DaylilyHTTPTypes:
+    kind: library
+    role: swift_http_types_adapter
+    responsibility:
+      - adapt_daylily_request_to_http_types_request
+      - adapt_http_types_request_to_daylily_request
+      - adapt_daylily_response_to_http_types_response
+      - adapt_http_types_response_to_daylily_response
+      - preserve_lossless_http_boundary_fields
+      - reject_silently_lossy_legalization
+      - keep_swift_http_types_out_of_core
+    depends_on:
+      - DaylilyCore
+      - HTTPTypes
+    not_reexported_by:
+      - Daylily
+  DaylilyServiceLifecycle:
+    kind: library
+    role: service_lifecycle_adapter
+    responsibility:
+      - adapt_application_to_service_lifecycle_service
+      - expose_daylily_application_service
+      - provide_service_lifecycle_server_configuration_default
+      - keep_service_lifecycle_out_of_core_and_nio
+      - avoid_global_service_group_bootstrap
+    depends_on:
+      - DaylilyCore
+      - DaylilyNIO
+      - ServiceLifecycle
+    not_reexported_by:
+      - Daylily
   DaylilyOpenAPI:
     kind: library
     role: openapi_document_generation
@@ -349,9 +406,9 @@ implemented_features:
       - "query parsing happens in Request initialization"
       - "Request.path stores the route path without query text"
       - "NIO passes the full request target to Request so query text is available"
-      - "query parsing supports &, name=value, empty values, plus-as-space, percent-decoded UTF-8, and last value wins"
+      - "query parsing supports &, name=value, empty values, plus-as-space, percent-decoded UTF-8, repeated names, and flag parameters"
       - "missing and invalid query/header values map to source-specific 400 responses"
-      - "optional macro values, repeated query values, and cookies are deferred"
+      - "optional macro values and cookies are deferred"
   application_lifecycle_mvp:
     status: implemented
     epic: "0012-lifecycle-server-controls"
@@ -536,7 +593,7 @@ implemented_features:
       - "Public API remains experimental."
       - "Linux validation is CI-owned through the official Swift Docker image."
   package_consumer_experience:
-    status: in-progress
+    status: implemented
     epic: "0020-package-consumer-experience"
     completed:
       - "0020-001-external-consumer-smoke-test"
@@ -619,6 +676,167 @@ implemented_features:
       - "0020-008-lifecycle-integration-design"
       - "0020-009-keyed-dependencies-runtime"
       - "0020-010-macro-dependency"
+  ecosystem_compatibility:
+    status: in-progress
+    epic: "0021-ecosystem-compatibility"
+    completed:
+      - "0021-001-swift-log-adapter"
+      - "0021-002-service-lifecycle-integration"
+      - "0021-003-swift-http-types-adapter"
+    planned:
+      - "0021-004-swift-openapi-generator-transport"
+    next_task: "0021-004-swift-openapi-generator-transport"
+    files:
+      - ai/epics/0021-ecosystem-compatibility.md
+      - ai/tasks/0021-001-swift-log-adapter.md
+      - ai/tasks/0021-002-service-lifecycle-integration.md
+      - ai/tasks/0021-003-swift-http-types-adapter.md
+      - docs/capability-matrix.md
+      - docs/examples/http-types.md
+      - ai/aidev/roadmap.md
+      - ai/aidev/start-here.md
+      - ai/aidev/registry.yml
+    sequence:
+      - "0021-001-swift-log-adapter"
+      - "0021-002-service-lifecycle-integration"
+      - "0021-003-swift-http-types-adapter"
+      - "0021-004-swift-openapi-generator-transport"
+    decisions:
+      - "Ecosystem packages should be integrated through optional adapters or boundary layers."
+      - "Optional ecosystem modules must not add dependencies to DaylilyCore."
+      - "SwiftLog integration should be a RequestLogSink, not a replacement request logging middleware."
+      - "DaylilySwiftLog should depend on DaylilyObservability and SwiftLog's Logging product."
+      - "Daylily should not bootstrap LoggingSystem; applications own global logging configuration."
+      - "DaylilyServiceLifecycle should expose Application as a ServiceLifecycle Service, not replace Application.run."
+      - "Applications own ServiceGroup configuration and signal policy."
+      - "ServerConfiguration.serviceLifecycleDefault should avoid double signal handling by default."
+      - "DaylilyHTTPTypes should be an optional boundary adapter, not a replacement Request or Response model."
+      - "Daylily's HTTP boundary must preserve custom method tokens, repeated headers, raw request targets, repeated query parameters, and HTTPTypes pseudo fields."
+      - "DaylilyHTTPTypes should throw when conversion would require silently lossy header/status legalization."
+      - "Adapter defaults should make demos easy without taking control away from applications."
+    non_goals:
+      - "replacing Daylily-owned runtime models"
+      - "forcing ecosystem package dependencies on applications"
+      - "backend-specific request logging middleware"
+      - "global logging bootstrap"
+      - "ORM, auth, queue, or deployment modules"
+  swift_log_adapter:
+    status: implemented
+    epic: "0021-ecosystem-compatibility"
+    task: "0021-001-swift-log-adapter"
+    module: DaylilySwiftLog
+    files:
+      - Package.swift
+      - Package.resolved
+      - Sources/DaylilySwiftLog/SwiftLogRequestLogSink.swift
+      - Tests/DaylilyTests/SwiftLogAdapterTests.swift
+      - scripts/consumer-smoke-test.sh
+      - ai/tasks/0021-001-swift-log-adapter.md
+      - docs/capability-matrix.md
+      - docs/release-readiness.md
+      - docs/examples/middleware.md
+      - README.md
+      - README.zh-CN.md
+    public_api:
+      - "SwiftLogRequestLogSink"
+      - "SwiftLogRequestLogLevelStrategy"
+      - "SwiftLogRequestLogMetadataStrategy"
+    decisions:
+      - "SwiftLog integration is a RequestLogSink."
+      - "RequestLoggingMiddleware remains the request logging middleware."
+      - "RequestLog remains Daylily-owned and does not store SwiftLog metadata."
+      - "DaylilySwiftLog is not re-exported by Daylily."
+      - "DaylilySwiftLog does not call LoggingSystem.bootstrap(...)."
+      - "Default metadata keys are namespaced with daylily.* to reduce collisions with user logger metadata."
+      - "Users may pass a Logger or use a label convenience initializer."
+      - "Users may customize level and metadata strategies."
+    non_goals:
+      - "backend-specific middleware"
+      - "global SwiftLog configuration"
+      - "multi-sink composition"
+      - "sampling, batching, redaction, tracing, or metrics"
+  service_lifecycle_integration:
+    status: implemented
+    epic: "0021-ecosystem-compatibility"
+    task: "0021-002-service-lifecycle-integration"
+    module: DaylilyServiceLifecycle
+    files:
+      - Package.swift
+      - Package.resolved
+      - Sources/DaylilyServiceLifecycle/DaylilyApplicationService.swift
+      - Sources/DaylilyNIO/NIOHTTPServer.swift
+      - Tests/DaylilyTests/ServiceLifecycleAdapterTests.swift
+      - scripts/consumer-smoke-test.sh
+      - ai/tasks/0021-002-service-lifecycle-integration.md
+      - docs/capability-matrix.md
+      - docs/release-readiness.md
+      - docs/examples/dependencies.md
+      - README.md
+      - README.zh-CN.md
+    public_api:
+      - "DaylilyApplicationService"
+      - "Application.serviceLifecycleService(configuration:)"
+      - "ServerConfiguration.serviceLifecycleDefault"
+      - "ServerConfiguration.withGracefulShutdownSignals(_:)"
+    decisions:
+      - "ServiceLifecycle integration adapts Application into a ServiceLifecycle Service."
+      - "DaylilyServiceLifecycle is optional and is not re-exported by Daylily."
+      - "DaylilyServiceLifecycle does not create a ServiceGroup."
+      - "Applications own ServiceGroup ordering, logger, signal policy, and timeouts."
+      - "ServiceLifecycle graceful shutdown closes the Daylily NIO server channel through an SPI shutdown stream."
+      - "NIOHTTPServer closes its channel when its run task is cancelled."
+      - "ServerConfiguration.serviceLifecycleDefault disables Daylily signal handling to avoid double signal ownership by default."
+      - "Dependencies remains lookup-only and does not own lifecycle."
+    non_goals:
+      - "replacing Application.run"
+      - "replacing Daylily lifecycle hooks"
+      - "global ServiceGroup bootstrap"
+      - "managed ApplicationService runtime"
+      - "moving lifecycle ownership into Dependencies"
+  swift_http_types_adapter:
+    status: implemented
+    epic: "0021-ecosystem-compatibility"
+    task: "0021-003-swift-http-types-adapter"
+    module: DaylilyHTTPTypes
+    files:
+      - Package.swift
+      - Package.resolved
+      - Sources/DaylilyCore/HTTPMethod.swift
+      - Sources/DaylilyCore/Headers.swift
+      - Sources/DaylilyCore/QueryParameters.swift
+      - Sources/DaylilyCore/Request.swift
+      - Sources/DaylilyNIO/NIOHTTPServer.swift
+      - Sources/DaylilyHTTPTypes/HTTPTypesAdapter.swift
+      - Tests/DaylilyTests/HTTPBoundaryLosslessTests.swift
+      - Tests/DaylilyTests/HTTPTypesAdapterTests.swift
+      - scripts/consumer-smoke-test.sh
+      - ai/tasks/0021-003-swift-http-types-adapter.md
+      - docs/examples/http-types.md
+    public_api:
+      - "DaylilyHTTPTypesError"
+      - "Request.init(httpTypesRequest:body:parameters:dependencies:)"
+      - "Request.httpTypesRequest()"
+      - "Response.init(httpTypesResponse:body:)"
+      - "Response.httpTypesResponse()"
+      - "Headers.init(httpTypesHeaderFields:)"
+      - "Headers.httpTypesHeaderFields()"
+    decisions:
+      - "Swift HTTP Types integration is optional and is not re-exported by Daylily."
+      - "DaylilyCore does not import Swift HTTP Types."
+      - "Daylily Request and Response remain Daylily-owned."
+      - "The adapter does not consume RequestBody."
+      - "Custom method tokens are preserved."
+      - "Repeated headers and repeated query parameters are preserved."
+      - "Raw request target is preserved separately from parsed path."
+      - "HTTPTypes scheme, authority, and extendedConnectProtocol are preserved on Request."
+      - "Header dynamic table indexing hints are preserved through a neutral Daylily HeaderField strategy."
+      - "Conversions throw instead of silently legalizing invalid header names, header values, status codes, or reason phrases."
+    non_goals:
+      - "new transport"
+      - "body streaming adapter"
+      - "replacing Daylily Request or Response"
+      - "umbrella re-export"
+      - "Swift OpenAPI Generator transport"
   dependency_injection_design:
     status: implemented
     epic: "0020-package-consumer-experience"
@@ -1269,7 +1487,7 @@ planned_features:
       - "0019-001-release-hygiene"
       - "0019-002-alpha-release"
   package_consumer_experience:
-    status: in-progress
+    status: implemented
     epic: "0020-package-consumer-experience"
     completed:
       - "0020-001-external-consumer-smoke-test"
@@ -1294,6 +1512,21 @@ planned_features:
       - "0020-008-lifecycle-integration-design"
       - "0020-009-keyed-dependencies-runtime"
       - "0020-010-macro-dependency"
+  ecosystem_compatibility:
+    status: in-progress
+    epic: "0021-ecosystem-compatibility"
+    completed:
+      - "0021-001-swift-log-adapter"
+      - "0021-002-service-lifecycle-integration"
+      - "0021-003-swift-http-types-adapter"
+    planned:
+      - "0021-004-swift-openapi-generator-transport"
+    next_task: "0021-004-swift-openapi-generator-transport"
+    sequence:
+      - "0021-001-swift-log-adapter"
+      - "0021-002-service-lifecycle-integration"
+      - "0021-003-swift-http-types-adapter"
+      - "0021-004-swift-openapi-generator-transport"
 
 public_api:
   Daylily:
@@ -1400,6 +1633,94 @@ public_api:
         - "public init()"
         - "public func record(_ log: RequestLog)"
         - "public func snapshot() -> [RequestLog]"
+  DaylilySwiftLog:
+    SwiftLogRequestLogSink:
+      kind: struct
+      conforms:
+        - RequestLogSink
+      initializers:
+        - "public init(logger: Logger, level: SwiftLogRequestLogLevelStrategy = .statusBased, metadata: SwiftLogRequestLogMetadataStrategy = .default)"
+        - "public init(label: String = \"daylily.request\", level: SwiftLogRequestLogLevelStrategy = .statusBased, metadata: SwiftLogRequestLogMetadataStrategy = .default)"
+      methods:
+        - "public func record(_ log: RequestLog) async"
+      contract: "Adapts Daylily RequestLog values into SwiftLog Logger calls without replacing RequestLoggingMiddleware or bootstrapping LoggingSystem."
+    SwiftLogRequestLogLevelStrategy:
+      kind: struct
+      conforms:
+        - Sendable
+      initializers:
+        - "public init(_ selectLevel: @escaping @Sendable (RequestLog) -> Logger.Level)"
+      constants:
+        - "public static let statusBased"
+      methods:
+        - "public static func constant(_ level: Logger.Level) -> Self"
+        - "public func level(for log: RequestLog) -> Logger.Level"
+      contract: "Selects SwiftLog level for a RequestLog; default maps 1xx-3xx to info, 4xx to warning, and 5xx+ to error."
+    SwiftLogRequestLogMetadataStrategy:
+      kind: struct
+      conforms:
+        - Sendable
+      initializers:
+        - "public init(_ makeMetadata: @escaping @Sendable (RequestLog) -> Logger.Metadata)"
+      constants:
+        - "public static let default"
+      methods:
+        - "public func metadata(for log: RequestLog) -> Logger.Metadata"
+      contract: "Maps RequestLog fields into SwiftLog metadata at the adapter boundary; default keys are namespaced with daylily.*."
+  DaylilyServiceLifecycle:
+    DaylilyApplicationService:
+      kind: struct
+      conforms:
+        - Service
+      initializers:
+        - "public init(application: Application, configuration: ServerConfiguration = .serviceLifecycleDefault)"
+      methods:
+        - "public func run() async throws"
+      contract: "Adapts Daylily Application into a ServiceLifecycle Service while preserving Application.run lifecycle order."
+    Application:
+      kind: extension
+      methods:
+        - "public func serviceLifecycleService(configuration: ServerConfiguration = .serviceLifecycleDefault) -> DaylilyApplicationService"
+      contract: "Convenience helper for creating the optional ServiceLifecycle adapter service."
+    ServerConfiguration:
+      kind: extension
+      constants:
+        - "public static var serviceLifecycleDefault: ServerConfiguration"
+      methods:
+        - "public func withGracefulShutdownSignals(_ enabled: Bool) -> ServerConfiguration"
+      contract: "Provides ServiceLifecycle-friendly server defaults and explicit signal policy toggling."
+  DaylilyHTTPTypes:
+    DaylilyHTTPTypesError:
+      kind: enum
+      conforms:
+        - Error
+        - Equatable
+        - Sendable
+      cases:
+        - "invalidMethod(String)"
+        - "invalidHeaderName(String)"
+        - "invalidHeaderValue(name: String, value: String)"
+        - "invalidStatusCode(Int)"
+        - "invalidReasonPhrase(String)"
+      contract: "Reports values that cannot be represented by Swift HTTP Types without a lossy conversion."
+    Request:
+      kind: extension
+      methods:
+        - "public init(httpTypesRequest: HTTPRequest, body: RequestBody = .bytes([]), parameters: Parameters = Parameters(), dependencies: Dependencies = Dependencies())"
+        - "public func httpTypesRequest() throws -> HTTPRequest"
+      contract: "Converts between Daylily Request and Swift HTTP Types HTTPRequest while preserving method token, raw target, repeated headers, query parameters, and pseudo fields."
+    Response:
+      kind: extension
+      methods:
+        - "public init(httpTypesResponse: HTTPResponse, body: [UInt8] = [])"
+        - "public func httpTypesResponse() throws -> HTTPResponse"
+      contract: "Converts between Daylily Response and Swift HTTP Types HTTPResponse while preserving status, reason phrase, and repeated headers."
+    Headers:
+      kind: extension
+      methods:
+        - "public init(httpTypesHeaderFields: HTTPFields)"
+        - "public func httpTypesHeaderFields() throws -> HTTPFields"
+      contract: "Converts ordered Daylily HeaderField values to/from Swift HTTP Types HTTPFields and preserves dynamic table indexing strategy hints."
   DaylilyOpenAPI:
     OpenAPIDocument:
       kind: struct
@@ -1647,10 +1968,16 @@ public_api:
       kind: typealias
       signature: "public typealias LifecycleOperation = @Sendable () async throws -> Void"
     HTTPMethod:
-      kind: enum
+      kind: struct
       conforms:
+        - Equatable
+        - Hashable
+        - RawRepresentable
         - Sendable
-      cases:
+        - CustomStringConvertible
+      properties:
+        - "rawValue: String"
+      constants:
         - "delete = DELETE"
         - "get = GET"
         - "head = HEAD"
@@ -1658,8 +1985,12 @@ public_api:
         - "patch = PATCH"
         - "post = POST"
         - "put = PUT"
-      initializer: "public init?(_ rawValue: String)"
-      contract: "Parses supported HTTP methods case-insensitively."
+        - "connect = CONNECT"
+        - "trace = TRACE"
+      initializers:
+        - "public init?(_ rawValue: String)"
+        - "public init?(rawValue: String)"
+      contract: "Preserves valid HTTP method tokens, including custom methods and original case."
     RouteDSL:
       kind: functions
       functions:
@@ -1789,21 +2120,28 @@ public_api:
         - Sendable
       properties:
         - "method: HTTPMethod"
+        - "rawTarget: String?"
         - "path: String"
+        - "scheme: String?"
+        - "authority: String?"
+        - "extendedConnectProtocol: String?"
         - "headers: Headers"
         - "body: RequestBody"
         - "parameters: Parameters"
         - "query: QueryParameters"
         - "dependencies: Dependencies"
+        - "target: String"
       methods:
-        - "public init(method:path:headers:body: RequestBody = .bytes([]), parameters: Parameters = Parameters(), query: QueryParameters? = nil, dependencies: Dependencies = Dependencies())"
-        - "public init(method:path:headers:body: [UInt8], parameters: Parameters = Parameters(), query: QueryParameters? = nil, dependencies: Dependencies = Dependencies())"
+        - "public init(method:path:scheme:authority:extendedConnectProtocol:headers:body: RequestBody = .bytes([]), parameters: Parameters = Parameters(), query: QueryParameters? = nil, dependencies: Dependencies = Dependencies())"
+        - "public init(method:rawTarget:scheme:authority:extendedConnectProtocol:headers:body: RequestBody = .bytes([]), parameters: Parameters = Parameters(), query: QueryParameters? = nil, dependencies: Dependencies = Dependencies())"
+        - "public init(method:path:scheme:authority:extendedConnectProtocol:headers:body: [UInt8], parameters: Parameters = Parameters(), query: QueryParameters? = nil, dependencies: Dependencies = Dependencies())"
         - "public func with(parameters: Parameters) -> Request"
         - "public func with(body: RequestBody) -> Request"
         - "public func with(headers: Headers) -> Request"
         - "public func with(dependencies: Dependencies) -> Request"
+        - "public func with(query: QueryParameters) -> Request"
         - "public func withBufferedBody<R: Sendable>(upTo limit: ByteCount, _ operation: @Sendable (Request, [UInt8]) async throws -> R) async throws -> R"
-      contract: "Request initializers strip query text from path and populate query; Application.respond(to:) stamps application dependencies onto requests; DaylilyNIO creates streaming RequestBody values through transport SPI; in-process callers may use RequestBody.bytes(...); request copying helpers preserve one-shot body storage; explicit body buffering uses withBufferedBody(upTo:_:)."
+      contract: "Request preserves rawTarget separately from parsed path and query; Application.respond(to:) stamps application dependencies onto requests; DaylilyNIO creates streaming RequestBody values through transport SPI; in-process callers may use RequestBody.bytes(...); request copying helpers preserve one-shot body storage, raw target, query, and pseudo fields; explicit body buffering uses withBufferedBody(upTo:_:)."
     Parameters:
       kind: struct
       conforms:
@@ -1821,26 +2159,62 @@ public_api:
       conforms:
         - Equatable
         - Sendable
+      properties:
+        - "rawValue: String?"
+        - "all: [(name: String, value: String)]"
+        - "parameters: [QueryParameter]"
+        - "queryString: String?"
       methods:
         - "public init(_ storage: [String: String] = [:])"
+        - "public init(_ parameters: [QueryParameter], rawValue: String? = nil)"
+        - "public init(rawValue: String)"
         - "public subscript(_ name: String) -> String? { get }"
         - "public subscript(dynamicMember name: String) -> String? { get }"
+        - "public func values(for name: String) -> [String]"
         - "public func require<Value: ParameterDecodable>(_ name: String, as type: Value.Type = Value.self) throws -> Value"
         - "public func get<Value: ParameterDecodable>(_ name: String, as type: Value.Type = Value.self) throws -> Value?"
-      contract: "Untyped query lookup returns optional String; typed lookup throws QueryParameterError for missing required or invalid values."
+      contract: "Preserves ordered query parameters, repeated names, raw query text, and flag parameters; untyped lookup returns the last matching optional String; typed lookup throws QueryParameterError for missing required or invalid values."
+    QueryParameter:
+      kind: struct
+      conforms:
+        - Equatable
+        - Sendable
+      properties:
+        - "name: String"
+        - "value: String"
+        - "hasValue: Bool"
+        - "rawName: String?"
+        - "rawValue: String?"
     Headers:
       kind: struct
       conforms:
         - Equatable
         - Sendable
         - ExpressibleByDictionaryLiteral
+      properties:
+        - "all: [(name: String, value: String)]"
+        - "fields: [HeaderField]"
       methods:
         - "public init(_ values: [String: String] = [:])"
+        - "public init(_ fields: [HeaderField])"
+        - "public init(fields: [(name: String, value: String)])"
         - "public subscript(_ name: String) -> String? { get set }"
-        - "public var all: [(name: String, value: String)] { get }"
+        - "public subscript(values name: String) -> [String] { get set }"
+        - "public mutating func add(name: String, value: String, indexingStrategy: HeaderField.DynamicTableIndexingStrategy = .automatic)"
+        - "public mutating func remove(_ name: String)"
+        - "public func values(for name: String) -> [String]"
         - "public func require<Value: ParameterDecodable>(_ name: String, as type: Value.Type = Value.self) throws -> Value"
         - "public func get<Value: ParameterDecodable>(_ name: String, as type: Value.Type = Value.self) throws -> Value?"
-      contract: "Header names are case-insensitive; typed lookup throws HeaderError for missing required or invalid values."
+      contract: "Preserves ordered and repeated header fields with case-insensitive lookup; subscript assignment replaces all values for a name; typed lookup throws HeaderError for missing required or invalid values."
+    HeaderField:
+      kind: struct
+      conforms:
+        - Equatable
+        - Sendable
+      properties:
+        - "name: String"
+        - "value: String"
+        - "indexingStrategy: HeaderField.DynamicTableIndexingStrategy"
     ParameterDecodable:
       kind: protocol
       conforms:
@@ -2087,6 +2461,7 @@ public_api:
       role: transport
       methods:
         - "public func run(started: @escaping @Sendable () async throws -> Void = {}) async throws"
+        - "@_spi(ServiceLifecycle) public func run(started: @escaping @Sendable () async throws -> Void = {}, shutdownRequests: AsyncStream<Void>) async throws"
     NIOServerConfiguration:
       kind: struct
       defaults:
@@ -2123,11 +2498,11 @@ runtime_rules:
   macro_path_parameter_policy: "@Path parameters are marker wrappers; @DaylilyServer validates route membership and lowers them into Parameters.require(_:as:) plus RouteInputMetadata.path(...)."
   default_path_policy: "Daylily provides recommended defaults, not mandatory application architecture. Runtime APIs are first-class; macros are convenience syntax; built-in helpers such as Dependencies must remain optional."
   macro_limit_policy: "Macro limitations must stay macro limitations. Applications may use runtime DSL, custom composition roots, and their own service wiring when macro or helper defaults do not fit."
-  query_and_header_input_policy: "Request.query uses QueryParameters; Headers has typed require/get; @Query lowers to req.query.require plus RouteInputMetadata.query(...) and @Header lowers to req.headers.require plus RouteInputMetadata.header(...)."
+  query_and_header_input_policy: "Request.query uses ordered QueryParameters that preserve repeated names and raw query text; Headers uses ordered HeaderField storage that preserves repeated fields; typed require/get remains convenience lookup. @Query lowers to req.query.require plus RouteInputMetadata.query(...) and @Header lowers to req.headers.require plus RouteInputMetadata.header(...)."
   macro_json_body_policy: "@Body parameters are the preferred marker wrappers in DaylilyJSON; @DaylilyServer lowers them into try await req.json(Type.self) plus RouteBodyMetadata.json(...). @JSONBody remains as a compatibility alias spelling with the same lowering. The raw one-shot request body type is RequestBody."
-  lifecycle_policy: "Application lifecycle phases are configure, boot, started, shutdown, cleanup. Application.run binds lifecycle to transport; Application.respond(to:) does not run lifecycle. The default NIO server closes on SIGINT/SIGTERM. Managed service lifecycle is designed around future ApplicationService and Application.service(_:), with Application owning lifecycle and Dependencies remaining lookup-only."
+  lifecycle_policy: "Application lifecycle phases are configure, boot, started, shutdown, cleanup. Application.run binds lifecycle to transport; Application.respond(to:) does not run lifecycle. The default NIO server closes on SIGINT/SIGTERM and also closes when its run task is cancelled. DaylilyServiceLifecycle adapts Application into a ServiceLifecycle Service without replacing lifecycle hooks or creating a ServiceGroup. Managed service lifecycle is designed around future ApplicationService and Application.service(_:), with Application owning lifecycle and Dependencies remaining lookup-only."
   dependencies_policy: "Dependencies is an app-wide concrete and keyed Sendable registry in DaylilyCore. Application.respond(to:) stamps dependencies onto each request. Missing required dependencies map to 500 Internal Server Error. Protocol-oriented and same-type multi-instance lookup uses typed DependencyKey<Value>; direct protocol metatype lookup is not the preferred surface. @Dependency lowers keyed handler parameters to Request.dependencies.require(key). Managed service lifecycle is designed around future ApplicationService but not implemented."
-  server_configuration_policy: "ServerConfiguration is the NIO-free user-facing server control type. Application.run(configuration:) bridges it into DaylilyNIO."
+  server_configuration_policy: "ServerConfiguration is the NIO-free user-facing server control type. Application.run(configuration:) bridges it into DaylilyNIO. DaylilyServiceLifecycle adds serviceLifecycleDefault with gracefulShutdownSignals disabled so ServiceGroup owns signal handling by default."
   test_client_policy: "TestClient is an in-memory helper in DaylilyTesting; it calls Application.respond(to:) directly and does not use transport. TestRequest and response assertions are testing helpers, not runtime behavior."
   route_metadata_policy: "Route metadata lives in DaylilyCore and is exposed through Route.describe(...) and Application.describeRoutes(); it does not affect routing and is the source of truth for OpenAPI generation."
   openapi_policy: "DaylilyOpenAPI maps Application.describeRoutes() into minimal OpenAPI documents; deep Swift schema derivation and richer operation metadata are separate tasks."
@@ -2137,7 +2512,8 @@ runtime_rules:
   middleware_order: "application -> router dispatch -> group -> route -> handler"
   middleware_body_policy: "middleware can read RequestBody, but RequestBody remains one-shot and no automatic replay occurs"
   explicit_buffered_body_policy: "withBufferedBody consumes the original RequestBody, buffers under an explicit limit, creates a one-shot replacement RequestBody.bytes value, and does not enable automatic replay"
-  observability_policy: "DaylilyObservability owns request ID generation, request logging, timing, public error reason logging, and future observability helpers; DaylilyCore does not depend on logging backends, tracing SDKs, metrics clients, or transport APIs."
+  observability_policy: "DaylilyObservability owns request ID generation, request logging, timing, public error reason logging, and future observability helpers; DaylilyCore does not depend on logging backends, tracing SDKs, metrics clients, or transport APIs. DaylilySwiftLog is an optional SwiftLog adapter module that implements RequestLogSink and is not re-exported by Daylily."
+  ecosystem_adapter_policy: "SwiftLog, ServiceLifecycle, and Swift HTTP Types integrations live in optional modules and are not re-exported by Daylily. DaylilyHTTPTypes adapts boundary types while DaylilyCore keeps Daylily-owned Request/Response models and does not import HTTPTypes."
   errors:
     response_error: "status + reason"
     abort: "ResponseError conformer"
@@ -2329,10 +2705,11 @@ roadmap:
       - "0015-http-verbs-beta-closure"
       - "0018-beta-docs"
       - "0019-release-hygiene"
-    in_progress:
       - "0020-package-consumer-experience"
+    in_progress:
+      - "0021-ecosystem-compatibility"
     next_recommended:
-      - "macro-middleware-attributes"
+      - "0021-004-swift-openapi-generator-transport"
   completed:
     - "0001-001-minimal-http-server"
     - "0002-001-aidev-project-contract"
@@ -2378,8 +2755,12 @@ roadmap:
     - "0020-008-lifecycle-integration-design"
     - "0020-009-keyed-dependencies-runtime"
     - "0020-010-macro-dependency"
+    - "0021-001-swift-log-adapter"
+    - "0021-002-service-lifecycle-integration"
+    - "0021-003-swift-http-types-adapter"
   in_progress: []
   next_recommended:
-    - "macro-middleware-attributes"
+    - "0021-004-swift-openapi-generator-transport"
   later:
+    - "macro-middleware-attributes"
     - "0013-003-observability-hooks"

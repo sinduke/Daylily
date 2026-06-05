@@ -84,6 +84,13 @@ Daylily -> DaylilyOpenAPI
 DaylilyJSON -> DaylilyCore
 DaylilyJSON -> Foundation
 DaylilyObservability -> DaylilyCore
+DaylilySwiftLog -> DaylilyObservability
+DaylilySwiftLog -> SwiftLog Logging
+DaylilyServiceLifecycle -> DaylilyCore
+DaylilyServiceLifecycle -> DaylilyNIO
+DaylilyServiceLifecycle -> ServiceLifecycle
+DaylilyHTTPTypes -> DaylilyCore
+DaylilyHTTPTypes -> Swift HTTP Types HTTPTypes
 DaylilyOpenAPI -> DaylilyCore
 DaylilyTesting -> DaylilyCore
 DaylilyTesting -> Foundation
@@ -92,6 +99,7 @@ DaylilyCheckSuite -> DaylilyCore
 DaylilyCheckSuite -> DaylilyTesting
 DaylilyTests -> Daylily
 DaylilyTests -> DaylilyCheckSuite
+DaylilyTests -> DaylilyHTTPTypes
 DaylilyTests -> DaylilyTesting
 DaylilyTests -> Swift Testing
 DaylilyMacros -> SwiftSyntax
@@ -102,7 +110,7 @@ DaylilyCore -> Standard Library only
 
 Middleware lives in `DaylilyCore`. It is runtime infrastructure, not transport infrastructure.
 
-Lifecycle phases live in `DaylilyCore`. `Application.run` wires them to the current transport, and `DaylilyNIO` only exposes a transport-level `started` callback for bind completion.
+Lifecycle phases live in `DaylilyCore`. `Application.run` wires them to the current transport, and `DaylilyNIO` only exposes a transport-level `started` callback for bind completion. `DaylilyServiceLifecycle` is an optional adapter that exposes `Application` as a ServiceLifecycle `Service`; it does not replace lifecycle hooks or create a `ServiceGroup`.
 
 The `Dependencies` registry lives in `DaylilyCore`. `Application` owns an app-wide registry and stamps it onto each request before middleware and route handlers run.
 

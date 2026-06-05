@@ -21,7 +21,7 @@ struct App {
 
 This is a default path, not a mandatory path. Runtime APIs are first-class, macros lower into runtime APIs, and user applications may keep their own composition roots, services, factories, or containers.
 
-Current implemented surfaces are the runtime DSL for `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, and `OPTIONS`, runtime route metadata, minimal `DaylilyOpenAPI` document generation, runtime middleware, `DaylilyObservability` request ID and request logging middleware, application lifecycle hooks, app-wide `Dependencies` registry MVP with concrete and typed-key lookup, the Daylily-owned `RequestBody` model, explicit buffered body replacement, JSON body/response helpers, the macro route/group MVP, macro `@Path`, `@Query`, `@Header`, `@Dependency`, and preferred `@Body` typed JSON input injection with route metadata lowering, `@JSONBody` compatibility alias spelling, and `DaylilyTesting` in-memory request/response helpers.
+Current implemented surfaces are the runtime DSL for `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, and `OPTIONS`, runtime route metadata, minimal `DaylilyOpenAPI` document generation, runtime middleware, `DaylilyObservability` request ID and request logging middleware, optional `DaylilySwiftLog` request log adapter, optional `DaylilyServiceLifecycle` application service adapter, optional `DaylilyHTTPTypes` Swift HTTP Types adapter, application lifecycle hooks, app-wide `Dependencies` registry MVP with concrete and typed-key lookup, the Daylily-owned `RequestBody` model, explicit buffered body replacement, lossless HTTP boundary fields, JSON body/response helpers, the macro route/group MVP, macro `@Path`, `@Query`, `@Header`, `@Dependency`, and preferred `@Body` typed JSON input injection with route metadata lowering, `@JSONBody` compatibility alias spelling, and `DaylilyTesting` in-memory request/response helpers.
 
 Runtime DSL:
 
@@ -277,6 +277,10 @@ Implemented:
 - Minimal OpenAPI document generation through `Application.openAPI(title:version:)`.
 - Runtime middleware at application, group, and route scope.
 - `DaylilyObservability` request ID and request logging middleware.
+- Optional `DaylilySwiftLog` adapter for SwiftLog request log output.
+- Optional `DaylilyServiceLifecycle` adapter for running an `Application` as a ServiceLifecycle `Service`.
+- Optional `DaylilyHTTPTypes` adapter for Swift HTTP Types request/response boundary interop.
+- Lossless HTTP boundary support for custom method tokens, repeated headers, raw request targets, repeated query parameters, and HTTPTypes pseudo fields.
 - Application lifecycle hooks: `configure`, `boot`, `started`, `shutdown`, `cleanup`.
 - App-wide `Dependencies` registry MVP with concrete and typed-key `Sendable` `register`, `get`, and `require`.
 - Default SIGINT/SIGTERM graceful server shutdown.
@@ -316,6 +320,7 @@ Not implemented:
 - Managed service lifecycle runtime APIs.
 - Keyless `@Dependency` inference and property injection on route owner types.
 - Macro middleware attributes.
+- Swift OpenAPI Generator transport.
 
 ## Read Order
 
@@ -398,6 +403,7 @@ Do not start with:
 
 Current strategic order:
 
-1. Add middleware macro attributes.
-2. Keep lifecycle-managed services separate from dependency lookup and macro work.
-3. Implement runtime slices only after the contracts stay stable across docs and examples.
+1. Continue `0021 Ecosystem Compatibility` with `0021-004-swift-openapi-generator-transport`.
+2. Keep ecosystem integrations optional and outside `DaylilyCore`.
+3. Keep lifecycle-managed services separate from dependency lookup and macro work.
+4. Implement runtime slices only after the contracts stay stable across docs and examples.

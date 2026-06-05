@@ -248,6 +248,7 @@ Rules:
 4. Preserve hook registration order within each phase.
 5. Run `started` only after server bind succeeds.
 6. Add checks for ordering and thrown lifecycle errors.
+7. Keep ServiceLifecycle integration in optional `DaylilyServiceLifecycle`; do not create a `ServiceGroup` for users.
 
 ## Add Explicit Buffered RequestBody Helper
 

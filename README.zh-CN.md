@@ -420,6 +420,44 @@ try await app.run(
 )
 ```
 
+Swift ServiceLifecycle 支持位于可选的 `DaylilyServiceLifecycle` 模块：
+
+```swift
+import Daylily
+import DaylilyServiceLifecycle
+import Logging
+import ServiceLifecycle
+
+let serviceGroup = ServiceGroup(
+    services: [
+        app.serviceLifecycleService()
+    ],
+    gracefulShutdownSignals: [.sigint, .sigterm],
+    logger: Logger(label: "hello-daylily")
+)
+
+try await serviceGroup.run()
+```
+
+`DaylilyServiceLifecycle` 会把 `Application` 适配成 ServiceLifecycle `Service`。它不替换 Daylily lifecycle hooks，也不会被 umbrella `Daylily` 模块 re-export。默认的 `ServerConfiguration.serviceLifecycleDefault` 会关闭 Daylily 自己的 signal handling，让 `ServiceGroup` 拥有 graceful shutdown signals；如果你需要不同策略，可以传入自己的 `ServerConfiguration`。
+
+Swift HTTP Types 支持位于可选的 `DaylilyHTTPTypes` 模块：
+
+```swift
+import Daylily
+import DaylilyHTTPTypes
+
+let request = Request(
+    method: HTTPMethod("PROPFIND")!,
+    path: "/items?tag=tea&tag=oolong"
+)
+
+let httpRequest = try request.httpTypesRequest()
+let daylilyRequest = Request(httpTypesRequest: httpRequest)
+```
+
+`DaylilyHTTPTypes` 会在 Daylily 的 `Request`/`Response` 和 Swift HTTP Types 的 `HTTPRequest`/`HTTPResponse` 之间转换。它不会被 umbrella `Daylily` 模块 re-export。adapter 会保留 custom method token、raw request target、重复 headers、重复 query parameters 和 HTTPTypes pseudo fields；如果某个 header/status 转换必须做有损合法化，它会抛错，而不是静默改值。
+
 ## Dependencies
 
 Daylily 提供了一个很小的 app-wide `Dependencies` registry，用来覆盖常见 service wiring：
@@ -593,6 +631,26 @@ let app = Application {
 `RequestIDMiddleware` 总是生成 Daylily 自己的 `x-daylily-request-id`。传入的 `x-request-id` 会被当成外部 correlation data，而不是 Daylily 的唯一 request identity。没有传入 `x-request-id` 时，Daylily 会把生成的 request ID 写入 `x-request-id`，用于生态兼容。
 
 `RequestLoggingMiddleware` 会记录 method、path、最终 status、request ID、外部 correlation ID、duration 和公开 error reason。`InMemoryRequestLogSink` 可用于行为检查和早期测试。
+
+SwiftLog 支持位于可选的 `DaylilySwiftLog` 模块：
+
+```swift
+import Daylily
+import DaylilySwiftLog
+
+let app = Application {
+    Get("/hello") {
+        "Daylily ships."
+    }
+}
+.middleware(
+    RequestLoggingMiddleware(
+        sink: SwiftLogRequestLogSink(label: "hello-daylily")
+    )
+)
+```
+
+`DaylilySwiftLog` 会把 `RequestLog` 适配成 SwiftLog metadata，但不替换 `RequestLoggingMiddleware`。它不会调用 `LoggingSystem.bootstrap(...)`，也不会被 umbrella `Daylily` 模块 re-export。
 
 ## Route Metadata
 
@@ -866,9 +924,8 @@ Daylily/
 
 近期：
 
-1. 增加 middleware macro attributes。
-2. 扩展 OpenAPI schema generation。
-3. 发布 benchmark methodology。
+1. 增加 Swift OpenAPI Generator Daylily transport。
+2. 等生态边界清晰后继续 middleware macro attributes 和 OpenAPI schema expansion。
 
 ## License
 

@@ -162,6 +162,30 @@ Daylily/
 - Owns `RequestIDMiddleware`, `RequestLoggingMiddleware`, `RequestLog`, and request log sinks.
 - Must not pull logging backends, tracing SDKs, or transport-specific APIs into `DaylilyCore`.
 
+`DaylilySwiftLog`
+
+- Optional SwiftLog adapter.
+- Depends on `DaylilyObservability` and SwiftLog's `Logging` product.
+- Owns `SwiftLogRequestLogSink`, `SwiftLogRequestLogLevelStrategy`, and `SwiftLogRequestLogMetadataStrategy`.
+- Is not re-exported by the umbrella `Daylily` module.
+- Must not call `LoggingSystem.bootstrap(...)`.
+
+`DaylilyServiceLifecycle`
+
+- Optional Swift ServiceLifecycle adapter.
+- Depends on `DaylilyCore`, `DaylilyNIO`, and ServiceLifecycle's `ServiceLifecycle` product.
+- Owns `DaylilyApplicationService` and ServiceLifecycle-specific `ServerConfiguration` helpers.
+- Is not re-exported by the umbrella `Daylily` module.
+- Must not create or configure a global `ServiceGroup`.
+
+`DaylilyHTTPTypes`
+
+- Optional Swift HTTP Types adapter.
+- Depends on `DaylilyCore` and Swift HTTP Types' `HTTPTypes` product.
+- Owns request, response, and headers conversions between Daylily and Swift HTTP Types.
+- Is not re-exported by the umbrella `Daylily` module.
+- Must not replace Daylily-owned request/response models or consume `RequestBody`.
+
 `DaylilyOpenAPI`
 
 - Minimal OpenAPI document generation.
@@ -346,6 +370,8 @@ Daylily/
 
 - NIO HTTP server and channel handler.
 - Accepts a `started` callback so `Application.run` can run lifecycle after bind.
+- Exposes a ServiceLifecycle SPI shutdown stream used by `DaylilyServiceLifecycle`.
+- Closes the server channel when the run task is cancelled, allowing external lifecycle systems to stop the server.
 
 `Sources/DaylilyObservability/RequestLoggingMiddleware.swift`
 
@@ -353,6 +379,26 @@ Daylily/
 - Defines `RequestLogSink`.
 - Defines `RequestLoggingMiddleware`.
 - Provides `ConsoleRequestLogSink` and `InMemoryRequestLogSink`.
+
+`Sources/DaylilySwiftLog/SwiftLogRequestLogSink.swift`
+
+- Defines the optional SwiftLog request log sink adapter.
+- Maps `RequestLog` values into SwiftLog message, level, and metadata.
+- Keeps SwiftLog metadata at the adapter boundary.
+
+`Sources/DaylilyServiceLifecycle/DaylilyApplicationService.swift`
+
+- Defines the optional Swift ServiceLifecycle application adapter.
+- Adapts `Application` into a ServiceLifecycle `Service`.
+- Provides `Application.serviceLifecycleService(...)`.
+- Provides `ServerConfiguration.serviceLifecycleDefault` and `withGracefulShutdownSignals(_:)`.
+
+`Sources/DaylilyHTTPTypes/HTTPTypesAdapter.swift`
+
+- Defines the optional Swift HTTP Types adapter.
+- Converts between Daylily `Request`/`Response` and Swift HTTP Types `HTTPRequest`/`HTTPResponse`.
+- Converts ordered Daylily `Headers` and Swift HTTP Types `HTTPFields`.
+- Throws on conversions that would require silently lossy header/status legalization.
 
 `Sources/DaylilyObservability/RequestIDMiddleware.swift`
 
@@ -394,7 +440,7 @@ Daylily/
 
 `Sources/HelloDaylily/MacroSmoke.swift`
 
-- Compile-time smoke coverage for macro route/group MVP, including `@Path`, preferred `@Body`, and `@JSONBody` compatibility handler inputs.
+- Compile-time smoke coverage for macro route/group MVP, including `@Path`, `@Query`, `@Header`, `@Dependency`, preferred `@Body`, and `@JSONBody` compatibility handler inputs.
 
 `Tests/DaylilyTests/DaylilyBehaviorTests.swift`
 

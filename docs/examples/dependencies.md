@@ -176,6 +176,29 @@ let app = Application(dependencies: { dependencies in
 }
 ```
 
+If an application already uses Swift ServiceLifecycle, keep the same ownership
+boundary and adapt the Daylily app at the edge:
+
+```swift
+import DaylilyServiceLifecycle
+import Logging
+import ServiceLifecycle
+
+let serviceGroup = ServiceGroup(
+    services: [
+        app.serviceLifecycleService()
+    ],
+    gracefulShutdownSignals: [.sigint, .sigterm],
+    logger: Logger(label: "app")
+)
+
+try await serviceGroup.run()
+```
+
+`DaylilyServiceLifecycle` is optional. It adapts `Application` into a
+ServiceLifecycle `Service`; it does not make `Dependencies` own startup or
+shutdown.
+
 The planned lifecycle direction keeps that boundary: `Application` owns service
 lifecycle, while `Dependencies` only owns lookup.
 

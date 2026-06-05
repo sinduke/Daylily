@@ -657,11 +657,12 @@ public enum DaylilyChecks {
 
     private static func httpMethodParsing() throws {
         try expect(HTTPMethod("PUT") == .put, "expected PUT method parsing")
-        try expect(HTTPMethod("patch") == .patch, "expected case-insensitive PATCH method parsing")
+        try expect(HTTPMethod("patch")?.rawValue == "patch", "expected method parsing to preserve method token case")
         try expect(HTTPMethod("DELETE") == .delete, "expected DELETE method parsing")
         try expect(HTTPMethod("HEAD") == .head, "expected HEAD method parsing")
-        try expect(HTTPMethod("options") == .options, "expected OPTIONS method parsing")
-        try expect(HTTPMethod("TRACE") == nil, "expected unknown method to stay unsupported")
+        try expect(HTTPMethod("options")?.rawValue == "options", "expected lowercase OPTIONS token to stay lowercase")
+        try expect(HTTPMethod("TRACE") == .trace, "expected standard TRACE method parsing")
+        try expect(HTTPMethod("PROPFIND")?.rawValue == "PROPFIND", "expected custom method parsing")
     }
 
     private static func runtimeHTTPVerbs() async throws {

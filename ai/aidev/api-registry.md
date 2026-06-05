@@ -204,6 +204,165 @@ Rules:
 - Unknown thrown errors record `500 Internal Server Error` and then rethrow.
 - The module must not require a logging backend, tracing SDK, or transport dependency.
 
+## Module DaylilySwiftLog
+
+### SwiftLogRequestLogSink
+
+```swift
+public struct SwiftLogRequestLogSink: RequestLogSink {
+    public init(
+        logger: Logger,
+        level: SwiftLogRequestLogLevelStrategy = .statusBased,
+        metadata: SwiftLogRequestLogMetadataStrategy = .default
+    )
+
+    public init(
+        label: String = "daylily.request",
+        level: SwiftLogRequestLogLevelStrategy = .statusBased,
+        metadata: SwiftLogRequestLogMetadataStrategy = .default
+    )
+
+    public func record(_ log: RequestLog) async
+}
+```
+
+### SwiftLogRequestLogLevelStrategy
+
+```swift
+public struct SwiftLogRequestLogLevelStrategy: Sendable {
+    public init(_ selectLevel: @escaping @Sendable (RequestLog) -> Logger.Level)
+
+    public static let statusBased: Self
+    public static func constant(_ level: Logger.Level) -> Self
+    public func level(for log: RequestLog) -> Logger.Level
+}
+```
+
+### SwiftLogRequestLogMetadataStrategy
+
+```swift
+public struct SwiftLogRequestLogMetadataStrategy: Sendable {
+    public init(_ makeMetadata: @escaping @Sendable (RequestLog) -> Logger.Metadata)
+
+    public static let `default`: Self
+    public func metadata(for log: RequestLog) -> Logger.Metadata
+}
+```
+
+Rules:
+
+- `DaylilySwiftLog` depends on `DaylilyObservability` and SwiftLog's `Logging` product.
+- `DaylilySwiftLog` is not re-exported by the umbrella `Daylily` module.
+- `SwiftLogRequestLogSink` adapts `RequestLog` to SwiftLog; it does not replace `RequestLoggingMiddleware`.
+- `SwiftLogRequestLogSink(label:)` creates a `Logger(label:)` convenience value, but never calls `LoggingSystem.bootstrap(...)`.
+- Applications own SwiftLog backend bootstrap and global logging policy.
+- Default level mapping is `1xx`/`2xx`/`3xx` -> `.info`, `4xx` -> `.warning`, and `5xx+` -> `.error`.
+- Default metadata keys are namespaced with `daylily.*`.
+- `RequestLog` does not store SwiftLog metadata.
+
+## Module DaylilyServiceLifecycle
+
+### DaylilyApplicationService
+
+```swift
+public struct DaylilyApplicationService: Service {
+    public init(
+        application: Application,
+        configuration: ServerConfiguration = .serviceLifecycleDefault
+    )
+
+    public func run() async throws
+}
+```
+
+### Application ServiceLifecycle Helper
+
+```swift
+public extension Application {
+    func serviceLifecycleService(
+        configuration: ServerConfiguration = .serviceLifecycleDefault
+    ) -> DaylilyApplicationService
+}
+```
+
+### ServiceLifecycle Server Configuration
+
+```swift
+public extension ServerConfiguration {
+    static var serviceLifecycleDefault: ServerConfiguration
+
+    func withGracefulShutdownSignals(_ enabled: Bool) -> ServerConfiguration
+}
+```
+
+Rules:
+
+- `DaylilyServiceLifecycle` depends on `DaylilyCore`, `DaylilyNIO`, and ServiceLifecycle's `ServiceLifecycle` product.
+- `DaylilyServiceLifecycle` is not re-exported by the umbrella `Daylily` module.
+- `DaylilyApplicationService` adapts `Application` into a ServiceLifecycle `Service`.
+- `DaylilyApplicationService.run()` mirrors `Application.run(configuration:)` lifecycle phase order while using the ServiceLifecycle shutdown stream.
+- ServiceLifecycle graceful shutdown closes the Daylily NIO server channel through a shutdown stream.
+- `ServerConfiguration.serviceLifecycleDefault` sets `gracefulShutdownSignals` to `false` so `ServiceGroup` owns signal handling by default.
+- Applications own `ServiceGroup` creation, logger, service ordering, graceful shutdown signals, cancellation signals, and timeouts.
+- The adapter does not move lifecycle ownership into `Dependencies`.
+
+## Module DaylilyHTTPTypes
+
+### Conversion Errors
+
+```swift
+public enum DaylilyHTTPTypesError: Error, Equatable, Sendable {
+    case invalidMethod(String)
+    case invalidHeaderName(String)
+    case invalidHeaderValue(name: String, value: String)
+    case invalidStatusCode(Int)
+    case invalidReasonPhrase(String)
+}
+```
+
+### Request Conversions
+
+```swift
+public extension Request {
+    init(
+        httpTypesRequest: HTTPRequest,
+        body: RequestBody = .bytes([]),
+        parameters: Parameters = Parameters(),
+        dependencies: Dependencies = Dependencies()
+    )
+
+    func httpTypesRequest() throws -> HTTPRequest
+}
+```
+
+### Response Conversions
+
+```swift
+public extension Response {
+    init(httpTypesResponse: HTTPResponse, body: [UInt8] = [])
+    func httpTypesResponse() throws -> HTTPResponse
+}
+```
+
+### Header Conversions
+
+```swift
+public extension Headers {
+    init(httpTypesHeaderFields: HTTPFields)
+    func httpTypesHeaderFields() throws -> HTTPFields
+}
+```
+
+Rules:
+
+- `DaylilyHTTPTypes` depends on `DaylilyCore` and Swift HTTP Types' `HTTPTypes` product.
+- `DaylilyHTTPTypes` is not re-exported by the umbrella `Daylily` module.
+- Daylily `Request` and `Response` remain Daylily-owned models.
+- Request conversion preserves custom method tokens, raw request targets, repeated headers, repeated query parameters, and HTTPTypes `scheme`, `authority`, and `extendedConnectProtocol`.
+- Header conversion preserves field order, repeated fields, original field names, values, and dynamic table indexing strategy hints.
+- `RequestBody` is not consumed by the adapter.
+- Daylily-to-HTTPTypes conversion throws instead of silently legalizing invalid method, header, status, or reason phrase values.
+
 ## Module DaylilyOpenAPI
 
 ### OpenAPI Document API
@@ -710,16 +869,37 @@ Runtime verb boundary:
 ```swift
 public struct Request: Sendable {
     public let method: HTTPMethod
+    public let rawTarget: String?
     public let path: String
+    public let scheme: String?
+    public let authority: String?
+    public let extendedConnectProtocol: String?
     public let headers: Headers
     public let body: RequestBody
     public let parameters: Parameters
     public let query: QueryParameters
     public let dependencies: Dependencies
+    public var target: String { get }
 
     public init(
         method: HTTPMethod,
         path: String,
+        scheme: String? = nil,
+        authority: String? = nil,
+        extendedConnectProtocol: String? = nil,
+        headers: Headers = [:],
+        body: RequestBody = .bytes([]),
+        parameters: Parameters = Parameters(),
+        query: QueryParameters? = nil,
+        dependencies: Dependencies = Dependencies()
+    )
+
+    public init(
+        method: HTTPMethod,
+        rawTarget: String?,
+        scheme: String? = nil,
+        authority: String? = nil,
+        extendedConnectProtocol: String? = nil,
         headers: Headers = [:],
         body: RequestBody = .bytes([]),
         parameters: Parameters = Parameters(),
@@ -730,6 +910,9 @@ public struct Request: Sendable {
     public init(
         method: HTTPMethod,
         path: String,
+        scheme: String? = nil,
+        authority: String? = nil,
+        extendedConnectProtocol: String? = nil,
         headers: Headers = [:],
         body: [UInt8],
         parameters: Parameters = Parameters(),
@@ -741,6 +924,7 @@ public struct Request: Sendable {
     public func with(body: RequestBody) -> Request
     public func with(headers: Headers) -> Request
     public func with(dependencies: Dependencies) -> Request
+    public func with(query: QueryParameters) -> Request
 
     public func withBufferedBody<R: Sendable>(
         upTo limit: ByteCount,
@@ -751,9 +935,10 @@ public struct Request: Sendable {
 
 Rules:
 
-- Initializers strip query text from `path` and populate `query` when `path` includes `?`.
+- Initializers preserve raw request-target text in `rawTarget`, expose `target`, strip query text from parsed `path`, and populate `query` when the target includes `?`.
 - Explicit `query:` overrides query text parsed from `path`.
-- `with(parameters:)`, `with(body:)`, `with(headers:)`, `with(dependencies:)`, and `withBufferedBody(upTo:_:)` preserve query values.
+- `scheme`, `authority`, and `extendedConnectProtocol` preserve Swift HTTP Types pseudo-header fields at adapter boundaries.
+- `with(parameters:)`, `with(body:)`, `with(headers:)`, `with(dependencies:)`, and `withBufferedBody(upTo:_:)` preserve raw target, query values, and pseudo fields.
 
 RequestBody rules:
 
@@ -948,16 +1133,20 @@ Router is public for now, but should be treated as runtime infrastructure.
 ### HTTPMethod
 
 ```swift
-public enum HTTPMethod: String, Sendable {
-    case delete = "DELETE"
-    case get = "GET"
-    case head = "HEAD"
-    case options = "OPTIONS"
-    case patch = "PATCH"
-    case post = "POST"
-    case put = "PUT"
-
+public struct HTTPMethod: Equatable, Hashable, RawRepresentable, Sendable, CustomStringConvertible {
+    public let rawValue: String
     public init?(_ rawValue: String)
+    public init?(rawValue: String)
+
+    public static let delete: HTTPMethod
+    public static let get: HTTPMethod
+    public static let head: HTTPMethod
+    public static let options: HTTPMethod
+    public static let patch: HTTPMethod
+    public static let post: HTTPMethod
+    public static let put: HTTPMethod
+    public static let connect: HTTPMethod
+    public static let trace: HTTPMethod
 }
 ```
 
@@ -987,9 +1176,20 @@ Current constants:
 ```swift
 public struct Headers: Equatable, Sendable, ExpressibleByDictionaryLiteral {
     public init(_ values: [String: String] = [:])
+    public init(_ fields: [HeaderField])
+    public init(fields: [(name: String, value: String)])
     public init(dictionaryLiteral elements: (String, String)...)
     public subscript(_ name: String) -> String? { get set }
+    public subscript(values name: String) -> [String] { get set }
     public var all: [(name: String, value: String)] { get }
+    public var fields: [HeaderField] { get }
+    public mutating func add(
+        name: String,
+        value: String,
+        indexingStrategy: HeaderField.DynamicTableIndexingStrategy = .automatic
+    )
+    public mutating func remove(_ name: String)
+    public func values(for name: String) -> [String]
     public func require<Value: ParameterDecodable>(_ name: String, as type: Value.Type = Value.self) throws -> Value
     public func get<Value: ParameterDecodable>(_ name: String, as type: Value.Type = Value.self) throws -> Value?
 }
@@ -997,19 +1197,44 @@ public struct Headers: Equatable, Sendable, ExpressibleByDictionaryLiteral {
 
 Rules:
 
-- Header names are stored lowercased.
-- Multiple values for the same header are not supported yet.
+- `Headers` stores ordered `HeaderField` values and preserves repeated fields.
+- Header lookup is case-insensitive; subscript assignment replaces all existing values for that name.
+- `values(for:)` returns all values for a header name in stored order.
 - `require(_:as:)` throws `HeaderError.missing` when the header is absent.
 - `require(_:as:)` and `get(_:as:)` throw `HeaderError.invalid` when conversion fails.
+
+### HeaderField
+
+```swift
+public struct HeaderField: Equatable, Sendable {
+    public enum DynamicTableIndexingStrategy: Equatable, Sendable {
+        case automatic
+        case prefer
+        case avoid
+        case disallow
+    }
+
+    public var name: String
+    public var value: String
+    public var indexingStrategy: DynamicTableIndexingStrategy
+}
+```
 
 ### QueryParameters
 
 ```swift
 @dynamicMemberLookup
 public struct QueryParameters: Equatable, Sendable {
+    public let rawValue: String?
     public init(_ storage: [String: String] = [:])
+    public init(_ parameters: [QueryParameter], rawValue: String? = nil)
+    public init(rawValue: String)
     public subscript(_ name: String) -> String? { get }
     public subscript(dynamicMember name: String) -> String? { get }
+    public var all: [(name: String, value: String)] { get }
+    public var parameters: [QueryParameter] { get }
+    public var queryString: String? { get }
+    public func values(for name: String) -> [String]
     public func require<Value: ParameterDecodable>(_ name: String, as type: Value.Type = Value.self) throws -> Value
     public func get<Value: ParameterDecodable>(_ name: String, as type: Value.Type = Value.self) throws -> Value?
 }
@@ -1018,9 +1243,22 @@ public struct QueryParameters: Equatable, Sendable {
 Rules:
 
 - Query parsing supports `&` pairs, `name=value`, empty values, `+` as space, and percent-decoded UTF-8 bytes.
-- Repeated query names currently use last value wins.
+- Repeated query names are preserved in order; subscript lookup returns the last value for convenience.
+- Flag parameters such as `?preview` are preserved with `hasValue == false`.
 - `require(_:as:)` throws `QueryParameterError.missing` when the query value is absent.
 - `require(_:as:)` and `get(_:as:)` throw `QueryParameterError.invalid` when conversion fails.
+
+### QueryParameter
+
+```swift
+public struct QueryParameter: Equatable, Sendable {
+    public let name: String
+    public let value: String
+    public let hasValue: Bool
+    public let rawName: String?
+    public let rawValue: String?
+}
+```
 
 ### Parameters
 
@@ -1294,13 +1532,21 @@ public struct NIOHTTPServer: Sendable {
     )
 
     public func run(started: @escaping @Sendable () async throws -> Void = {}) async throws
+
+    @_spi(ServiceLifecycle)
+    public func run(
+        started: @escaping @Sendable () async throws -> Void = {},
+        shutdownRequests: AsyncStream<Void>
+    ) async throws
 }
 ```
 
 Rules:
 
 - `run(started:)` binds, calls `started`, and waits for the server channel to close.
+- The ServiceLifecycle SPI overload also closes the server channel when `shutdownRequests` yields.
 - Default SIGINT/SIGTERM handling closes the server channel.
+- Cancelling the run task closes the server channel.
 - Signal handling stays in `DaylilyNIO` and does not leak NIO types into user APIs.
 
 Rules:

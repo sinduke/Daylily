@@ -18,6 +18,7 @@ This matrix tracks the current beta-facing capability surface. It is intentional
 | Path parameters | Implemented | `:name` route syntax and typed extraction. |
 | Query/header typed extraction | Implemented | Runtime helpers plus macro input lowering. |
 | Request body model | Implemented | `RequestBody` is one-shot and supports buffered or streaming bodies. |
+| Lossless HTTP boundary | Implemented | Custom method tokens, repeated headers, raw request targets, repeated query parameters, and HTTPTypes pseudo fields are preserved at adapter boundaries. |
 | JSON body decoding | Implemented | `request.body.json(...)` and `request.json(...)`. |
 | JSON responses | Implemented | `JSON(...)` response wrapper. |
 | Middleware | Implemented | Application, group, and route scope. |
@@ -50,7 +51,7 @@ This matrix tracks the current beta-facing capability surface. It is intentional
 | Deep Swift schema derivation | Planned | Currently explicit metadata only. |
 | Request ID middleware | MVP | Daylily-owned request ID plus external correlation ID behavior. |
 | Request logging middleware | MVP | Method, path, status, IDs, duration, and public error reason. |
-| Logging backend integration | Planned | Core intentionally avoids backend dependencies. |
+| Logging backend integration | Implemented | Optional `DaylilySwiftLog` adapter; core intentionally avoids backend dependencies. |
 
 ## Testing and AI Workflow
 
@@ -67,6 +68,10 @@ This matrix tracks the current beta-facing capability surface. It is intentional
 | Capability | Status | Notes |
 | --- | --- | --- |
 | Protocol/keyed dependencies | Implemented | Typed `DependencyKey<Value>` supports existential values and same-type multi-instance lookup. |
+| SwiftLog adapter | Implemented | Optional `DaylilySwiftLog` `RequestLogSink`, not a replacement middleware. |
+| ServiceLifecycle integration | Implemented | Optional `DaylilyServiceLifecycle` adapter that exposes `Application` as a ServiceLifecycle `Service`. |
+| Swift HTTP Types adapter | Implemented | Optional `DaylilyHTTPTypes` adapter converting Daylily requests/responses to Swift HTTP Types without silently lossy legalization. |
+| Swift OpenAPI Generator transport | Planned | Future Daylily transport after HTTP boundary design stabilizes. |
 | Lifecycle-managed services | Designed | `ApplicationService` direction is documented; runtime API is not implemented. |
 | Authentication | Future | Ecosystem direction, not current runtime. |
 | ORM/database module | Future | Explicitly out of current beta closure. |

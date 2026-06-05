@@ -1,6 +1,6 @@
 # 0020 Package Consumer Experience
 
-Status: in-progress
+Status: implemented
 
 Purpose:
 
@@ -53,3 +53,7 @@ Non-goals:
 - Starting with macro syntax before runtime behavior exists.
 - Combining protocol lookup, keyed dependencies, lifecycle, and macros into the first DI slice.
 - Starting ORM, auth, queue, deployment, or broad ecosystem modules.
+
+Follow-up:
+
+- Ecosystem package compatibility now moves to `0021-ecosystem-compatibility`.

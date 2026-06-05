@@ -114,6 +114,27 @@ if [[ "$MODE" == "path" ]]; then
     MACRO_DEPENDENCY_SMOKE="1"
 fi
 
+SWIFT_LOG_SMOKE="0"
+SWIFT_LOG_TEST_DEPENDENCY=""
+if [[ "$MODE" == "path" ]]; then
+    SWIFT_LOG_SMOKE="1"
+    SWIFT_LOG_TEST_DEPENDENCY='                .product(name: "DaylilySwiftLog", package: "Daylily"),'
+fi
+
+SERVICE_LIFECYCLE_SMOKE="0"
+SERVICE_LIFECYCLE_TEST_DEPENDENCY=""
+if [[ "$MODE" == "path" ]]; then
+    SERVICE_LIFECYCLE_SMOKE="1"
+    SERVICE_LIFECYCLE_TEST_DEPENDENCY='                .product(name: "DaylilyServiceLifecycle", package: "Daylily"),'
+fi
+
+HTTP_TYPES_SMOKE="0"
+HTTP_TYPES_TEST_DEPENDENCY=""
+if [[ "$MODE" == "path" ]]; then
+    HTTP_TYPES_SMOKE="1"
+    HTTP_TYPES_TEST_DEPENDENCY='                .product(name: "DaylilyHTTPTypes", package: "Daylily"),'
+fi
+
 CONSUMER_MACRO_PORT="${CONSUMER_MACRO_PORT:-18080}"
 
 if [[ -z "$WORKDIR" ]]; then
@@ -172,6 +193,9 @@ let package = Package(
             dependencies: [
                 .product(name: "Daylily", package: "Daylily"),
                 .product(name: "DaylilyTesting", package: "Daylily"),
+$HTTP_TYPES_TEST_DEPENDENCY
+$SERVICE_LIFECYCLE_TEST_DEPENDENCY
+$SWIFT_LOG_TEST_DEPENDENCY
             ]
         ),
     ]
@@ -369,6 +393,85 @@ struct EchoResponse: Codable, Sendable, Equatable {
 }
 SWIFT
 
+if [[ "$SWIFT_LOG_SMOKE" == "1" ]]; then
+    cat > "$WORKDIR/Tests/ConsumerAppTests/ConsumerSwiftLogTests.swift" <<'SWIFT'
+import Daylily
+import DaylilySwiftLog
+import Testing
+
+@Test("external package consumes DaylilySwiftLog")
+func externalPackageConsumesDaylilySwiftLog() async throws {
+    let app = Application {
+        Get("/swift-log") {
+            "swift-log"
+        }
+    }
+    .middleware(
+        RequestLoggingMiddleware(
+            sink: SwiftLogRequestLogSink(label: "consumer-swift-log")
+        )
+    )
+
+    let response = await app.respond(to: Request(method: .get, path: "/swift-log"))
+
+    #expect(response.status == .ok)
+    #expect(response.bodyString == "swift-log")
+}
+SWIFT
+fi
+
+if [[ "$HTTP_TYPES_SMOKE" == "1" ]]; then
+    cat > "$WORKDIR/Tests/ConsumerAppTests/ConsumerHTTPTypesTests.swift" <<'SWIFT'
+import Daylily
+import DaylilyHTTPTypes
+import Testing
+
+@Test("external package consumes DaylilyHTTPTypes")
+func externalPackageConsumesDaylilyHTTPTypes() throws {
+    var headers = Headers()
+    headers.add(name: "Set-Cookie", value: "a=1")
+    headers.add(name: "Set-Cookie", value: "b=2")
+
+    let request = Request(
+        method: HTTPMethod("PROPFIND")!,
+        path: "/interop?tag=tea&tag=oolong",
+        headers: headers
+    )
+
+    let httpRequest = try request.httpTypesRequest()
+    let roundTripped = Request(httpTypesRequest: httpRequest)
+
+    #expect(roundTripped.method.rawValue == "PROPFIND")
+    #expect(roundTripped.rawTarget == "/interop?tag=tea&tag=oolong")
+    #expect(roundTripped.query.values(for: "tag") == ["tea", "oolong"])
+    #expect(roundTripped.headers.values(for: "set-cookie") == ["a=1", "b=2"])
+}
+SWIFT
+fi
+
+if [[ "$SERVICE_LIFECYCLE_SMOKE" == "1" ]]; then
+    cat > "$WORKDIR/Tests/ConsumerAppTests/ConsumerServiceLifecycleTests.swift" <<'SWIFT'
+import Daylily
+import DaylilyServiceLifecycle
+import Testing
+
+@Test("external package consumes DaylilyServiceLifecycle")
+func externalPackageConsumesDaylilyServiceLifecycle() {
+    let app = Application {
+        Get("/service-lifecycle") {
+            "service-lifecycle"
+        }
+    }
+    let service = app.serviceLifecycleService(configuration: .serviceLifecycleDefault)
+
+    _ = service
+
+    #expect(ServerConfiguration().gracefulShutdownSignals)
+    #expect(ServerConfiguration.serviceLifecycleDefault.gracefulShutdownSignals == false)
+}
+SWIFT
+fi
+
 run_macro_dependency_smoke() {
     local port="$CONSUMER_MACRO_PORT"
     local log_file="$WORKDIR/ConsumerMacroApp.log"
@@ -431,6 +534,8 @@ run_macro_dependency_smoke() {
 echo "Consumer smoke package: $WORKDIR"
 echo "Dependency mode: $MODE"
 echo "Macro dependency runtime smoke: $MACRO_DEPENDENCY_SMOKE"
+echo "SwiftLog adapter smoke: $SWIFT_LOG_SMOKE"
+echo "ServiceLifecycle adapter smoke: $SERVICE_LIFECYCLE_SMOKE"
 
 (
     cd "$WORKDIR"

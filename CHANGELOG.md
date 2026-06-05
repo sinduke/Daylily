@@ -19,6 +19,10 @@ Daylily is currently experimental. Public APIs may change before beta or stable 
 - Keyed dependency runtime API with `DependencyKey<Value>` and keyed `register`, `get`, and `require`.
 - Macro `@Dependency` handler parameters over keyed dependency runtime lookup.
 - Lifecycle integration design that keeps service ownership on `Application` and lookup in `Dependencies`.
+- Optional `DaylilySwiftLog` adapter with `SwiftLogRequestLogSink` for sending Daylily request logs to SwiftLog.
+- Optional `DaylilyServiceLifecycle` adapter with `DaylilyApplicationService` for running Daylily applications inside Swift ServiceLifecycle.
+- Optional `DaylilyHTTPTypes` adapter for converting Daylily requests and responses to Swift HTTP Types without lossy method, header, query, or request-target handling.
+- Lossless HTTP boundary support for custom method tokens, repeated headers, raw request targets, repeated query parameters, and HTTPTypes pseudo fields.
 
 ## 0.1.0-alpha.1 - 2026-05-26
 

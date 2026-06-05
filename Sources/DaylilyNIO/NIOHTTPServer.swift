@@ -60,6 +60,16 @@ public struct NIOHTTPServer: Sendable {
     public func run(
         started: @escaping @Sendable () async throws -> Void = {}
     ) async throws {
+        let (shutdownRequests, continuation) = AsyncStream.makeStream(of: Void.self)
+        continuation.finish()
+        try await run(started: started, shutdownRequests: shutdownRequests)
+    }
+
+    @_spi(ServiceLifecycle)
+    public func run(
+        started: @escaping @Sendable () async throws -> Void = {},
+        shutdownRequests: AsyncStream<Void>
+    ) async throws {
         let group = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
 
         let responder = responder
@@ -87,12 +97,27 @@ public struct NIOHTTPServer: Sendable {
             }
         }
 
+        let closer = ChannelCloser(channel)
+        let shutdownRequestTask = Task {
+            for await _ in shutdownRequests {
+                closer.close()
+                return
+            }
+        }
+        defer {
+            shutdownRequestTask.cancel()
+        }
+
         do {
-            try await started()
-            try await channel.closeFuture.get()
+            try await withTaskCancellationHandler {
+                try await started()
+                try await channel.closeFuture.get()
+            } onCancel: {
+                closer.close()
+            }
             try await group.shutdownGracefully()
         } catch {
-            channel.close(promise: nil as EventLoopPromise<Void>?)
+            closer.close()
             try? await group.shutdownGracefully()
             throw error
         }
@@ -113,6 +138,22 @@ public struct NIOHTTPServer: Sendable {
             }
             source.resume()
             return source
+        }
+    }
+}
+
+private final class ChannelCloser: @unchecked Sendable {
+    private let eventLoop: any EventLoop
+    private let channel: any Channel
+
+    init(_ channel: any Channel) {
+        self.eventLoop = channel.eventLoop
+        self.channel = channel
+    }
+
+    func close() {
+        eventLoop.execute {
+            self.channel.close(promise: nil as EventLoopPromise<Void>?)
         }
     }
 }
@@ -160,8 +201,13 @@ private final class DaylilyHTTPHandler: ChannelInboundHandler, @unchecked Sendab
             return
         }
 
+        guard let method = DaylilyCore.HTTPMethod(head.method.rawValue) else {
+            writeResponse(.text("Bad Request", status: .badRequest), context: context, keepAlive: false)
+            return
+        }
+
         let stream = RequestBody.stream()
-        let request = makeRequest(head: head, body: stream.body)
+        let request = makeRequest(head: head, method: method, body: stream.body)
         let current = CurrentRequest(head: head, writer: stream.writer)
         currentRequest = current
 
@@ -364,14 +410,14 @@ private final class DaylilyHTTPHandler: ChannelInboundHandler, @unchecked Sendab
         }
     }
 
-    private func makeRequest(head: HTTPRequestHead, body: RequestBody) -> Request {
+    private func makeRequest(head: HTTPRequestHead, method: DaylilyCore.HTTPMethod, body: RequestBody) -> Request {
         var headers = Headers()
         for (name, value) in head.headers {
-            headers[name] = value
+            headers.add(name: name, value: value)
         }
 
         return Request(
-            method: HTTPMethod(head.method.rawValue) ?? .get,
+            method: method,
             path: Self.requestTarget(from: head.uri),
             headers: headers,
             body: body

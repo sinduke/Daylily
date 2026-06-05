@@ -81,3 +81,23 @@ let app = Application {
 ```
 
 `RequestIDMiddleware` generates a Daylily-owned `x-daylily-request-id`. Incoming `x-request-id` is treated as external correlation data.
+
+SwiftLog output is available through the optional `DaylilySwiftLog` adapter:
+
+```swift
+import Daylily
+import DaylilySwiftLog
+
+let app = Application {
+    Get("/hello") {
+        "ok"
+    }
+}
+.middleware(
+    RequestLoggingMiddleware(
+        sink: SwiftLogRequestLogSink(label: "app.request")
+    )
+)
+```
+
+`DaylilySwiftLog` is a sink adapter, not a replacement middleware. It does not bootstrap SwiftLog or get re-exported by `Daylily`.
