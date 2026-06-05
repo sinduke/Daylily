@@ -458,6 +458,26 @@ let daylilyRequest = Request(httpTypesRequest: httpRequest)
 
 `DaylilyHTTPTypes` converts between Daylily `Request`/`Response` values and Swift HTTP Types `HTTPRequest`/`HTTPResponse` values. It is not re-exported by the umbrella `Daylily` module. The adapter preserves custom method tokens, raw request targets, repeated headers, repeated query parameters, and HTTPTypes pseudo fields; conversions that would require lossy header/status legalization throw instead of silently changing values.
 
+Swift OpenAPI Generator server support lives in the optional `DaylilyOpenAPITransport` module:
+
+```swift
+import Daylily
+import DaylilyOpenAPITransport
+import Foundation
+
+let transport = DaylilyOpenAPITransport()
+let handler = GeneratedAPIHandler()
+
+try handler.registerHandlers(
+    on: transport,
+    serverURL: URL(string: "/api")!
+)
+
+try await transport.application().run()
+```
+
+`DaylilyOpenAPITransport` adapts OpenAPIRuntime `ServerTransport` registrations into Daylily routes. It is not re-exported by the umbrella `Daylily` module. Whole-segment generated path parameters such as `{id}` map to Daylily `:id` parameters; mixed template segments such as `{name}.zip` throw during registration. Generated response bodies are buffered under an explicit limit until Daylily exposes streaming responses.
+
 ## Dependencies
 
 Daylily includes a small app-wide `Dependencies` registry for common service wiring:
@@ -924,7 +944,7 @@ The most important invariants:
 
 Near-term:
 
-1. Add Swift OpenAPI Generator Daylily transport.
+1. Harden the optional ecosystem adapter set through consumer feedback.
 2. Continue macro middleware attributes and OpenAPI schema expansion after ecosystem boundaries are clear.
 
 ## License

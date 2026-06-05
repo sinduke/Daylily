@@ -22,6 +22,7 @@ Daylily is currently experimental. Public APIs may change before beta or stable 
 - Optional `DaylilySwiftLog` adapter with `SwiftLogRequestLogSink` for sending Daylily request logs to SwiftLog.
 - Optional `DaylilyServiceLifecycle` adapter with `DaylilyApplicationService` for running Daylily applications inside Swift ServiceLifecycle.
 - Optional `DaylilyHTTPTypes` adapter for converting Daylily requests and responses to Swift HTTP Types without lossy method, header, query, or request-target handling.
+- Optional `DaylilyOpenAPITransport` adapter for registering Swift OpenAPI Generator server handlers onto Daylily routes.
 - Lossless HTTP boundary support for custom method tokens, repeated headers, raw request targets, repeated query parameters, and HTTPTypes pseudo fields.
 
 ## 0.1.0-alpha.1 - 2026-05-26

@@ -53,6 +53,7 @@ Linux validation is CI-owned for now. Local development has been verified on mac
 - Optional `DaylilySwiftLog` request log adapter for SwiftLog users.
 - Optional `DaylilyServiceLifecycle` adapter for running Daylily applications inside Swift ServiceLifecycle `ServiceGroup`.
 - Optional `DaylilyHTTPTypes` adapter for Swift HTTP Types boundary interop.
+- Optional `DaylilyOpenAPITransport` server transport for Swift OpenAPI Generator handlers.
 - Lossless HTTP boundary representation for custom method tokens, repeated headers, raw request targets, and repeated query parameters.
 - AI-readable AIDEV project handoff.
 - Beta documentation set.
@@ -68,8 +69,10 @@ Linux validation is CI-owned for now. Local development has been verified on mac
 - Macro middleware attributes are not implemented.
 - `DaylilySwiftLog` adapts request logs but does not bootstrap or configure global SwiftLog handlers.
 - `DaylilyServiceLifecycle` adapts `Application` into a ServiceLifecycle `Service`, but applications still own `ServiceGroup` configuration and signal policy.
-- `DaylilyHTTPTypes` is an adapter boundary, not a new transport; application code still owns request/response bodies and any OpenAPI transport wiring.
+- `DaylilyHTTPTypes` is an adapter boundary, not a new transport; application code still owns request/response bodies.
 - `DaylilyHTTPTypes` throws when Daylily values cannot be represented by Swift HTTP Types without lossy header/status legalization.
+- `DaylilyOpenAPITransport` supports whole-segment generated path parameters such as `{id}`; mixed segments such as `{name}.zip` are rejected.
+- `DaylilyOpenAPITransport` buffers generated response bodies under an explicit limit because Daylily response streaming is not implemented yet.
 - Production auth, ORM, queue, realtime, and deployment tooling are future ecosystem work.
 - Benchmarks are not published yet.
 

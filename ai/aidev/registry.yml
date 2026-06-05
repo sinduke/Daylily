@@ -214,6 +214,24 @@ products:
       - HTTPTypes
     not_reexported_by:
       - Daylily
+  DaylilyOpenAPITransport:
+    kind: library
+    role: swift_openapi_generator_transport
+    responsibility:
+      - adapt_openapi_runtime_server_transport_to_daylily_routes
+      - register_generated_handlers_as_daylily_routes
+      - bridge_daylily_requests_and_responses_through_http_types
+      - bridge_daylily_request_body_to_openapi_http_body
+      - buffer_openapi_response_body_under_explicit_limit
+      - reject_unsupported_openapi_path_templates
+      - keep_openapi_runtime_out_of_core
+    depends_on:
+      - DaylilyCore
+      - DaylilyHTTPTypes
+      - OpenAPIRuntime
+      - HTTPTypes
+    not_reexported_by:
+      - Daylily
   DaylilyServiceLifecycle:
     kind: library
     role: service_lifecycle_adapter
@@ -677,22 +695,24 @@ implemented_features:
       - "0020-009-keyed-dependencies-runtime"
       - "0020-010-macro-dependency"
   ecosystem_compatibility:
-    status: in-progress
+    status: implemented
     epic: "0021-ecosystem-compatibility"
     completed:
       - "0021-001-swift-log-adapter"
       - "0021-002-service-lifecycle-integration"
       - "0021-003-swift-http-types-adapter"
-    planned:
       - "0021-004-swift-openapi-generator-transport"
-    next_task: "0021-004-swift-openapi-generator-transport"
+    planned: []
+    next_task: null
     files:
       - ai/epics/0021-ecosystem-compatibility.md
       - ai/tasks/0021-001-swift-log-adapter.md
       - ai/tasks/0021-002-service-lifecycle-integration.md
       - ai/tasks/0021-003-swift-http-types-adapter.md
+      - ai/tasks/0021-004-swift-openapi-generator-transport.md
       - docs/capability-matrix.md
       - docs/examples/http-types.md
+      - docs/examples/openapi-transport.md
       - ai/aidev/roadmap.md
       - ai/aidev/start-here.md
       - ai/aidev/registry.yml
@@ -713,6 +733,8 @@ implemented_features:
       - "DaylilyHTTPTypes should be an optional boundary adapter, not a replacement Request or Response model."
       - "Daylily's HTTP boundary must preserve custom method tokens, repeated headers, raw request targets, repeated query parameters, and HTTPTypes pseudo fields."
       - "DaylilyHTTPTypes should throw when conversion would require silently lossy header/status legalization."
+      - "DaylilyOpenAPITransport should be an optional OpenAPIRuntime ServerTransport adapter, not a replacement for Daylily routing or application startup."
+      - "DaylilyOpenAPITransport should throw for unsupported path templates rather than silently registering routes Daylily cannot match correctly."
       - "Adapter defaults should make demos easy without taking control away from applications."
     non_goals:
       - "replacing Daylily-owned runtime models"
@@ -837,6 +859,41 @@ implemented_features:
       - "replacing Daylily Request or Response"
       - "umbrella re-export"
       - "Swift OpenAPI Generator transport"
+  swift_openapi_generator_transport:
+    status: implemented
+    epic: "0021-ecosystem-compatibility"
+    task: "0021-004-swift-openapi-generator-transport"
+    module: DaylilyOpenAPITransport
+    files:
+      - Package.swift
+      - Package.resolved
+      - Sources/DaylilyOpenAPITransport/DaylilyOpenAPITransport.swift
+      - Tests/DaylilyTests/OpenAPITransportTests.swift
+      - scripts/consumer-smoke-test.sh
+      - ai/tasks/0021-004-swift-openapi-generator-transport.md
+      - docs/examples/openapi-transport.md
+    public_api:
+      - "DaylilyOpenAPITransportError"
+      - "DaylilyOpenAPITransport"
+      - "DaylilyOpenAPITransport.init(responseBodyBufferLimit:)"
+      - "DaylilyOpenAPITransport.register(_:method:path:)"
+      - "DaylilyOpenAPITransport.routes()"
+      - "DaylilyOpenAPITransport.application(dependencies:)"
+    decisions:
+      - "Swift OpenAPI Generator integration is optional and is not re-exported by Daylily."
+      - "DaylilyCore does not import OpenAPIRuntime or Swift HTTP Types."
+      - "Generated handler registrations become Daylily Route values."
+      - "Whole-segment OpenAPI path parameters map to Daylily path parameters."
+      - "Unsupported or mixed path parameter templates throw during registration."
+      - "Daylily request and response conversion goes through DaylilyHTTPTypes."
+      - "Daylily request bodies remain one-shot and stream into OpenAPIRuntime HTTPBody."
+      - "OpenAPIRuntime response bodies are buffered into Daylily Response under an explicit limit."
+    non_goals:
+      - "replacing Application.run"
+      - "replacing Daylily routing ownership"
+      - "response streaming"
+      - "umbrella re-export"
+      - "running the generator plugin inside Daylily"
   dependency_injection_design:
     status: implemented
     epic: "0020-package-consumer-experience"
@@ -1513,15 +1570,15 @@ planned_features:
       - "0020-009-keyed-dependencies-runtime"
       - "0020-010-macro-dependency"
   ecosystem_compatibility:
-    status: in-progress
+    status: implemented
     epic: "0021-ecosystem-compatibility"
     completed:
       - "0021-001-swift-log-adapter"
       - "0021-002-service-lifecycle-integration"
       - "0021-003-swift-http-types-adapter"
-    planned:
       - "0021-004-swift-openapi-generator-transport"
-    next_task: "0021-004-swift-openapi-generator-transport"
+    planned: []
+    next_task: null
     sequence:
       - "0021-001-swift-log-adapter"
       - "0021-002-service-lifecycle-integration"
@@ -1721,6 +1778,31 @@ public_api:
         - "public init(httpTypesHeaderFields: HTTPFields)"
         - "public func httpTypesHeaderFields() throws -> HTTPFields"
       contract: "Converts ordered Daylily HeaderField values to/from Swift HTTP Types HTTPFields and preserves dynamic table indexing strategy hints."
+  DaylilyOpenAPITransport:
+    DaylilyOpenAPITransportError:
+      kind: enum
+      conforms:
+        - Error
+        - Equatable
+        - Sendable
+      cases:
+        - "invalidHTTPMethod(String)"
+        - "unsupportedPathTemplate(String)"
+        - "duplicatePathParameter(String)"
+        - "missingPathParameter(String)"
+      contract: "Reports registration and route metadata errors for generated server handler registrations."
+    DaylilyOpenAPITransport:
+      kind: final_class
+      conforms:
+        - ServerTransport
+        - "@unchecked Sendable"
+      initializers:
+        - "public init(responseBodyBufferLimit: ByteCount = .megabytes(1))"
+      methods:
+        - "public func register(_:method:path:) throws"
+        - "public func routes() -> [Route]"
+        - "public func application(dependencies configureDependencies: @Sendable (inout Dependencies) -> Void = { _ in }) -> Application"
+      contract: "Adapts Swift OpenAPI Generator server registrations into Daylily routes, using DaylilyHTTPTypes for request/response conversion and an explicit response body buffer limit."
   DaylilyOpenAPI:
     OpenAPIDocument:
       kind: struct
@@ -2513,7 +2595,7 @@ runtime_rules:
   middleware_body_policy: "middleware can read RequestBody, but RequestBody remains one-shot and no automatic replay occurs"
   explicit_buffered_body_policy: "withBufferedBody consumes the original RequestBody, buffers under an explicit limit, creates a one-shot replacement RequestBody.bytes value, and does not enable automatic replay"
   observability_policy: "DaylilyObservability owns request ID generation, request logging, timing, public error reason logging, and future observability helpers; DaylilyCore does not depend on logging backends, tracing SDKs, metrics clients, or transport APIs. DaylilySwiftLog is an optional SwiftLog adapter module that implements RequestLogSink and is not re-exported by Daylily."
-  ecosystem_adapter_policy: "SwiftLog, ServiceLifecycle, and Swift HTTP Types integrations live in optional modules and are not re-exported by Daylily. DaylilyHTTPTypes adapts boundary types while DaylilyCore keeps Daylily-owned Request/Response models and does not import HTTPTypes."
+  ecosystem_adapter_policy: "SwiftLog, ServiceLifecycle, Swift HTTP Types, and Swift OpenAPI Generator integrations live in optional modules and are not re-exported by Daylily. DaylilyHTTPTypes adapts boundary types while DaylilyCore keeps Daylily-owned Request/Response models and does not import HTTPTypes. DaylilyOpenAPITransport adapts OpenAPIRuntime ServerTransport registrations while DaylilyCore does not import OpenAPIRuntime."
   errors:
     response_error: "status + reason"
     abort: "ResponseError conformer"
@@ -2706,10 +2788,11 @@ roadmap:
       - "0018-beta-docs"
       - "0019-release-hygiene"
       - "0020-package-consumer-experience"
-    in_progress:
       - "0021-ecosystem-compatibility"
+    in_progress: []
     next_recommended:
-      - "0021-004-swift-openapi-generator-transport"
+      - "macro-middleware-attributes"
+      - "openapi-schema-expansion"
   completed:
     - "0001-001-minimal-http-server"
     - "0002-001-aidev-project-contract"
@@ -2758,9 +2841,11 @@ roadmap:
     - "0021-001-swift-log-adapter"
     - "0021-002-service-lifecycle-integration"
     - "0021-003-swift-http-types-adapter"
+    - "0021-004-swift-openapi-generator-transport"
   in_progress: []
   next_recommended:
-    - "0021-004-swift-openapi-generator-transport"
+    - "macro-middleware-attributes"
+    - "openapi-schema-expansion"
   later:
     - "macro-middleware-attributes"
     - "0013-003-observability-hooks"

@@ -1,6 +1,6 @@
 # 0021 Ecosystem Compatibility
 
-Status: in-progress
+Status: implemented
 
 Purpose:
 
@@ -13,7 +13,7 @@ Tasks:
 - `0021-001-swift-log-adapter` (implemented)
 - `0021-002-service-lifecycle-integration` (implemented)
 - `0021-003-swift-http-types-adapter` (implemented)
-- `0021-004-swift-openapi-generator-transport` (planned)
+- `0021-004-swift-openapi-generator-transport` (implemented)
 
 Required work:
 
@@ -42,6 +42,9 @@ Delivered:
 - `0021-003` adds optional `DaylilyHTTPTypes` for Swift HTTP Types boundary interop.
 - Daylily core now preserves custom method tokens, repeated headers, raw request targets, repeated query parameters, and HTTPTypes pseudo fields needed for lossless adapter boundaries.
 - `DaylilyHTTPTypes` throws instead of silently legalizing lossy header/status conversions.
+- `0021-004` adds optional `DaylilyOpenAPITransport` for Swift OpenAPI Generator server stubs.
+- `DaylilyOpenAPITransport` registers generated handlers as Daylily routes while keeping OpenAPIRuntime out of `DaylilyCore` and the umbrella `Daylily` module.
+- OpenAPI whole-segment path parameters map to Daylily route parameters; unsupported mixed segment templates throw during registration.
 
 Design principles:
 

@@ -186,6 +186,14 @@ Daylily/
 - Is not re-exported by the umbrella `Daylily` module.
 - Must not replace Daylily-owned request/response models or consume `RequestBody`.
 
+`DaylilyOpenAPITransport`
+
+- Optional Swift OpenAPI Generator server transport adapter.
+- Depends on `DaylilyCore`, `DaylilyHTTPTypes`, OpenAPIRuntime, and Swift HTTP Types' `HTTPTypes` product.
+- Owns `DaylilyOpenAPITransport`, which conforms to OpenAPIRuntime `ServerTransport`.
+- Is not re-exported by the umbrella `Daylily` module.
+- Must not replace Daylily-owned routing, application startup, request, or response models.
+
 `DaylilyOpenAPI`
 
 - Minimal OpenAPI document generation.
@@ -399,6 +407,14 @@ Daylily/
 - Converts between Daylily `Request`/`Response` and Swift HTTP Types `HTTPRequest`/`HTTPResponse`.
 - Converts ordered Daylily `Headers` and Swift HTTP Types `HTTPFields`.
 - Throws on conversions that would require silently lossy header/status legalization.
+
+`Sources/DaylilyOpenAPITransport/DaylilyOpenAPITransport.swift`
+
+- Defines the optional Swift OpenAPI Generator server transport adapter.
+- Converts generated OpenAPIRuntime handler registrations into Daylily routes.
+- Bridges Daylily one-shot request bodies to OpenAPIRuntime `HTTPBody`.
+- Buffers OpenAPIRuntime response bodies under an explicit limit.
+- Rejects unsupported path templates during registration.
 
 `Sources/DaylilyObservability/RequestIDMiddleware.swift`
 

@@ -71,7 +71,7 @@ This matrix tracks the current beta-facing capability surface. It is intentional
 | SwiftLog adapter | Implemented | Optional `DaylilySwiftLog` `RequestLogSink`, not a replacement middleware. |
 | ServiceLifecycle integration | Implemented | Optional `DaylilyServiceLifecycle` adapter that exposes `Application` as a ServiceLifecycle `Service`. |
 | Swift HTTP Types adapter | Implemented | Optional `DaylilyHTTPTypes` adapter converting Daylily requests/responses to Swift HTTP Types without silently lossy legalization. |
-| Swift OpenAPI Generator transport | Planned | Future Daylily transport after HTTP boundary design stabilizes. |
+| Swift OpenAPI Generator transport | Implemented | Optional `DaylilyOpenAPITransport` server transport for generated handlers; whole-segment path parameters only. |
 | Lifecycle-managed services | Designed | `ApplicationService` direction is documented; runtime API is not implemented. |
 | Authentication | Future | Ecosystem direction, not current runtime. |
 | ORM/database module | Future | Explicitly out of current beta closure. |

@@ -363,6 +363,56 @@ Rules:
 - `RequestBody` is not consumed by the adapter.
 - Daylily-to-HTTPTypes conversion throws instead of silently legalizing invalid method, header, status, or reason phrase values.
 
+## Module DaylilyOpenAPITransport
+
+### Transport Errors
+
+```swift
+public enum DaylilyOpenAPITransportError: Error, Equatable, Sendable {
+    case invalidHTTPMethod(String)
+    case unsupportedPathTemplate(String)
+    case duplicatePathParameter(String)
+    case missingPathParameter(String)
+}
+```
+
+### DaylilyOpenAPITransport
+
+```swift
+public final class DaylilyOpenAPITransport: ServerTransport, @unchecked Sendable {
+    public init(responseBodyBufferLimit: ByteCount = .megabytes(1))
+
+    public func register(
+        _ handler: @Sendable @escaping (
+            HTTPRequest,
+            HTTPBody?,
+            ServerRequestMetadata
+        ) async throws -> (HTTPResponse, HTTPBody?),
+        method: HTTPRequest.Method,
+        path: String
+    ) throws
+
+    public func routes() -> [Route]
+
+    public func application(
+        dependencies configureDependencies: @Sendable (inout Dependencies) -> Void = { _ in }
+    ) -> Application
+}
+```
+
+Rules:
+
+- `DaylilyOpenAPITransport` depends on `DaylilyCore`, `DaylilyHTTPTypes`, OpenAPIRuntime's `OpenAPIRuntime` product, and Swift HTTP Types' `HTTPTypes` product.
+- `DaylilyOpenAPITransport` is not re-exported by the umbrella `Daylily` module.
+- Generated handler registrations become Daylily routes.
+- Whole-segment OpenAPI path parameters such as `{id}` map to Daylily `:id` parameters.
+- `ServerRequestMetadata.pathParameters` is populated from matched Daylily route parameters.
+- Daylily requests and responses cross the boundary through `DaylilyHTTPTypes`.
+- Daylily request bodies remain one-shot and stream into OpenAPIRuntime `HTTPBody`.
+- OpenAPIRuntime response bodies are buffered into Daylily `Response` under an explicit limit.
+- Unsupported templates, including mixed parameter segments such as `{name}.zip`, throw during registration.
+- The adapter must not replace `Application.run(...)`, Daylily routing ownership, or Daylily-owned request/response models.
+
 ## Module DaylilyOpenAPI
 
 ### OpenAPI Document API

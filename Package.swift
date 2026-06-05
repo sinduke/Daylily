@@ -16,6 +16,7 @@ let package = Package(
         .library(name: "DaylilyNIO", targets: ["DaylilyNIO"]),
         .library(name: "DaylilyObservability", targets: ["DaylilyObservability"]),
         .library(name: "DaylilyOpenAPI", targets: ["DaylilyOpenAPI"]),
+        .library(name: "DaylilyOpenAPITransport", targets: ["DaylilyOpenAPITransport"]),
         .library(name: "DaylilyServiceLifecycle", targets: ["DaylilyServiceLifecycle"]),
         .library(name: "DaylilySwiftLog", targets: ["DaylilySwiftLog"]),
         .library(name: "DaylilyTesting", targets: ["DaylilyTesting"]),
@@ -25,6 +26,7 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.74.0"),
         .package(url: "https://github.com/apple/swift-http-types.git", from: "1.5.1"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.13.0"),
+        .package(url: "https://github.com/apple/swift-openapi-runtime.git", from: "1.12.0"),
         .package(url: "https://github.com/swift-server/swift-service-lifecycle.git", from: "2.11.0"),
         .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "603.0.0-latest"),
     ],
@@ -52,6 +54,15 @@ let package = Package(
         .target(
             name: "DaylilyOpenAPI",
             dependencies: ["DaylilyCore"]
+        ),
+        .target(
+            name: "DaylilyOpenAPITransport",
+            dependencies: [
+                "DaylilyCore",
+                "DaylilyHTTPTypes",
+                .product(name: "HTTPTypes", package: "swift-http-types"),
+                .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
+            ]
         ),
         .target(
             name: "DaylilyServiceLifecycle",
@@ -111,10 +122,13 @@ let package = Package(
                 "Daylily",
                 "DaylilyCheckSuite",
                 "DaylilyHTTPTypes",
+                "DaylilyOpenAPITransport",
                 "DaylilyServiceLifecycle",
                 "DaylilySwiftLog",
                 "DaylilyTesting",
+                .product(name: "HTTPTypes", package: "swift-http-types"),
                 .product(name: "Logging", package: "swift-log"),
+                .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
                 .product(name: "ServiceLifecycle", package: "swift-service-lifecycle"),
                 .product(name: "ServiceLifecycleTestKit", package: "swift-service-lifecycle"),
             ]

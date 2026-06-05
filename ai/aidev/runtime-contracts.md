@@ -326,6 +326,9 @@ Boundaries:
 - `DaylilyHTTPTypes` is an optional adapter module that depends on `DaylilyCore` and Swift HTTP Types' `HTTPTypes` product.
 - `DaylilyHTTPTypes` is not re-exported by `Daylily`.
 - `DaylilyHTTPTypes` must not replace Daylily-owned `Request` or `Response` models.
+- `DaylilyOpenAPITransport` is an optional adapter module that depends on `DaylilyCore`, `DaylilyHTTPTypes`, OpenAPIRuntime, and Swift HTTP Types' `HTTPTypes` product.
+- `DaylilyOpenAPITransport` is not re-exported by `Daylily`.
+- `DaylilyOpenAPITransport` must not replace Daylily-owned routing or application startup.
 
 Extension points:
 
@@ -470,6 +473,49 @@ Non-goals:
 - replacing Daylily `Request` or `Response`
 - forced umbrella re-export
 - Swift OpenAPI Generator transport
+
+## Swift OpenAPI Generator Transport Contract
+
+Owner:
+
+- `DaylilyOpenAPITransport`
+
+Implemented by:
+
+- `ai/tasks/0021-004-swift-openapi-generator-transport.md`
+
+Shape:
+
+```swift
+public enum DaylilyOpenAPITransportError: Error, Equatable, Sendable
+
+public final class DaylilyOpenAPITransport: ServerTransport, @unchecked Sendable {
+    public init(responseBodyBufferLimit: ByteCount = .megabytes(1))
+    public func routes() -> [Route]
+    public func application(dependencies configureDependencies: @Sendable (inout Dependencies) -> Void = { _ in }) -> Application
+}
+```
+
+Guarantees:
+
+- Swift OpenAPI Generator integration is an optional OpenAPIRuntime `ServerTransport`.
+- `DaylilyCore` does not import OpenAPIRuntime or Swift HTTP Types.
+- `DaylilyOpenAPITransport` is not re-exported by `Daylily`.
+- Generated handler registrations become Daylily `Route` values.
+- Whole-segment OpenAPI path parameters such as `{id}` map to Daylily `:id` path parameters.
+- `ServerRequestMetadata.pathParameters` is populated from Daylily route parameters.
+- Daylily requests and responses cross the boundary through `DaylilyHTTPTypes`.
+- Daylily request bodies remain one-shot and stream into OpenAPIRuntime `HTTPBody`.
+- OpenAPIRuntime response bodies are buffered into Daylily `Response` under an explicit limit.
+- Unsupported templates, including mixed parameter segments such as `{name}.zip`, throw during registration.
+
+Non-goals:
+
+- replacing `Application.run(...)`
+- replacing Daylily routing ownership
+- forced umbrella re-export
+- response streaming
+- running the generator plugin inside Daylily
 
 ## Route Contract
 

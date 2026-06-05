@@ -91,6 +91,10 @@ DaylilyServiceLifecycle -> DaylilyNIO
 DaylilyServiceLifecycle -> ServiceLifecycle
 DaylilyHTTPTypes -> DaylilyCore
 DaylilyHTTPTypes -> Swift HTTP Types HTTPTypes
+DaylilyOpenAPITransport -> DaylilyCore
+DaylilyOpenAPITransport -> DaylilyHTTPTypes
+DaylilyOpenAPITransport -> OpenAPIRuntime
+DaylilyOpenAPITransport -> Swift HTTP Types HTTPTypes
 DaylilyOpenAPI -> DaylilyCore
 DaylilyTesting -> DaylilyCore
 DaylilyTesting -> Foundation
@@ -100,6 +104,7 @@ DaylilyCheckSuite -> DaylilyTesting
 DaylilyTests -> Daylily
 DaylilyTests -> DaylilyCheckSuite
 DaylilyTests -> DaylilyHTTPTypes
+DaylilyTests -> DaylilyOpenAPITransport
 DaylilyTests -> DaylilyTesting
 DaylilyTests -> Swift Testing
 DaylilyMacros -> SwiftSyntax

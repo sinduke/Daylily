@@ -458,6 +458,26 @@ let daylilyRequest = Request(httpTypesRequest: httpRequest)
 
 `DaylilyHTTPTypes` 会在 Daylily 的 `Request`/`Response` 和 Swift HTTP Types 的 `HTTPRequest`/`HTTPResponse` 之间转换。它不会被 umbrella `Daylily` 模块 re-export。adapter 会保留 custom method token、raw request target、重复 headers、重复 query parameters 和 HTTPTypes pseudo fields；如果某个 header/status 转换必须做有损合法化，它会抛错，而不是静默改值。
 
+Swift OpenAPI Generator server 支持位于可选的 `DaylilyOpenAPITransport` 模块：
+
+```swift
+import Daylily
+import DaylilyOpenAPITransport
+import Foundation
+
+let transport = DaylilyOpenAPITransport()
+let handler = GeneratedAPIHandler()
+
+try handler.registerHandlers(
+    on: transport,
+    serverURL: URL(string: "/api")!
+)
+
+try await transport.application().run()
+```
+
+`DaylilyOpenAPITransport` 会把 OpenAPIRuntime `ServerTransport` registrations 适配成 Daylily routes。它不会被 umbrella `Daylily` 模块 re-export。`{id}` 这种整段 generated path parameter 会映射成 Daylily `:id` parameter；`{name}.zip` 这种 mixed template segment 会在 registration 阶段抛错。Generated response body 会在显式 limit 内被 buffer，直到 Daylily 提供 streaming response。
+
 ## Dependencies
 
 Daylily 提供了一个很小的 app-wide `Dependencies` registry，用来覆盖常见 service wiring：
@@ -924,7 +944,7 @@ Daylily/
 
 近期：
 
-1. 增加 Swift OpenAPI Generator Daylily transport。
+1. 通过 consumer feedback 继续打磨 optional ecosystem adapter set。
 2. 等生态边界清晰后继续 middleware macro attributes 和 OpenAPI schema expansion。
 
 ## License

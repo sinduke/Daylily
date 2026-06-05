@@ -135,6 +135,13 @@ if [[ "$MODE" == "path" ]]; then
     HTTP_TYPES_TEST_DEPENDENCY='                .product(name: "DaylilyHTTPTypes", package: "Daylily"),'
 fi
 
+OPENAPI_TRANSPORT_SMOKE="0"
+OPENAPI_TRANSPORT_TEST_DEPENDENCY=""
+if [[ "$MODE" == "path" ]]; then
+    OPENAPI_TRANSPORT_SMOKE="1"
+    OPENAPI_TRANSPORT_TEST_DEPENDENCY='                .product(name: "DaylilyOpenAPITransport", package: "Daylily"),'
+fi
+
 CONSUMER_MACRO_PORT="${CONSUMER_MACRO_PORT:-18080}"
 
 if [[ -z "$WORKDIR" ]]; then
@@ -194,6 +201,7 @@ let package = Package(
                 .product(name: "Daylily", package: "Daylily"),
                 .product(name: "DaylilyTesting", package: "Daylily"),
 $HTTP_TYPES_TEST_DEPENDENCY
+$OPENAPI_TRANSPORT_TEST_DEPENDENCY
 $SERVICE_LIFECYCLE_TEST_DEPENDENCY
 $SWIFT_LOG_TEST_DEPENDENCY
             ]
@@ -449,6 +457,35 @@ func externalPackageConsumesDaylilyHTTPTypes() throws {
 SWIFT
 fi
 
+if [[ "$OPENAPI_TRANSPORT_SMOKE" == "1" ]]; then
+    cat > "$WORKDIR/Tests/ConsumerAppTests/ConsumerOpenAPITransportTests.swift" <<'SWIFT'
+import Daylily
+import DaylilyOpenAPITransport
+import Testing
+
+@Test("external package consumes DaylilyOpenAPITransport")
+func externalPackageConsumesDaylilyOpenAPITransport() async throws {
+    let transport = DaylilyOpenAPITransport()
+
+    try transport.register(
+        { request, _, metadata in
+            #expect(request.method.rawValue == "GET")
+            #expect(metadata.pathParameters["id"] == "7")
+            return (.init(status: .init(code: 200)), nil)
+        },
+        method: .init("GET")!,
+        path: "/openapi/{id}"
+    )
+
+    let response = await transport.application().respond(
+        to: Request(method: .get, path: "/openapi/7")
+    )
+
+    #expect(response.status.code == 200)
+}
+SWIFT
+fi
+
 if [[ "$SERVICE_LIFECYCLE_SMOKE" == "1" ]]; then
     cat > "$WORKDIR/Tests/ConsumerAppTests/ConsumerServiceLifecycleTests.swift" <<'SWIFT'
 import Daylily
@@ -536,6 +573,8 @@ echo "Dependency mode: $MODE"
 echo "Macro dependency runtime smoke: $MACRO_DEPENDENCY_SMOKE"
 echo "SwiftLog adapter smoke: $SWIFT_LOG_SMOKE"
 echo "ServiceLifecycle adapter smoke: $SERVICE_LIFECYCLE_SMOKE"
+echo "Swift HTTP Types adapter smoke: $HTTP_TYPES_SMOKE"
+echo "Swift OpenAPI Generator transport smoke: $OPENAPI_TRANSPORT_SMOKE"
 
 (
     cd "$WORKDIR"

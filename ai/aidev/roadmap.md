@@ -417,6 +417,8 @@ Next:
 
 ## Ecosystem Compatibility
 
+Status: implemented
+
 Goal:
 
 - Make Daylily interoperate cleanly with established Swift server ecosystem packages.
@@ -429,7 +431,7 @@ Sequence:
 0021-001 SwiftLog Adapter (delivered)
 0021-002 ServiceLifecycle Integration (delivered)
 0021-003 Swift HTTP Types Adapter (delivered)
-0021-004 Swift OpenAPI Generator Transport (planned)
+0021-004 Swift OpenAPI Generator Transport (delivered)
 ```
 
 Delivered:
@@ -441,10 +443,12 @@ Delivered:
 - ServiceLifecycle graceful shutdown closes the Daylily NIO server channel through an adapter-owned shutdown stream, while task cancellation remains a transport-level fallback.
 - `0021-003` adds optional `DaylilyHTTPTypes` and a lossless Daylily HTTP boundary for custom method tokens, repeated headers, raw request targets, repeated query parameters, and HTTPTypes pseudo fields.
 - Swift HTTP Types remains outside `DaylilyCore` and the umbrella `Daylily` re-export surface.
+- `0021-004` adds optional `DaylilyOpenAPITransport`, an OpenAPIRuntime `ServerTransport` that registers generated handlers onto Daylily routes.
+- OpenAPIRuntime remains outside `DaylilyCore` and the umbrella `Daylily` re-export surface.
 
 Next:
 
-- `0021-004-swift-openapi-generator-transport`
+- Harden the optional ecosystem adapter set through external consumer feedback.
 
 Design stance:
 
@@ -457,6 +461,8 @@ Design stance:
 - `ServerConfiguration.serviceLifecycleDefault` should avoid double signal handling by leaving graceful shutdown signals to `ServiceGroup`.
 - Swift HTTP Types integration should stay an optional boundary adapter and must not replace Daylily-owned request/response models.
 - Adapter conversions should throw instead of silently legalizing values when conversion would be lossy.
+- Swift OpenAPI Generator integration should stay an optional `ServerTransport` adapter, not replace Daylily application startup or routing ownership.
+- `DaylilyOpenAPITransport` should reject unsupported path templates rather than silently registering routes Daylily cannot match correctly.
 
 ### Future Epics
 
