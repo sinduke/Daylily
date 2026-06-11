@@ -257,7 +257,7 @@ Guarantees:
 
 Extension points:
 
-- macro middleware syntax
+- middleware composition helpers
 - request context
 - dependency injection
 - explicit body replay helper
@@ -573,9 +573,11 @@ let descriptions = app.describeRoutes()
 Guarantees:
 
 - `RouteMetadata` stores summary, description, tags, operation ID, inputs, request body metadata, and response metadata.
+- `RouteMetadata` stores explicit operation-level security requirements.
 - `RouteInputMetadata` supports path, query, and header locations.
 - `RouteBodyMetadata` supports explicit content type and Swift type name.
 - `RouteResponseMetadata` supports status, optional content type, and optional Swift type name.
+- `RouteSecurityMetadata` supports a scheme name and optional scopes.
 - `Application.describeRoutes()` returns route descriptions without invoking handlers.
 - Group prefixes are visible in described route paths.
 - Group and route middleware do not erase metadata.
@@ -614,6 +616,7 @@ Guarantees:
 - Path parameters are always required in the generated document.
 - Request body metadata maps to OpenAPI request body content.
 - Response metadata maps to OpenAPI responses.
+- Route security metadata maps to OpenAPI operation `security`.
 - Routes without response metadata get a default `200 OK` response.
 - Known scalar Swift type names map to simple OpenAPI schemas.
 - Unknown Swift type names map to object schemas with `x-swift-type`.
@@ -623,7 +626,7 @@ Non-goals:
 
 - Deep schema derivation from Swift declarations.
 - Validation rules.
-- Security schemes.
+- Security scheme components.
 - Documentation UI.
 - Client SDK generation.
 
@@ -648,7 +651,6 @@ Guarantees:
 Extension points:
 
 - route collection metadata
-- macro middleware attributes
 - OpenAPI group metadata
 
 ## Handler Contract
@@ -998,6 +1000,12 @@ Guarantees:
 - `@JSONBody` remains as a compatibility alias spelling with the same lowering.
 - `@Dependency(key)` parameters lower into `try req.dependencies.require(key)`.
 - `@Dependency` requires an explicit `DependencyKey<Value>` expression and does not infer dependencies from parameter type alone.
+- `@Use(middleware)` on the server type lowers into application middleware.
+- `@Use(middleware)` on a group lowers into inherited group middleware for nested routes.
+- `@Use(middleware)` on a route lowers into route middleware.
+- `@Use` accepts exactly one top-level Swift expression and may use named values.
+- `@Security("scheme")` on a route lowers into explicit route security metadata.
+- `@Security` metadata is not inferred from middleware.
 - A handler may have at most one `@Body` or `@JSONBody` parameter.
 - Grouped handlers are called on default-initialized group instances.
 
@@ -1006,7 +1014,7 @@ Known limitations:
 - Server type must be default-initializable.
 - Group types must be default-initializable.
 - Static route handlers are not supported.
-- Optional typed inputs, keyless dependency inference, and macro middleware attributes are not supported yet.
+- Optional typed inputs and keyless dependency inference are not supported yet.
 - OpenAPI metadata lowering exists for typed inputs; deeper schema inference and richer operation metadata are deferred.
 
 These are macro limitations, not runtime limitations.
@@ -1014,6 +1022,5 @@ These are macro limitations, not runtime limitations.
 Extension points:
 
 - more macro typed input families
-- macro middleware attributes
 - richer route metadata
 - better diagnostics

@@ -181,7 +181,7 @@ Steps:
 5. Let thrown middleware errors flow through existing `Application.respond(to:)` error mapping.
 6. Add checks for order, short-circuiting, missing-route wrapping, thrown errors, and body consumption.
 7. Update route/group/application contracts.
-8. Only then design `@Use` or macro sugar.
+8. Keep macro `@Use` lowering aligned with the runtime ordering contract.
 
 RequestBody rules:
 
@@ -341,7 +341,6 @@ When extending:
 Still non-goals until separate tasks:
 
 - optional typed inputs
-- macro middleware attributes
 - DI
 - deep OpenAPI schema derivation
 

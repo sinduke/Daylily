@@ -22,11 +22,13 @@ public struct DaylilyServerMacro: MemberMacro {
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
         var collector = RouteCollector()
+        let applicationMiddlewares = try MiddlewareAttributes(declaration.attributes).expressions
         let collection = try collector.collect(
             members: declaration.memberBlock.members,
             pathPrefix: "",
             receiver: "server",
-            typePrefix: "Self"
+            typePrefix: "Self",
+            inheritedMiddlewares: []
         )
 
         guard !collection.routes.isEmpty else {
@@ -65,6 +67,7 @@ public struct DaylilyServerMacro: MemberMacro {
         } else {
             lines.append("    ])")
         }
+        lines[lines.count - 1] += applicationMiddlewares.middlewareSuffix.indented(by: 4)
         lines.append("")
         lines.append("    try await app.run(port: port)")
         lines.append("}")
@@ -139,13 +142,19 @@ private struct RouteCollector {
         members: MemberBlockItemListSyntax,
         pathPrefix: String,
         receiver: String,
-        typePrefix: String
+        typePrefix: String,
+        inheritedMiddlewares: [String]
     ) throws -> RouteCollection {
         var collection = RouteCollection()
 
         for member in members {
             if let function = member.decl.as(FunctionDeclSyntax.self),
-               let route = try RouteMethod(function, pathPrefix: pathPrefix, receiver: receiver) {
+               let route = try RouteMethod(
+                function,
+                pathPrefix: pathPrefix,
+                receiver: receiver,
+                inheritedMiddlewares: inheritedMiddlewares
+               ) {
                 collection.routes.append(route)
                 continue
             }
@@ -162,7 +171,8 @@ private struct RouteCollector {
                     members: nestedStruct.memberBlock.members,
                     pathPrefix: Self.join(pathPrefix, group.path),
                     receiver: groupName,
-                    typePrefix: groupType
+                    typePrefix: groupType,
+                    inheritedMiddlewares: inheritedMiddlewares + group.middlewares
                 )
 
                 guard !nested.routes.isEmpty else {
@@ -200,8 +210,14 @@ private struct RouteMethod {
     let functionName: String
     let callPrefix: String
     let call: HandlerCall
+    let middlewares: [String]
 
-    init?(_ function: FunctionDeclSyntax, pathPrefix: String, receiver: String) throws {
+    init?(
+        _ function: FunctionDeclSyntax,
+        pathPrefix: String,
+        receiver: String,
+        inheritedMiddlewares: [String]
+    ) throws {
         guard let routeAttribute = try RouteAttribute(function) else {
             return nil
         }
@@ -220,7 +236,15 @@ private struct RouteMethod {
         self.receiver = receiver
         self.functionName = function.name.text
         self.callPrefix = Self.callPrefix(for: function)
-        self.call = try Self.call(for: function, routeName: routeAttribute.name, routePath: path)
+        let routeMiddlewares = try MiddlewareAttributes(function.attributes).expressions
+        let security = try SecurityAttributes(function.attributes).requirements
+        self.call = try Self.call(
+            for: function,
+            routeName: routeAttribute.name,
+            routePath: path,
+            securityRequirements: security
+        )
+        self.middlewares = inheritedMiddlewares + routeMiddlewares
     }
 
     var routeDeclaration: String {
@@ -230,7 +254,7 @@ private struct RouteMethod {
                 \(callPrefix)\(receiver).\(functionName)(\(call.arguments))
             }
             """
-            return route + call.metadataSuffix
+            return route + call.metadataSuffix + middlewares.middlewareSuffix
         }
 
         let route = """
@@ -238,7 +262,7 @@ private struct RouteMethod {
             \(callPrefix)\(receiver).\(functionName)()
         }
         """
-        return route + call.metadataSuffix
+        return route + call.metadataSuffix + middlewares.middlewareSuffix
     }
 
     private static func callPrefix(for function: FunctionDeclSyntax) -> String {
@@ -261,12 +285,17 @@ private struct RouteMethod {
     private static func call(
         for function: FunctionDeclSyntax,
         routeName: String,
-        routePath: String
+        routePath: String,
+        securityRequirements: [String]
     ) throws -> HandlerCall {
         let parameters = Array(function.signature.parameterClause.parameters)
 
         if parameters.isEmpty {
-            return HandlerCall(argumentExpressions: [], usesRequest: false)
+            return HandlerCall(
+                argumentExpressions: [],
+                usesRequest: false,
+                securityRequirementExpressions: securityRequirements
+            )
         }
 
         let routeParameterNames = pathParameterNames(in: routePath)
@@ -366,7 +395,8 @@ private struct RouteMethod {
             argumentExpressions: arguments,
             usesRequest: true,
             inputMetadataExpressions: inputMetadata,
-            requestBodyMetadataExpression: requestBodyMetadata
+            requestBodyMetadataExpression: requestBodyMetadata,
+            securityRequirementExpressions: securityRequirements
         )
     }
 
@@ -430,6 +460,7 @@ private struct HandlerCall {
     let usesRequest: Bool
     var inputMetadataExpressions: [String] = []
     var requestBodyMetadataExpression: String?
+    var securityRequirementExpressions: [String] = []
 
     var arguments: String {
         argumentExpressions.joined(separator: ", ")
@@ -446,11 +477,62 @@ private struct HandlerCall {
             arguments.append("requestBody: \(requestBodyMetadataExpression)")
         }
 
+        if !securityRequirementExpressions.isEmpty {
+            arguments.append("security: [\(securityRequirementExpressions.joined(separator: ", "))]")
+        }
+
         guard !arguments.isEmpty else {
             return ""
         }
 
         return "\n.describe(\(arguments.joined(separator: ", ")))"
+    }
+}
+
+private struct MiddlewareAttributes {
+    let expressions: [String]
+
+    init(_ attributes: AttributeListSyntax) throws {
+        var expressions: [String] = []
+
+        for attributeElement in attributes {
+            guard case let .attribute(attribute) = attributeElement else {
+                continue
+            }
+
+            let name = RouteAttribute.routeName(for: attribute.attributeName.description.trimmed)
+            guard name == "Use" else {
+                continue
+            }
+
+            expressions.append(try singleTopLevelExpression(from: attribute, attributeName: "Use"))
+        }
+
+        self.expressions = expressions
+    }
+}
+
+private struct SecurityAttributes {
+    let requirements: [String]
+
+    init(_ attributes: AttributeListSyntax) throws {
+        var requirements: [String] = []
+
+        for attributeElement in attributes {
+            guard case let .attribute(attribute) = attributeElement else {
+                continue
+            }
+
+            let name = RouteAttribute.routeName(for: attribute.attributeName.description.trimmed)
+            guard name == "Security" else {
+                continue
+            }
+
+            let securityName = try stringLiteralArgument(from: attribute, attributeName: "Security")
+            requirements.append("RouteSecurityMetadata.requirement(\(securityName.swiftStringLiteral))")
+        }
+
+        self.requirements = requirements
     }
 }
 
@@ -672,9 +754,11 @@ private struct NamedParameterAttribute {
 
 private struct GroupAttribute {
     let path: String
+    let middlewares: [String]
 
     init?(_ group: StructDeclSyntax) throws {
         var found: GroupAttribute?
+        let middlewares = try MiddlewareAttributes(group.attributes).expressions
 
         for attributeElement in group.attributes {
             guard case let .attribute(attribute) = attributeElement else {
@@ -690,7 +774,10 @@ private struct GroupAttribute {
                 throw DaylilyMacroError("Group declarations may only have one @GROUP attribute.")
             }
 
-            found = GroupAttribute(path: try RouteAttribute.path(from: attribute))
+            found = GroupAttribute(
+                path: try RouteAttribute.path(from: attribute),
+                middlewares: middlewares
+            )
         }
 
         guard let found else {
@@ -700,8 +787,9 @@ private struct GroupAttribute {
         self = found
     }
 
-    private init(path: String) {
+    private init(path: String, middlewares: [String]) {
         self.path = path
+        self.middlewares = middlewares
     }
 }
 
@@ -812,6 +900,125 @@ private struct DaylilyMacroError: Error, CustomStringConvertible {
     }
 }
 
+private func singleTopLevelExpression(
+    from attribute: AttributeSyntax,
+    attributeName: String
+) throws -> String {
+    let text = attribute.description.trimmed
+    guard let open = text.firstIndex(of: "("),
+          let close = text.lastIndex(of: ")"),
+          open < close
+    else {
+        throw DaylilyMacroError("@\(attributeName) requires one expression.")
+    }
+
+    let expressionStart = text.index(after: open)
+    let expression = String(text[expressionStart..<close]).trimmed
+
+    guard !expression.isEmpty else {
+        throw DaylilyMacroError("@\(attributeName) requires one expression.")
+    }
+
+    guard hasSingleTopLevelExpression(expression) else {
+        throw DaylilyMacroError("@\(attributeName) accepts exactly one expression.")
+    }
+
+    return expression
+}
+
+private func stringLiteralArgument(
+    from attribute: AttributeSyntax,
+    attributeName: String
+) throws -> String {
+    let expression = try singleTopLevelExpression(from: attribute, attributeName: attributeName)
+    guard expression.hasPrefix("\"") else {
+        throw DaylilyMacroError("@\(attributeName) requires a string literal argument.")
+    }
+
+    var index = expression.index(after: expression.startIndex)
+    var value = ""
+    var isEscaped = false
+
+    while index < expression.endIndex {
+        let character = expression[index]
+
+        if isEscaped {
+            value.append(character)
+            isEscaped = false
+        } else if character == "\\" {
+            value.append(character)
+            isEscaped = true
+        } else if character == "\"" {
+            let tail = String(expression[expression.index(after: index)...]).trimmed
+            guard tail.isEmpty else {
+                throw DaylilyMacroError("@\(attributeName) accepts exactly one string literal argument.")
+            }
+
+            return value
+        } else {
+            value.append(character)
+        }
+
+        index = expression.index(after: index)
+    }
+
+    throw DaylilyMacroError("@\(attributeName) requires a string literal argument.")
+}
+
+private func hasSingleTopLevelExpression(_ expression: String) -> Bool {
+    var parenDepth = 0
+    var bracketDepth = 0
+    var angleDepth = 0
+    var isInString = false
+    var isEscaped = false
+
+    for character in expression {
+        if isEscaped {
+            isEscaped = false
+            continue
+        }
+
+        if character == "\\" {
+            isEscaped = isInString
+            continue
+        }
+
+        if character == "\"" {
+            isInString.toggle()
+            continue
+        }
+
+        guard !isInString else {
+            continue
+        }
+
+        switch character {
+        case "(":
+            parenDepth += 1
+        case ")":
+            parenDepth -= 1
+        case "[":
+            bracketDepth += 1
+        case "]":
+            bracketDepth -= 1
+        case "<":
+            angleDepth += 1
+        case ">":
+            angleDepth = max(0, angleDepth - 1)
+        case "," where parenDepth == 0 && bracketDepth == 0 && angleDepth == 0:
+            return false
+        default:
+            break
+        }
+
+        if parenDepth < 0 || bracketDepth < 0 {
+            return false
+        }
+    }
+
+    return !isInString && parenDepth == 0 && bracketDepth == 0
+}
+
 private extension String {
     var trimmed: String {
         trimmingCharacters(in: .whitespacesAndNewlines)
@@ -845,6 +1052,12 @@ private extension String {
         return split(separator: "\n", omittingEmptySubsequences: false)
             .map { $0.isEmpty ? "" : padding + $0 }
             .joined(separator: "\n")
+    }
+}
+
+private extension [String] {
+    var middlewareSuffix: String {
+        map { "\n.middleware(\($0))" }.joined()
     }
 }
 

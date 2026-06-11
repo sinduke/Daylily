@@ -51,3 +51,15 @@ public macro GROUP(_ prefix: String) = #externalMacro(
     module: "DaylilyMacros",
     type: "RouteMarkerMacro"
 )
+
+@attached(peer)
+public macro Use(_ middleware: any Middleware) = #externalMacro(
+    module: "DaylilyMacros",
+    type: "RouteMarkerMacro"
+)
+
+@attached(peer)
+public macro Security(_ name: String) = #externalMacro(
+    module: "DaylilyMacros",
+    type: "RouteMarkerMacro"
+)

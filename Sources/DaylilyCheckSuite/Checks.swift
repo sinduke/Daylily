@@ -268,6 +268,9 @@ public enum DaylilyChecks {
                 ],
                 responses: [
                     .response(.ok, contentType: "application/json", type: "UserResponse"),
+                ],
+                security: [
+                    .requirement("bearerAuth"),
                 ]
             )
 
@@ -348,6 +351,10 @@ public enum DaylilyChecks {
                 ]
             ),
             "expected OpenAPI response metadata"
+        )
+        try expect(
+            showUser?.security == [["bearerAuth": []]],
+            "expected OpenAPI security metadata"
         )
         try expect(
             createUser?.requestBody == OpenAPIRequestBody(

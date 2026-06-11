@@ -74,7 +74,8 @@ public struct Route: Sendable {
         operationID: String? = nil,
         inputs: [RouteInputMetadata] = [],
         requestBody: RouteBodyMetadata? = nil,
-        responses: [RouteResponseMetadata] = []
+        responses: [RouteResponseMetadata] = [],
+        security: [RouteSecurityMetadata] = []
     ) -> Route {
         withMetadata(
             RouteMetadata(
@@ -84,7 +85,8 @@ public struct Route: Sendable {
                 operationID: operationID,
                 inputs: inputs,
                 requestBody: requestBody,
-                responses: responses
+                responses: responses,
+                security: security
             )
         )
     }

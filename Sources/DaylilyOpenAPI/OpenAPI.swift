@@ -34,6 +34,7 @@ public struct OpenAPIOperation: Codable, Equatable, Sendable {
     public var parameters: [OpenAPIParameter]
     public var requestBody: OpenAPIRequestBody?
     public var responses: [String: OpenAPIResponse]
+    public var security: [[String: [String]]]?
 
     public init(
         summary: String? = nil,
@@ -42,7 +43,8 @@ public struct OpenAPIOperation: Codable, Equatable, Sendable {
         tags: [String] = [],
         parameters: [OpenAPIParameter] = [],
         requestBody: OpenAPIRequestBody? = nil,
-        responses: [String: OpenAPIResponse]
+        responses: [String: OpenAPIResponse],
+        security: [[String: [String]]]? = nil
     ) {
         self.summary = summary
         self.description = description
@@ -51,6 +53,7 @@ public struct OpenAPIOperation: Codable, Equatable, Sendable {
         self.parameters = parameters
         self.requestBody = requestBody
         self.responses = responses
+        self.security = security
     }
 
     enum CodingKeys: String, CodingKey {
@@ -61,6 +64,7 @@ public struct OpenAPIOperation: Codable, Equatable, Sendable {
         case parameters
         case requestBody
         case responses
+        case security
     }
 }
 
@@ -163,8 +167,19 @@ public struct OpenAPIBuilder: Sendable {
             tags: metadata.tags,
             parameters: metadata.inputs.map(parameter(for:)),
             requestBody: metadata.requestBody.map(requestBody(for:)),
-            responses: responses(for: metadata)
+            responses: responses(for: metadata),
+            security: security(for: metadata)
         )
+    }
+
+    private static func security(for metadata: RouteMetadata) -> [[String: [String]]]? {
+        guard !metadata.security.isEmpty else {
+            return nil
+        }
+
+        return metadata.security.map { requirement in
+            [requirement.name: requirement.scopes]
+        }
     }
 
     private static func parameter(for input: RouteInputMetadata) -> OpenAPIParameter {

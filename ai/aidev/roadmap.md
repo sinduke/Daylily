@@ -464,6 +464,36 @@ Design stance:
 - Swift OpenAPI Generator integration should stay an optional `ServerTransport` adapter, not replace Daylily application startup or routing ownership.
 - `DaylilyOpenAPITransport` should reject unsupported path templates rather than silently registering routes Daylily cannot match correctly.
 
+## 0022 Macro Middleware and Security Metadata
+
+Status: implemented
+
+Goal:
+
+- Complete app/group/route middleware macro lowering.
+- Support named middleware expressions without adding a registry.
+- Add explicit route security metadata that appears in OpenAPI operation `security`.
+
+Sequence:
+
+```text
+0022-001 Macro Middleware and Security Attributes (delivered)
+```
+
+Delivered:
+
+- `@Use(...)` on `@DaylilyServer` lowers to application middleware.
+- `@Use(...)` on `@GROUP` lowers into inherited group middleware.
+- `@Use(...)` on route methods lowers to route middleware.
+- `@Use(...)` accepts a single top-level Swift expression, including named values like `AppMiddleware.observability`.
+- `@Security("scheme")` lowers to `RouteSecurityMetadata` and OpenAPI operation security metadata.
+
+Design stance:
+
+- Macro middleware remains syntax over runtime `.middleware(...)`.
+- Security metadata is explicit and is not inferred from middleware.
+- OpenAPI security scheme components remain a future OpenAPI slice.
+
 ### Future Epics
 
-- Middleware macro attributes remain future macro polish.
+- Continue OpenAPI schema expansion and security scheme components after the current macro/runtime bridge stays stable.

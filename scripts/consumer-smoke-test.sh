@@ -275,6 +275,7 @@ if [[ "$MACRO_DEPENDENCY_SMOKE" == "1" ]]; then
 import Daylily
 
 @main
+@Use(ConsumerMiddleware.app)
 @DaylilyServer
 struct ConsumerMacroApp {
     func configureDependencies(_ dependencies: inout Dependencies) {
@@ -305,6 +306,29 @@ struct ConsumerMacroApp {
     func echo(@Body input: MacroEchoPayload) -> JSON<MacroEchoResponse> {
         JSON(MacroEchoResponse(echo: input.message))
     }
+
+    @Use(ConsumerMiddleware.named)
+    @Use(ConsumerHeaderMiddleware(name: "x-consumer-route", value: "route"))
+    @Security("consumerAuth")
+    @GET("/middleware/route")
+    func routeMiddleware() -> String {
+        "route middleware"
+    }
+
+    @Use(ConsumerHeaderMiddleware(name: "x-consumer-group", value: "group"))
+    @GROUP("/middleware/group")
+    struct MiddlewareGroup {
+        @GET("/hello")
+        func hello() -> String {
+            "group middleware"
+        }
+
+        @Use(ConsumerHeaderMiddleware(name: "x-consumer-route", value: "route"))
+        @GET("/route")
+        func route() -> String {
+            "group route middleware"
+        }
+    }
 }
 
 struct MacroEchoPayload: Codable, Sendable {
@@ -318,6 +342,22 @@ struct MacroEchoResponse: Codable, Sendable {
 enum ConsumerDependencies {
     static let greeting = DependencyKey<any ConsumerGreetingServing>("consumer.greeting")
     static let label = DependencyKey<String>("consumer.label")
+}
+
+enum ConsumerMiddleware {
+    static let app = ConsumerHeaderMiddleware(name: "x-consumer-app", value: "app")
+    static let named = ConsumerHeaderMiddleware(name: "x-consumer-named", value: "named")
+}
+
+struct ConsumerHeaderMiddleware: Middleware {
+    let name: String
+    let value: String
+
+    func handle(_ request: Request, next: Handler) async throws -> Response {
+        var response = try await next.respond(to: request)
+        response.headers[name] = value
+        return response
+    }
 }
 
 protocol ConsumerGreetingServing: Sendable {
@@ -512,6 +552,7 @@ fi
 run_macro_dependency_smoke() {
     local port="$CONSUMER_MACRO_PORT"
     local log_file="$WORKDIR/ConsumerMacroApp.log"
+    local headers_file=""
     local response=""
     local started="0"
     local status="0"
@@ -554,6 +595,46 @@ run_macro_dependency_smoke() {
         if [[ "$response" != "external:Consumer macro dependency 42" ]]; then
             echo "Unexpected ConsumerMacroApp dependency response: $response" >&2
             sed -n '1,200p' "$log_file" >&2
+            status="1"
+        fi
+
+        headers_file="$WORKDIR/ConsumerMacroApp-route.headers"
+        response="$(curl --silent --show-error --dump-header "$headers_file" "http://127.0.0.1:$port/middleware/route" 2>/dev/null || true)"
+        if [[ "$response" != "route middleware" ]]; then
+            echo "Unexpected ConsumerMacroApp route middleware response: $response" >&2
+            sed -n '1,200p' "$log_file" >&2
+            status="1"
+        elif ! grep -qi '^x-consumer-app: app' "$headers_file"; then
+            echo "Missing app middleware header on route middleware response." >&2
+            sed -n '1,120p' "$headers_file" >&2
+            status="1"
+        elif ! grep -qi '^x-consumer-named: named' "$headers_file"; then
+            echo "Missing named middleware header on route middleware response." >&2
+            sed -n '1,120p' "$headers_file" >&2
+            status="1"
+        elif ! grep -qi '^x-consumer-route: route' "$headers_file"; then
+            echo "Missing route middleware header on route middleware response." >&2
+            sed -n '1,120p' "$headers_file" >&2
+            status="1"
+        fi
+
+        headers_file="$WORKDIR/ConsumerMacroApp-group-route.headers"
+        response="$(curl --silent --show-error --dump-header "$headers_file" "http://127.0.0.1:$port/middleware/group/route" 2>/dev/null || true)"
+        if [[ "$response" != "group route middleware" ]]; then
+            echo "Unexpected ConsumerMacroApp group route middleware response: $response" >&2
+            sed -n '1,200p' "$log_file" >&2
+            status="1"
+        elif ! grep -qi '^x-consumer-app: app' "$headers_file"; then
+            echo "Missing app middleware header on group route middleware response." >&2
+            sed -n '1,120p' "$headers_file" >&2
+            status="1"
+        elif ! grep -qi '^x-consumer-group: group' "$headers_file"; then
+            echo "Missing group middleware header on group route middleware response." >&2
+            sed -n '1,120p' "$headers_file" >&2
+            status="1"
+        elif ! grep -qi '^x-consumer-route: route' "$headers_file"; then
+            echo "Missing route middleware header on group route middleware response." >&2
+            sed -n '1,120p' "$headers_file" >&2
             status="1"
         fi
     fi

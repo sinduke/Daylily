@@ -765,7 +765,23 @@ struct CreateUserInput: Codable, Sendable {
     let name: String
 }
 
+struct ResponseHeaderMiddleware: Middleware {
+    let name: String
+    let value: String
+
+    func handle(_ request: Request, next: Handler) async throws -> Response {
+        var response = try await next.respond(to: request)
+        response.headers[name] = value
+        return response
+    }
+}
+
+enum AppMiddleware {
+    static let observability = ResponseHeaderMiddleware(name: "x-daylily-app", value: "observed")
+}
+
 @main
+@Use(AppMiddleware.observability)
 @DaylilyServer
 struct App {
     @GET("/hello")
@@ -773,6 +789,8 @@ struct App {
         "Daylily ships."
     }
 
+    @Use(ResponseHeaderMiddleware(name: "x-daylily-route", value: "users"))
+    @Security("bearerAuth")
     @GET("/users/:id")
     func user(@Path id: Int) -> String {
         "User \(id)"
@@ -827,6 +845,7 @@ struct App {
         "\(term):\(pageNumber):\(token)"
     }
 
+    @Use(ResponseHeaderMiddleware(name: "x-daylily-group", value: "api"))
     @GROUP("/api")
     struct API {
         @GET("/health")
@@ -842,6 +861,10 @@ struct App {
 Macro API 是默认便利路径，不是构建 Daylily app 的唯一方式。如果项目需要自己的 composition root、非默认初始化，或者超出 macro MVP 的 handler 形状，就直接使用 runtime DSL。
 
 宏里的 typed inputs 也会降级成 runtime 行为。`@Path`、`@Query`、`@Header` 和主写法 `@Body` 会通过手写 route 同款的 `Route.describe(...)` 模型贡献 OpenAPI-ready metadata。`@JSONBody` 只作为 `@Body` 的兼容别名写法保留。`@Dependency` 会降级到 keyed `Request.dependencies.require(...)`，不贡献 route metadata。
+
+Macro middleware 使用同一套 runtime middleware model。`@Use(...)` 可以放在 `@DaylilyServer` type、`@GROUP` nested struct 或 route method 上。它的参数是一个 Swift 表达式，所以 `AppMiddleware.observability` 这种命名值不需要额外 registry。
+
+Security metadata 是显式声明。`@Security("bearerAuth")` 会通过 `Route.describe(security:)` 贡献 OpenAPI operation security metadata；它不会从 middleware 自动推断。
 
 Macro app 可以定义 dependency configuration hook：
 
@@ -862,9 +885,11 @@ MVP 限制：
 - `@Header` 会降级到 `req.headers.require(_:as:)`；
 - `@Body` 会降级到 `try await req.json(Type.self)`；`@JSONBody` 是同样 lowering 的兼容别名写法；
 - `@Dependency(key)` 会降级到 `try req.dependencies.require(key)`；
+- `@Use(middleware)` 会降级到 runtime `.middleware(middleware)`，可以用于 app、group 或 route scope；
+- `@Security("scheme")` 会降级到 route security metadata 和 OpenAPI operation security；
 - raw one-shot request body 类型是 `RequestBody`；
 - group type 必须可以默认初始化；
-- optional typed inputs、macro middleware attributes、keyless dependency inference 和深度 OpenAPI schema 推导都是后续工作。
+- optional typed inputs、keyless dependency inference 和深度 OpenAPI schema 推导都是后续工作。
 
 这些是 macro MVP 的限制，不是 runtime 的限制。
 
@@ -945,7 +970,7 @@ Daylily/
 近期：
 
 1. 通过 consumer feedback 继续打磨 optional ecosystem adapter set。
-2. 等生态边界清晰后继续 middleware macro attributes 和 OpenAPI schema expansion。
+2. 等 macro/runtime bridge 稳定后继续 OpenAPI schema expansion 和 security scheme components。
 
 ## License
 

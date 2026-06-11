@@ -110,6 +110,8 @@ products:
       - lower_macro_routes_to_runtime_dsl
       - lower_typed_handler_inputs_to_runtime_apis
       - lower_typed_handler_inputs_to_route_metadata
+      - lower_macro_middleware_to_runtime_middleware
+      - lower_macro_security_to_route_metadata
     depends_on:
       - SwiftCompilerPlugin
       - SwiftSyntax
@@ -122,6 +124,7 @@ products:
       - application_runtime
       - route_model
       - route_metadata
+      - route_security_metadata
       - router_matching
       - request_response_models
       - body_model
@@ -252,6 +255,7 @@ products:
     role: openapi_document_generation
     responsibility:
       - map_route_descriptions_to_openapi_documents
+      - map_route_security_to_openapi_operation_security
       - expose_openapi_dtos
       - provide_application_openapi_helper
       - keep_openapi_generation_out_of_core
@@ -1119,7 +1123,7 @@ implemented_features:
       - "request-scoped dependency registration"
       - "default values"
       - "direct protocol metatype lookup"
-      - "middleware macro attributes"
+      - "middleware macro attributes, handled separately by 0022"
     next_task: null
   lifecycle_integration_design:
     status: implemented
@@ -1260,7 +1264,7 @@ implemented_features:
       error_behavior: "thrown errors flow through Application.respond(to:) mappings"
       body_policy: "middleware may read RequestBody, but RequestBody remains one-shot and there is no automatic replay"
     limitations:
-      - "macro middleware syntax"
+      - "middleware composition helpers"
       - "request context"
       - "dependency injection"
       - "production middleware stack"

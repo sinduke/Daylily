@@ -6,6 +6,7 @@ public struct RouteMetadata: Equatable, Sendable {
     public var inputs: [RouteInputMetadata]
     public var requestBody: RouteBodyMetadata?
     public var responses: [RouteResponseMetadata]
+    public var security: [RouteSecurityMetadata]
 
     public init(
         summary: String? = nil,
@@ -14,7 +15,8 @@ public struct RouteMetadata: Equatable, Sendable {
         operationID: String? = nil,
         inputs: [RouteInputMetadata] = [],
         requestBody: RouteBodyMetadata? = nil,
-        responses: [RouteResponseMetadata] = []
+        responses: [RouteResponseMetadata] = [],
+        security: [RouteSecurityMetadata] = []
     ) {
         self.summary = summary
         self.description = description
@@ -23,9 +25,24 @@ public struct RouteMetadata: Equatable, Sendable {
         self.inputs = inputs
         self.requestBody = requestBody
         self.responses = responses
+        self.security = security
     }
 
     public static let empty = RouteMetadata()
+}
+
+public struct RouteSecurityMetadata: Equatable, Sendable {
+    public var name: String
+    public var scopes: [String]
+
+    public init(name: String, scopes: [String] = []) {
+        self.name = name
+        self.scopes = scopes
+    }
+
+    public static func requirement(_ name: String, scopes: [String] = []) -> RouteSecurityMetadata {
+        RouteSecurityMetadata(name: name, scopes: scopes)
+    }
 }
 
 public enum RouteInputLocation: String, Equatable, Sendable {

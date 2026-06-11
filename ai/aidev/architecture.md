@@ -445,7 +445,7 @@ MVP limits:
 - route handlers may have zero parameters, one `Request` parameter, `@Path`, `@Query`, `@Header`, `@Dependency`, and one `@Body` parameter; `@JSONBody` remains as a compatibility alias spelling
 - `@Path` names must match `:name` route segments
 - raw one-shot request body values use `RequestBody`
-- optional typed inputs, keyless dependency inference, macro middleware attributes, and deep OpenAPI schema derivation are not part of this MVP
+- optional typed inputs, keyless dependency inference, and deep OpenAPI schema derivation are not part of this MVP
 
 Important rule:
 

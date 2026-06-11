@@ -765,7 +765,23 @@ struct CreateUserInput: Codable, Sendable {
     let name: String
 }
 
+struct ResponseHeaderMiddleware: Middleware {
+    let name: String
+    let value: String
+
+    func handle(_ request: Request, next: Handler) async throws -> Response {
+        var response = try await next.respond(to: request)
+        response.headers[name] = value
+        return response
+    }
+}
+
+enum AppMiddleware {
+    static let observability = ResponseHeaderMiddleware(name: "x-daylily-app", value: "observed")
+}
+
 @main
+@Use(AppMiddleware.observability)
 @DaylilyServer
 struct App {
     @GET("/hello")
@@ -773,6 +789,8 @@ struct App {
         "Daylily ships."
     }
 
+    @Use(ResponseHeaderMiddleware(name: "x-daylily-route", value: "users"))
+    @Security("bearerAuth")
     @GET("/users/:id")
     func user(@Path id: Int) -> String {
         "User \(id)"
@@ -827,6 +845,7 @@ struct App {
         "\(term):\(pageNumber):\(token)"
     }
 
+    @Use(ResponseHeaderMiddleware(name: "x-daylily-group", value: "api"))
     @GROUP("/api")
     struct API {
         @GET("/health")
@@ -842,6 +861,10 @@ The rule is simple: macros must lower into the runtime route system. The runtime
 Macro APIs are a default convenience path, not the only supported way to build a Daylily app. If a project needs a custom composition root, non-default initialization, or a handler shape outside the macro MVP, use the runtime DSL directly.
 
 Typed macro inputs also lower into runtime route behavior. `@Path`, `@Query`, `@Header`, and preferred `@Body` inputs contribute OpenAPI-ready metadata through the same `Route.describe(...)` model used by handwritten routes. `@JSONBody` is retained as a compatibility alias spelling for `@Body`. `@Dependency` lowers to keyed `Request.dependencies.require(...)` and does not contribute route metadata.
+
+Macro middleware uses the same runtime middleware model. `@Use(...)` is supported on the `@DaylilyServer` type, `@GROUP` nested structs, and route methods. Its argument is one Swift expression, so named values such as `AppMiddleware.observability` work without a separate registry.
+
+Security metadata is explicit. `@Security("bearerAuth")` contributes OpenAPI operation security metadata through `Route.describe(security:)`; it is not inferred from middleware.
 
 Macro apps can define a dependency configuration hook:
 
@@ -862,9 +885,11 @@ MVP limits:
 - `@Header` lowers into `req.headers.require(_:as:)`;
 - `@Body` lowers into `try await req.json(Type.self)`; `@JSONBody` is a compatibility alias spelling with the same lowering;
 - `@Dependency(key)` lowers into `try req.dependencies.require(key)`;
+- `@Use(middleware)` lowers into runtime `.middleware(middleware)` and can be applied at app, group, or route scope;
+- `@Security("scheme")` lowers into route security metadata and OpenAPI operation security;
 - the raw one-shot request body type is `RequestBody`;
 - grouped types must be default-initializable;
-- optional typed inputs, macro middleware attributes, keyless dependency inference, and deep OpenAPI schema derivation are future work.
+- optional typed inputs, keyless dependency inference, and deep OpenAPI schema derivation are future work.
 
 These are macro MVP limits, not runtime limits.
 
@@ -945,7 +970,7 @@ The most important invariants:
 Near-term:
 
 1. Harden the optional ecosystem adapter set through consumer feedback.
-2. Continue macro middleware attributes and OpenAPI schema expansion after ecosystem boundaries are clear.
+2. Continue OpenAPI schema expansion and security scheme components after the macro/runtime bridge stays stable.
 
 ## License
 

@@ -118,4 +118,4 @@ Notes:
 - 0009 follows the 0008 body work because middleware/body interaction must be explicit.
 - 0009-001 proved the runtime pipeline before exposing additional syntax.
 - 0009-002 added an explicit buffered body helper without changing one-shot body semantics.
-- Future tasks can add macro middleware attributes, request context, and production middleware packages.
+- 0022 later added macro `@Use` middleware attributes; request context and production middleware packages remain future extension points.

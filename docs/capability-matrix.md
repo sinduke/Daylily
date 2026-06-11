@@ -39,8 +39,9 @@ This matrix tracks the current beta-facing capability surface. It is intentional
 | `@Body` | Implemented | Preferred typed JSON body input marker. |
 | `@JSONBody` | Compatibility | Alias spelling for `@Body`; retained for existing code. |
 | `@Dependency` | Implemented | Handler parameter lowering to keyed `Request.dependencies.require(...)`; keyless inference is not supported. |
+| `@Use` | Implemented | App, group, and route middleware lowering; accepts a single Swift expression, including named values. |
+| `@Security` | Implemented | Route-level explicit security metadata lowering for OpenAPI operation security. |
 | Optional typed inputs | Planned | Not implemented yet. |
-| Macro middleware attributes | Planned | Runtime middleware exists; macro attributes are future work. |
 
 ## Metadata, OpenAPI, and Observability
 
@@ -48,6 +49,7 @@ This matrix tracks the current beta-facing capability surface. It is intentional
 | --- | --- | --- |
 | Runtime route metadata | Implemented | `Route.describe(...)` and `Application.describeRoutes()`. |
 | OpenAPI generation | MVP | Minimal document generation from runtime metadata. |
+| OpenAPI operation security | Implemented | Explicit route security metadata maps to operation `security`; security scheme components are not generated. |
 | Deep Swift schema derivation | Planned | Currently explicit metadata only. |
 | Request ID middleware | MVP | Daylily-owned request ID plus external correlation ID behavior. |
 | Request logging middleware | MVP | Method, path, status, IDs, duration, and public error reason. |

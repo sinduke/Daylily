@@ -47,6 +47,12 @@ public macro OPTIONS(_ path: String)
 
 @attached(peer)
 public macro GROUP(_ prefix: String)
+
+@attached(peer)
+public macro Use(_ middleware: any Middleware)
+
+@attached(peer)
+public macro Security(_ name: String)
 ```
 
 Rules:
@@ -84,6 +90,11 @@ Rules:
 - `@Dependency(key)` lowers into `try req.dependencies.require(key)`.
 - `@Dependency` requires exactly one `DependencyKey<Value>` expression and does not infer dependencies from parameter type alone.
 - `@Dependency` does not contribute route metadata.
+- `@Use(middleware)` accepts exactly one top-level Swift expression and lowers into runtime `.middleware(middleware)`.
+- `@Use` is supported on the `@DaylilyServer` type, `@GROUP` nested structs, and route methods.
+- Group-level `@Use` is inherited by nested routes and preserves runtime application/group/route middleware order.
+- `@Security("scheme")` is supported on route methods and lowers into route security metadata.
+- `@Security` contributes OpenAPI operation security metadata; security is not inferred from middleware.
 - The raw one-shot request body type is `RequestBody`.
 - Grouped types are instantiated with `Self.GroupType()`.
 - These are macro rules, not runtime rules. Runtime route DSL remains a first-class supported API when macro limits do not fit an application.
@@ -451,6 +462,8 @@ Rules:
 - Path/query/header metadata maps to OpenAPI parameters.
 - JSON body metadata maps to OpenAPI request body content.
 - Response metadata maps to OpenAPI responses.
+- Route security metadata maps to OpenAPI operation `security`.
+- Security scheme components are not generated in this slice.
 - Unknown Swift type names map to object schemas with `x-swift-type`.
 - Deep schema derivation is deferred.
 
@@ -752,7 +765,8 @@ public struct Route: Sendable {
         operationID: String? = nil,
         inputs: [RouteInputMetadata] = [],
         requestBody: RouteBodyMetadata? = nil,
-        responses: [RouteResponseMetadata] = []
+        responses: [RouteResponseMetadata] = [],
+        security: [RouteSecurityMetadata] = []
     ) -> Route
 }
 ```
@@ -778,6 +792,7 @@ public struct RouteMetadata: Equatable, Sendable {
     public var inputs: [RouteInputMetadata]
     public var requestBody: RouteBodyMetadata?
     public var responses: [RouteResponseMetadata]
+    public var security: [RouteSecurityMetadata]
 
     public init(
         summary: String? = nil,
@@ -786,10 +801,19 @@ public struct RouteMetadata: Equatable, Sendable {
         operationID: String? = nil,
         inputs: [RouteInputMetadata] = [],
         requestBody: RouteBodyMetadata? = nil,
-        responses: [RouteResponseMetadata] = []
+        responses: [RouteResponseMetadata] = [],
+        security: [RouteSecurityMetadata] = []
     )
 
     public static let empty: RouteMetadata
+}
+
+public struct RouteSecurityMetadata: Equatable, Sendable {
+    public var name: String
+    public var scopes: [String]
+
+    public init(name: String, scopes: [String] = [])
+    public static func requirement(_ name: String, scopes: [String] = []) -> RouteSecurityMetadata
 }
 
 public enum RouteInputLocation: String, Equatable, Sendable {

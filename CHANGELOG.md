@@ -18,6 +18,7 @@ Daylily is currently experimental. Public APIs may change before beta or stable 
 - Protocol/keyed dependency design centered on typed `DependencyKey<Value>`.
 - Keyed dependency runtime API with `DependencyKey<Value>` and keyed `register`, `get`, and `require`.
 - Macro `@Dependency` handler parameters over keyed dependency runtime lookup.
+- Macro `@Use` middleware attributes for app, group, and route scope, plus explicit route `@Security` metadata for OpenAPI operation security.
 - Lifecycle integration design that keeps service ownership on `Application` and lookup in `Dependencies`.
 - Optional `DaylilySwiftLog` adapter with `SwiftLogRequestLogSink` for sending Daylily request logs to SwiftLog.
 - Optional `DaylilyServiceLifecycle` adapter with `DaylilyApplicationService` for running Daylily applications inside Swift ServiceLifecycle.
