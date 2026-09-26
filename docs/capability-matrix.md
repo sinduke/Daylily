@@ -1,6 +1,6 @@
 # Capability Matrix
 
-This matrix tracks the current beta-facing capability surface. The current checkout includes operational work after alpha.2; use versioned docs for release capabilities. It is intentionally conservative: planned ecosystem work is listed separately from implemented runtime behavior.
+This matrix tracks the current beta-facing capability surface. The operational work is part of alpha.3; use versioned docs for release capabilities. It is intentionally conservative: planned ecosystem work is listed separately from implemented runtime behavior.
 
 ## Runtime and HTTP
 
@@ -54,7 +54,7 @@ This matrix tracks the current beta-facing capability surface. The current check
 | OpenAPI operation security | Implemented | Explicit route security metadata maps to operation `security`; explicit security scheme components are registered and validated. |
 | Explicit OpenAPI schemas | Implemented | Object, array, string enum, local references, named components, and validation. |
 | Generated server/client round trip | Implemented | `examples/openapi-service` runs actual generated code over HTTP with ServiceGroup and SwiftLog. |
-| Response-transfer observation | Implemented (unreleased) | Terminal outcome, flushed body bytes and transfer duration, separate from handler logs; optional console/in-memory/SwiftLog observers. |
+| Response-transfer observation | Implemented (alpha.3) | Terminal outcome, flushed body bytes and transfer duration, separate from handler logs; optional console/in-memory/SwiftLog observers. |
 | Contract evolution regression | Implemented | Conservative OpenAPI subset diff plus actual old/new generated clients over HTTP. |
 | Deep Swift schema derivation | Planned | Explicit schema registration remains the supported path. |
 | Request ID middleware | MVP | Daylily-owned request ID plus external correlation ID behavior. |

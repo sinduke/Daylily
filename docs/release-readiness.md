@@ -1,6 +1,10 @@
 # Release Readiness
 
-Daylily is experimental. The latest published prerelease is [0.1.0-alpha.2](https://github.com/sinduke/Daylily/releases/tag/0.1.0-alpha.2). Its migration guide is [here](migration-alpha2.md). Current-checkout operation deadlines, draining and transfer observation are a subsequent **unreleased** increment; see [operational readiness](operational-readiness.md).
+Daylily is experimental. `0.1.0-alpha.3` release preparation is in progress; the last published prerelease is [0.1.0-alpha.2](https://github.com/sinduke/Daylily/releases/tag/0.1.0-alpha.2). Alpha.3 packages operation deadlines, graceful draining and transfer observation. Read the [alpha.3 migration guide](migration-alpha3.md) and [operational guide](operational-readiness.md).
+
+## Alpha.3 release gate
+
+Runtime candidate `3bad369331e05231a0c644f148cb59be5f7dc898` passed [all nine integration CI jobs](https://github.com/sinduke/Daylily/actions/runs/36212918755). Preparation adds versioned release documentation and current-profile checks for the new public APIs; exact-release CI also runs the generated-client contract regression. The preparation commit must pass the complete matrix before tagging. Exact-tag installation is verified after publication; see [task 0025-001](../ai/tasks/0025-001-publish-alpha3.md).
 
 ## Published alpha.2
 
@@ -20,7 +24,7 @@ The later operational changes do not modify this tag. Their local tests and depl
 
 ## Candidate validation
 
-The two platform matrices independently run core, path consumer, exact candidate revision consumer, and legacy alpha.1 consumer suites. Core checks also validate the compatibility checker; path/revision suites generate old/new contracts and run real HTTP regressions. A separate Linux job runs the reverse-proxy deployment with 30 seconds of sustained traffic. Independent jobs continue when another fails. Toolchain, resolver pins, and smoke logs are uploaded as artifacts.
+The two platform matrices independently run core, path consumer, exact candidate revision consumer, and legacy alpha.1 consumer suites. Core checks also validate the compatibility checker; path/revision/release suites generate old/new contracts and run real HTTP regressions. A separate Linux job runs the reverse-proxy deployment with 30 seconds of sustained traffic. Independent jobs continue when another fails. Toolchain, resolver pins, and smoke logs are uploaded as artifacts.
 
 Current candidate revision consumers use the checked-out Git commit through a local Git URL. This tests actual SwiftPM source-control resolution even for a PR merge commit without a public tag. Working tree path tests do not prove that a release includes those changes.
 
@@ -40,9 +44,9 @@ scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.1 --profile 
 scripts/template-smoke-test.sh --mode release --version 0.1.0-alpha.1
 ```
 
-All source-control consumers record the resolved revision. Release consumers use exact versions. `--profile current` selects current API coverage independently of dependency source; `legacy-alpha1` is only for the first release's older API surface. Simply changing `--version` must not suppress new capability checks.
+All source-control consumers record the resolved revision. Release consumers use exact versions. `--profile current` selects current API coverage independently of dependency source; `legacy-alpha1` is only for the first release's older API surface. Simply changing `--version` must not suppress new capability checks. The current profile now requires alpha.3 operational APIs; to reproduce alpha.2 consumption, use the smoke scripts from the alpha.2 tag.
 
-The current consumer includes macro dependencies, middleware, optional query/header HTTP behavior, an expected compile failure for optional path inputs, SwiftLog, ServiceLifecycle, HTTP Types, and OpenAPI transport. The OpenAPI example runs actual generated client/server code over HTTP. The template and commerce example are separately compiled as external packages.
+The current consumer includes macro dependencies, middleware, optional query/header HTTP behavior, an expected compile failure for optional path inputs, SwiftLog, ServiceLifecycle, HTTP Types, and OpenAPI transport. It also exercises operational configuration, all three transfer observers, and actual HTTP observation through both Application.run overloads and both ServiceLifecycle entry points. The OpenAPI example runs actual generated client/server code over HTTP. The template and commerce example are separately compiled as external packages.
 
 ## Ready for external trial
 
@@ -56,7 +60,7 @@ The current consumer includes macro dependencies, middleware, optional query/hea
 ## Known limits
 
 - Public APIs are experimental; use the docs corresponding to your dependency version.
-- HTTP/1.1 only; no built-in TLS or HTTP/2. Alpha.2 has no operation deadlines; the current checkout adds header/upload idle limits and bounded graceful drain.
+- HTTP/1.1 only; no built-in TLS or HTTP/2. Alpha.2 has no operation deadlines; alpha.3 adds header/upload idle limits and bounded graceful drain.
 - Cooperative cancellation cannot forcibly stop handler code that ignores cancellation.
 - `body` and `bodyString` are buffered compatibility views; streams require bounded async helpers.
 - OpenAPI validation covers the supported explicit schema subset, not the complete OpenAPI/JSON Schema standard.

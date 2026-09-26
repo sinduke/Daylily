@@ -12,6 +12,7 @@ Daylily provides default paths, not mandatory paths. Runtime APIs are first-clas
 
 - [Quick Start](quickstart.md): install, build, test, run, and validate external package consumption.
 - [Capability Matrix](capability-matrix.md): current features, MVP surfaces, and planned work.
+- [Alpha.3 migration](migration-alpha3.md): default request deadlines, bounded shutdown and optional transfer observation.
 - [Alpha.2 migration](migration-alpha2.md): toolchain, response bodies, lifecycle, and optional inputs.
 - [Release Readiness](release-readiness.md): CI, changelog, tag strategy, and known release limits.
 - [Vapor 5 Beta Review](vapor5-beta-review.md): source-backed comparison and recommended follow-up priorities.
@@ -46,4 +47,4 @@ Daylily provides default paths, not mandatory paths. Runtime APIs are first-clas
 - External consumer and template validation: fresh SwiftPM packages in path, exact revision, and exact release modes.
 - Example validation: commerce API, actual generated OpenAPI client/server, and fixed application-change exercises.
 - Transport: NIO-backed HTTP/1.1.
-- Status: experimental package-consumer work after the alpha.2 release.
+- Status: experimental package-consumer work for the alpha.3 release.

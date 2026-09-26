@@ -1,6 +1,6 @@
 # API and SSE deployment trial
 
-Independent SwiftPM consumer for [operational readiness](../../docs/operational-readiness.md). It requires the current checkout after alpha.2. The package defaults to a relative Daylily dependency.
+Independent SwiftPM consumer for [operational readiness](../../docs/operational-readiness.md). It requires the alpha.3 API set. The package defaults to a relative Daylily dependency.
 
 Run locally with Swift 6.3.2:
 

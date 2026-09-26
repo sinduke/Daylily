@@ -27,7 +27,7 @@
 
 ---
 
-当前源码新增能力与兼容说明：[可靠性和流式响应](docs/reliability-and-streaming.md)。要求 Swift 6.3，验证工具链为 Swift 6.3.2；这些能力随 alpha.2 发布，升级见[迁移指南](docs/migration-alpha2.md)。
+版本能力说明：[可靠性和流式响应](docs/reliability-and-streaming.md)及[运行边界](docs/operational-readiness.md)。要求 Swift 6.3，验证工具链为 Swift 6.3.2；alpha.3 新增请求期限、停机排空和传输观测，升级见[迁移指南](docs/migration-alpha3.md)。
 
 ## 为什么 Daylily 存在
 
@@ -193,10 +193,10 @@ Daylily 不是只想成为 routing library，而是在探索 Swift cloud develop
 作为 SwiftPM package 使用：
 
 ```swift
-.package(url: "https://github.com/sinduke/Daylily.git", from: "0.1.0-alpha.2")
+.package(url: "https://github.com/sinduke/Daylily.git", from: "0.1.0-alpha.3")
 ```
 
-最新发布版本为 `0.1.0-alpha.2`。`main` 可能包含尚未发布的 API；请求期限、有界停机排空和传输观测需要当前源码 checkout，等待后续版本发布。
+本次安装目标为 `0.1.0-alpha.3`，包含请求期限、有界停机排空和传输观测。发布及验证状态见[发布说明](docs/release-readiness.md)；`main` 后续可能包含更新的 API。
 
 把 product 加到 target 里：
 
@@ -219,7 +219,7 @@ swift run
 
 ```sh
 scripts/consumer-smoke-test.sh --mode path
-scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.2
+scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.3
 ```
 
 如果要从推荐的最小 app 结构开始：
@@ -984,7 +984,7 @@ Daylily/
 
 Daylily 使用 [MIT License](LICENSE) 发布。
 
-## 当前源码运行验证
+## alpha.3 源码运行验证
 
 ```sh
 python3 ai/evals/contracts/test_compatibility.py

@@ -538,6 +538,180 @@ func externalPackageConsumesDaylilyServiceLifecycle() {
 SWIFT
 fi
 
+if [[ "$PROFILE" == "current" ]]; then
+    cat > "$WORKDIR/Tests/ConsumerAppTests/ConsumerOperationTests.swift" <<'SWIFT'
+import Daylily
+import DaylilyServiceLifecycle
+import DaylilySwiftLog
+import Foundation
+import Testing
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
+#if canImport(Darwin)
+import Darwin
+#else
+import Glibc
+#endif
+
+@Test("external package configures operation deadlines and shutdown grace")
+func externalPackageConfiguresOperationDeadlines() {
+    let defaults = ServerConfiguration()
+    #expect(defaults.requestHeaderTimeout == .seconds(15))
+    #expect(defaults.uploadIdleTimeout == .seconds(30))
+    #expect(defaults.shutdownGracePeriod == .seconds(10))
+
+    var configuration = ServerConfiguration(
+        requestHeaderTimeout: .milliseconds(750),
+        uploadIdleTimeout: .seconds(2),
+        shutdownGracePeriod: .zero
+    )
+    #expect(configuration.requestHeaderTimeout == .milliseconds(750))
+    #expect(configuration.uploadIdleTimeout == .seconds(2))
+    #expect(configuration.shutdownGracePeriod == .zero)
+    configuration.requestHeaderTimeout = nil
+    configuration.uploadIdleTimeout = nil
+    configuration.shutdownGracePeriod = nil
+    #expect(configuration == ServerConfiguration(
+        requestHeaderTimeout: nil, uploadIdleTimeout: nil, shutdownGracePeriod: nil
+    ))
+}
+
+@Test("external package consumes all response transfer observer adapters")
+func externalPackageConsumesResponseTransferObservers() async {
+    let memory = InMemoryResponseTransferObserver()
+    let observers: [any ResponseTransferObserver] = [
+        memory,
+        ConsoleResponseTransferObserver(),
+        SwiftLogResponseTransferObserver(label: "consumer-transfer"),
+    ]
+    let outcomes: [ResponseTransferOutcome] = [.completed, .cancelled, .failed]
+    let events = outcomes.map { outcome in
+        ResponseTransferEvent(
+            method: .get, path: "/transfer", status: .ok,
+            requestID: "consumer-request", correlationID: "consumer-correlation",
+            bytesSent: 7, durationNanoseconds: 42, outcome: outcome
+        )
+    }
+    for event in events {
+        for observer in observers { await observer.record(event) }
+    }
+    #expect(await memory.snapshot() == events)
+    #expect(events.map(\.outcome.rawValue) == ["completed", "cancelled", "failed"])
+}
+
+@Test("external server entry points deliver actual HTTP transfer observations")
+func externalServerEntryPointsDeliverTransferObservations() async throws {
+    // Every supported entry point must forward its observer to the transport.
+    // This intentionally uses only public products and a real HTTP connection.
+    for entryPoint in ConsumerServerEntryPoint.allCases {
+        let port = try consumerAvailablePort()
+        let observer = InMemoryResponseTransferObserver()
+        let app = Application { Get("/transfer") { "observed" } }
+            .middleware(RequestIDMiddleware())
+        let configuration = ServerConfiguration(
+            port: port, gracefulShutdownSignals: false,
+            requestHeaderTimeout: .seconds(2), uploadIdleTimeout: .seconds(2),
+            shutdownGracePeriod: .milliseconds(100)
+        )
+
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            group.addTask {
+                switch entryPoint {
+                case .configuration:
+                    try await app.run(configuration: configuration, responseObserver: observer)
+                case .hostAndPort:
+                    try await app.run(host: "127.0.0.1", port: port, responseObserver: observer)
+                case .serviceHelper:
+                    try await app.serviceLifecycleService(
+                        configuration: configuration, responseObserver: observer
+                    ).run()
+                case .serviceInitializer:
+                    try await DaylilyApplicationService(
+                        application: app, configuration: configuration, responseObserver: observer
+                    ).run()
+                }
+                throw ConsumerOperationFailure()
+            }
+            group.addTask {
+                let session = URLSession(configuration: .ephemeral)
+                defer { session.invalidateAndCancel() }
+                var request = URLRequest(url: URL(string: "http://127.0.0.1:\(port)/transfer")!)
+                request.timeoutInterval = 1
+                request.setValue("consumer-http", forHTTPHeaderField: "x-request-id")
+                let deadline = ContinuousClock.now + .seconds(10)
+                var received: (Data, URLResponse)?
+                while ContinuousClock.now < deadline {
+                    do {
+                        received = try await session.data(for: request)
+                        break
+                    } catch {
+                        try Task.checkCancellation()
+                        try await Task.sleep(for: .milliseconds(20))
+                    }
+                }
+                let (body, response) = try #require(received)
+                #expect((response as? HTTPURLResponse)?.statusCode == 200)
+                #expect(String(decoding: body, as: UTF8.self) == "observed")
+
+                let observationDeadline = ContinuousClock.now + .seconds(5)
+                while await observer.snapshot().isEmpty, ContinuousClock.now < observationDeadline {
+                    try await Task.sleep(for: .milliseconds(10))
+                }
+                let events = await observer.snapshot()
+                #expect(events.count == 1)
+                let event = try #require(events.first)
+                #expect(event.method == .get)
+                #expect(event.path == "/transfer")
+                #expect(event.status == .ok)
+                #expect(event.outcome == .completed)
+                #expect(event.bytesSent == 8)
+                #expect(event.requestID?.hasPrefix("dl_") == true)
+                #expect(event.correlationID == "consumer-http")
+            }
+            defer { group.cancelAll() }
+            // A startup error wins immediately; otherwise the HTTP assertions
+            // finish first and cancellation shuts down the server before reuse.
+            _ = try await group.next()
+        }
+    }
+}
+
+private enum ConsumerServerEntryPoint: CaseIterable, Sendable {
+    case configuration, hostAndPort, serviceHelper, serviceInitializer
+}
+
+private struct ConsumerOperationFailure: Error {}
+
+private func consumerAvailablePort() throws -> Int {
+    #if canImport(Darwin)
+    let descriptor = socket(AF_INET, SOCK_STREAM, 0)
+    #else
+    let descriptor = socket(AF_INET, Int32(SOCK_STREAM.rawValue), 0)
+    #endif
+    guard descriptor >= 0 else { throw ConsumerOperationFailure() }
+    defer { _ = close(descriptor) }
+    var address = sockaddr_in()
+    address.sin_family = sa_family_t(AF_INET)
+    address.sin_addr.s_addr = inet_addr("127.0.0.1")
+    let bound = withUnsafePointer(to: &address) {
+        $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+            bind(descriptor, $0, socklen_t(MemoryLayout<sockaddr_in>.size))
+        }
+    }
+    guard bound == 0 else { throw ConsumerOperationFailure() }
+    var size = socklen_t(MemoryLayout<sockaddr_in>.size)
+    let result = withUnsafeMutablePointer(to: &address) {
+        $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+            getsockname(descriptor, $0, &size)
+        }
+    }
+    guard result == 0 else { throw ConsumerOperationFailure() }
+    return Int(UInt16(bigEndian: address.sin_port))
+}
+SWIFT
+fi
+
 run_macro_dependency_smoke() {
     local port="$CONSUMER_MACRO_PORT"
     local log_file="$WORKDIR/ConsumerMacroApp.log"

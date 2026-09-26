@@ -13,7 +13,7 @@ let package = Package(
     ],
     dependencies: [
         // DAYLILY_DEPENDENCY_START
-        .package(url: "https://github.com/sinduke/Daylily.git", from: "0.1.0-alpha.2"),
+        .package(url: "https://github.com/sinduke/Daylily.git", from: "0.1.0-alpha.3"),
         // DAYLILY_DEPENDENCY_END
     ],
     targets: [

@@ -72,4 +72,4 @@ scripts/ai-exercises-smoke-test.sh
 
 The transport suite checks real sockets: incremental delivery, slow readers, disconnects, framing, producer errors, pipelining, and bind collisions. Fixed application exercises cover adding an endpoint, substituting a typed dependency, and updating a DTO/schema contract. They are concrete acceptance exercises, not a general agent success-rate benchmark.
 
-Operation deadlines, bounded draining, and transfer observation are added after alpha.2; see [operational readiness](operational-readiness.md). Current limits include HTTP/1.1 only, no native TLS, no deep schema reflection, and no framework-owned ORM/authentication stack.
+Alpha.3 adds operation deadlines, bounded draining, and transfer observation; see [operational readiness](operational-readiness.md). Current limits include HTTP/1.1 only, no native TLS, no deep schema reflection, and no framework-owned ORM/authentication stack.

@@ -14,10 +14,10 @@ This guide covers both SwiftPM package usage and running the Daylily repository 
 Add Daylily as a package dependency:
 
 ```swift
-.package(url: "https://github.com/sinduke/Daylily.git", from: "0.1.0-alpha.2")
+.package(url: "https://github.com/sinduke/Daylily.git", from: "0.1.0-alpha.3")
 ```
 
-Documentation on `main` may describe APIs newer than the latest tag. Alpha.2 includes keyed dependencies, ecosystem adapters, optional inputs, explicit schemas, and response streaming. Follow the [migration guide](migration-alpha2.md) when upgrading from alpha.1.
+Documentation on `main` may describe APIs newer than the latest tag. Alpha.3 adds operational deadlines, graceful drain and transfer observation to alpha.2's reliability capabilities. Read [alpha.3 migration](migration-alpha3.md); upgrades from alpha.1 should also read [alpha.2 migration](migration-alpha2.md). See [release status](release-readiness.md) for the publication gate. Current-profile scripts exercise alpha.3 APIs; use the alpha.2-tagged scripts when rechecking alpha.2.
 
 Add the product to your target:
 
@@ -28,7 +28,7 @@ Add the product to your target:
 Daylily validates this external package path with a generated consumer smoke package:
 
 ```sh
-scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.2 --profile current
+scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.3 --profile current
 ```
 
 ## Clone and Build
@@ -68,7 +68,7 @@ Daylily validates the template in both local path and released package modes:
 
 ```sh
 scripts/template-smoke-test.sh --mode path
-scripts/template-smoke-test.sh --mode release --version 0.1.0-alpha.2
+scripts/template-smoke-test.sh --mode release --version 0.1.0-alpha.3
 ```
 
 ## Run the Commerce API Example

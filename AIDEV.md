@@ -99,7 +99,7 @@ Consumer dependency source is independent of API profile. Use `--profile current
 
 ## Operational increment validation (0024)
 
-Alpha.2 is published; later deadline/drain/transfer APIs remain unreleased. In addition to the existing build/test/check and consumer suites:
+Alpha.3 packages the deadline/drain/transfer increment; publication and exact-version validation are tracked in `docs/release-readiness.md`. In addition to the existing build/test/check and consumer suites:
 
 ```sh
 python3 ai/evals/contracts/test_compatibility.py
@@ -107,4 +107,4 @@ scripts/contract-regression-test.sh --mode path
 python3 scripts/deployment-trial.py --duration 300 --artifacts /tmp/daylily-deployment
 ```
 
-The last command requires Docker and an empty/new evidence directory. CI runs contract subset checks in core jobs, actual generated old/new clients in path/revision jobs, and a separate Linux reverse-proxy deployment job with 30 seconds of sustained traffic. Uploaded artifacts preserve resolver/schema/build/transfer/shutdown evidence. Real model-edit evaluations are opt-in, use the configured Codex account and remain outside automatic CI; see `ai/evals/repeated-changes/README.md`.
+The last command requires Docker and an empty/new evidence directory. CI runs contract subset checks in core jobs, actual generated old/new clients in path/revision/release jobs, and a separate Linux reverse-proxy deployment job with 30 seconds of sustained traffic. Uploaded artifacts preserve resolver/schema/build/transfer/shutdown evidence. Real model-edit evaluations are opt-in, use the configured Codex account and remain outside automatic CI; see `ai/evals/repeated-changes/README.md`.

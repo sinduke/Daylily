@@ -114,7 +114,7 @@ jobs:
             run_smoke commerce scripts/example-smoke-test.sh "${source_args[@]}"
             run_smoke openapi scripts/openapi-smoke-test.sh "${source_args[@]}"
           fi
-          if [[ "$VALIDATION_SUITE" == path || "$VALIDATION_SUITE" == revision ]]; then
+          if [[ "$VALIDATION_SUITE" == path || "$VALIDATION_SUITE" == revision || "$VALIDATION_SUITE" == release ]]; then
             run_smoke contract scripts/contract-regression-test.sh "${source_args[@]}"
           fi
           if [[ "$VALIDATION_SUITE" == path ]]; then

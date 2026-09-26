@@ -27,7 +27,7 @@ Designed for humans and AI agents together.
 
 ---
 
-Current-checkout additions and migration notes: [Reliability and streaming](docs/reliability-and-streaming.md). Requires Swift 6.3; validated with Swift 6.3.2. These additions ship in alpha.2; see the [migration guide](docs/migration-alpha2.md).
+Release capabilities: [Reliability and streaming](docs/reliability-and-streaming.md) and [Operational readiness](docs/operational-readiness.md). Requires Swift 6.3; validated with Swift 6.3.2. Alpha.3 adds operation deadlines, graceful draining and transfer observation; see the [migration guide](docs/migration-alpha3.md).
 
 ## Why Daylily Exists
 
@@ -193,10 +193,10 @@ Potential ecosystem directions:
 Use Daylily as a SwiftPM package:
 
 ```swift
-.package(url: "https://github.com/sinduke/Daylily.git", from: "0.1.0-alpha.2")
+.package(url: "https://github.com/sinduke/Daylily.git", from: "0.1.0-alpha.3")
 ```
 
-The latest published release is `0.1.0-alpha.2`. The `main` README may describe unreleased APIs; operation deadlines, bounded draining, and response-transfer observation require the current checkout until the next release.
+The installation target for this release is `0.1.0-alpha.3`, including operation deadlines, bounded draining and response-transfer observation. See [release readiness](docs/release-readiness.md) for publication and validation status. The `main` README may later describe newer APIs.
 
 Add the product to your target:
 
@@ -219,7 +219,7 @@ To verify Daylily from a fresh external SwiftPM package:
 
 ```sh
 scripts/consumer-smoke-test.sh --mode path
-scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.2
+scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.3
 ```
 
 To start from the recommended minimal app shape:
@@ -979,7 +979,7 @@ Near-term:
 1. Harden the optional ecosystem adapter set through consumer feedback.
 2. Continue OpenAPI schema expansion and security scheme components after the macro/runtime bridge stays stable.
 
-## Operational validation (current checkout)
+## Operational validation (alpha.3 sources)
 
 ```sh
 python3 ai/evals/contracts/test_compatibility.py

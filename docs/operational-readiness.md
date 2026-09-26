@@ -1,6 +1,6 @@
-# Operational readiness (after alpha.2)
+# Operational readiness (alpha.3)
 
-These APIs belong to the current checkout after `0.1.0-alpha.2`. The published alpha.2 contains the earlier reliability/streaming work; installing that tag does not include this operational increment.
+These APIs are part of `0.1.0-alpha.3`. Alpha.2 contains the earlier reliability/streaming work and does not include this operational increment. See the [migration guide](migration-alpha3.md) and [publication status](release-readiness.md).
 
 ## Bound inbound connections and shutdown
 
@@ -75,4 +75,4 @@ This is a local Linux container deployment behind a real proxy, not a public clo
 
 ## Evidence
 
-See [operational trial results](operational-trial-results.md) and [contract/AI regression](contract-and-ai-regression.md) for actual runs. API changes and operational artifacts remain unreleased until a later version is tagged.
+See [operational trial results](operational-trial-results.md) and [contract/AI regression](contract-and-ai-regression.md) for actual runs. Alpha.3 packages this increment; earlier trial records preserve the actual source revisions used at the time.

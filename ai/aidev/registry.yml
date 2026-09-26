@@ -5,7 +5,7 @@ project:
   license: MIT
   license_file: LICENSE
   swift_tools_version: "6.3"
-  current_phase: "release_and_operational_readiness"
+  current_phase: "alpha3_release"
   authoritative_ai_entry:
     - AIDEV.md
     - ai/aidev/start-here.md
@@ -2811,6 +2811,7 @@ aidev_files:
     - ai/epics/0019-release-hygiene.md
     - ai/epics/0020-package-consumer-experience.md
     - ai/epics/0024-release-and-operational-readiness.md
+    - ai/epics/0025-alpha3-release.md
   tasks:
     - ai/tasks/0001-001-minimal-http-server.md
     - ai/tasks/0002-001-aidev-project-contract.md
@@ -2860,6 +2861,7 @@ aidev_files:
     - ai/tasks/0024-004-deployment-trial.md
     - ai/tasks/0024-005-contract-and-ai-regression.md
     - ai/tasks/0024-006-operational-readiness-closure.md
+    - ai/tasks/0025-001-publish-alpha3.md
   docs:
     - CHANGELOG.md
     - docs/README.md
@@ -2947,7 +2949,7 @@ verification:
     cleanup: "stop the HelloDaylily process"
 
 roadmap:
-  current_task: "0024-006-operational-readiness-closure"
+  current_task: "0025-001-publish-alpha3"
   epics:
     completed:
       - "0001-runtime-foundation"
@@ -2968,7 +2970,8 @@ roadmap:
       - "0022-macro-middleware-and-security"
       - "0023-reliability-and-streaming"
       - "0024-release-and-operational-readiness"
-    in_progress: []
+    in_progress:
+      - "0025-alpha3-release"
     next_recommended:
       - "select-external-deployment-and-longer-trial"
       - "prepare-next-operational-prerelease"
@@ -3035,7 +3038,8 @@ roadmap:
     - "0024-004-deployment-trial"
     - "0024-005-contract-and-ai-regression"
     - "0024-006-operational-readiness-closure"
-  in_progress: []
+  in_progress:
+    - "0025-001-publish-alpha3"
   next_recommended:
     - "select-external-deployment-and-longer-trial"
     - "prepare-next-operational-prerelease"
@@ -3088,7 +3092,7 @@ operational_readiness:
   release_revision: "f0d53421981e42e423e0b53b4f6a5dc3460bec81"
   release_ci: "https://github.com/sinduke/Daylily/actions/runs/36212096436"
   release_ci_result: "10/10 jobs passed"
-  runtime_release_status: "unreleased after alpha.2"
+  runtime_release_status: "alpha.3 preparation; see alpha3_release for current publication status"
   guide: docs/operational-readiness.md
   evidence: docs/operational-trial-results.md
   local_tests: "65 Swift tests, 29 contract checks, build/check/default HTTP run"
@@ -3124,3 +3128,13 @@ operational_readiness:
     - "SwiftLog response transfer levels follow outcome and use daylily.response.transfer_duration_ns separately from request-handler duration."
     - "The Docker deployment trial publishes only loopback host ports and preserves scoped results/logs; it does not certify production capacity or native TLS/HTTP2."
     - "Repeated application changes use fixed open-test fixtures and retained acceptance evidence; results are not a blinded test or general AI benchmark."
+
+alpha3_release:
+  status: in_progress
+  epic: "0025-alpha3-release"
+  task: "0025-001-publish-alpha3"
+  version: "0.1.0-alpha.3"
+  migration: docs/migration-alpha3.md
+  prior_validated_revision: "3bad369331e05231a0c644f148cb59be5f7dc898"
+  prior_ci: "https://github.com/sinduke/Daylily/actions/runs/36212918755"
+  boundaries: "Release the existing operational runtime; previous tags and evidence remain unchanged."
