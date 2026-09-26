@@ -65,11 +65,16 @@ jobs:
 
       - name: Verify pinned toolchain and prerequisites
         run: |
+          # Container steps run as root against a checkout owned by the host
+          # runner. Checkout's temporary HOME does not configure later shells.
+          if [[ "$RUNNER_OS" == Linux ]]; then
+            git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          fi
           source scripts/smoke-common.sh
-          smoke_require_tools curl
           SMOKE_ARTIFACT_DIR="$RUNNER_TEMP/daylily-smoke"
           echo "SMOKE_ARTIFACT_DIR=$SMOKE_ARTIFACT_DIR" >> "$GITHUB_ENV"
           mkdir -p "$SMOKE_ARTIFACT_DIR"
+          smoke_require_tools curl
           swift --version > "$SMOKE_ARTIFACT_DIR/toolchain.txt"
           git rev-parse HEAD > "$SMOKE_ARTIFACT_DIR/candidate-revision.txt"
 
@@ -119,9 +124,9 @@ jobs:
         with:
           name: validation-${{ matrix.platform }}-${{ matrix.suite }}
           path: |
-            ${{ runner.temp }}/daylily-smoke/*.txt
-            ${{ runner.temp }}/daylily-smoke/*.log
-            ${{ runner.temp }}/daylily-smoke/*/Package.resolved
-            ${{ runner.temp }}/daylily-smoke/*/dependency-record.json
-            ${{ runner.temp }}/daylily-smoke/*/*.log
+            ${{ env.SMOKE_ARTIFACT_DIR }}/*.txt
+            ${{ env.SMOKE_ARTIFACT_DIR }}/*.log
+            ${{ env.SMOKE_ARTIFACT_DIR }}/*/Package.resolved
+            ${{ env.SMOKE_ARTIFACT_DIR }}/*/dependency-record.json
+            ${{ env.SMOKE_ARTIFACT_DIR }}/*/*.log
           if-no-files-found: ignore

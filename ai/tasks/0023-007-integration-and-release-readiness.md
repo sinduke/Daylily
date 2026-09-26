@@ -45,6 +45,7 @@ Validation:
 - Default HelloDaylily real HTTP smoke passed `/hello`, `/json/health`, and POST `/json/echo`; the process was stopped afterward.
 - Current consumer (five tests plus macro compile-failure and HTTP checks), template, commerce, real generated OpenAPI client/server, and six application-change exercise tests passed. Legacy alpha.1 consumer/template passed separately; exact final candidate revision coverage is assigned to remote CI.
 - Independent review found and fixed configure cancellation before boot and confirmed the final connection scheduling gate has no missing continuation completion paths.
+- First remote candidate run `36209668332` exposed Git ownership checks in all Linux container jobs before compilation: checkout's temporary HOME trust did not reach later shell steps. CI now trusts only the exact checked-out workspace and uses the runtime artifact directory for container paths. Candidate validation continues on the corrected workflow.
 
 Notes:
 
