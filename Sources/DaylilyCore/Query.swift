@@ -1,5 +1,5 @@
 @propertyWrapper
-public struct Query<Value: ParameterDecodable>: Sendable {
+public struct Query<Value: Sendable>: Sendable {
     public var wrappedValue: Value
 
     public init(wrappedValue: Value) {

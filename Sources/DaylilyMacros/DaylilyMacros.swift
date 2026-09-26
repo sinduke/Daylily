@@ -307,6 +307,9 @@ private struct RouteMethod {
 
         for parameter in parameters {
             if let pathAttribute = try NamedParameterAttribute(parameter, attributeName: "Path") {
+                guard optionalWrappedType(parameter.type) == nil else {
+                    throw DaylilyMacroError("@Path parameters cannot be optional; path segments are required. Use @Query or @Header for optional inputs.")
+                }
                 let pathName: String
                 if let explicitName = pathAttribute.name {
                     pathName = explicitName
@@ -334,11 +337,13 @@ private struct RouteMethod {
                     routeName: routeName,
                     attributeName: "Query"
                 )
-                let typeName = parameter.type.description.trimmed
-                let value = "try req.query.require(\(queryName.swiftStringLiteral), as: \(typeName).self)"
+                let wrappedType = optionalWrappedType(parameter.type)
+                let typeName = (wrappedType ?? parameter.type).description.trimmed
+                let extraction = wrappedType == nil ? "require" : "get"
+                let value = "try req.query.\(extraction)(\(queryName.swiftStringLiteral), as: \(typeName).self)"
                 arguments.append(callArgument(for: parameter, value: value))
                 inputMetadata.append(
-                    "RouteInputMetadata.query(\(queryName.swiftStringLiteral), type: \(typeName.swiftStringLiteral))"
+                    "RouteInputMetadata.query(\(queryName.swiftStringLiteral), type: \(typeName.swiftStringLiteral), required: \(wrappedType == nil))"
                 )
                 continue
             }
@@ -350,11 +355,13 @@ private struct RouteMethod {
                     routeName: routeName,
                     attributeName: "Header"
                 )
-                let typeName = parameter.type.description.trimmed
-                let value = "try req.headers.require(\(headerName.swiftStringLiteral), as: \(typeName).self)"
+                let wrappedType = optionalWrappedType(parameter.type)
+                let typeName = (wrappedType ?? parameter.type).description.trimmed
+                let extraction = wrappedType == nil ? "require" : "get"
+                let value = "try req.headers.\(extraction)(\(headerName.swiftStringLiteral), as: \(typeName).self)"
                 arguments.append(callArgument(for: parameter, value: value))
                 inputMetadata.append(
-                    "RouteInputMetadata.header(\(headerName.swiftStringLiteral), type: \(typeName.swiftStringLiteral))"
+                    "RouteInputMetadata.header(\(headerName.swiftStringLiteral), type: \(typeName.swiftStringLiteral), required: \(wrappedType == nil))"
                 )
                 continue
             }
@@ -398,6 +405,20 @@ private struct RouteMethod {
             requestBodyMetadataExpression: requestBodyMetadata,
             securityRequirementExpressions: securityRequirements
         )
+    }
+
+    private static func optionalWrappedType(_ type: TypeSyntax) -> TypeSyntax? {
+        if let optional = type.as(OptionalTypeSyntax.self) { return optional.wrappedType }
+        if let identifier = type.as(IdentifierTypeSyntax.self), identifier.name.text == "Optional",
+           let arguments = identifier.genericArgumentClause?.arguments, arguments.count == 1 {
+            return arguments.first?.argument.as(TypeSyntax.self)
+        }
+        if let member = type.as(MemberTypeSyntax.self), member.baseType.description.trimmed == "Swift",
+           member.name.text == "Optional", let arguments = member.genericArgumentClause?.arguments,
+           arguments.count == 1 {
+            return arguments.first?.argument.as(TypeSyntax.self)
+        }
+        return nil
     }
 
     private static func isRequestParameter(_ parameter: FunctionParameterSyntax) -> Bool {

@@ -1,5 +1,5 @@
 @propertyWrapper
-public struct Header<Value: ParameterDecodable>: Sendable {
+public struct Header<Value: Sendable>: Sendable {
     public var wrappedValue: Value
 
     public init(wrappedValue: Value) {
