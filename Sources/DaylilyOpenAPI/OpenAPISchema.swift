@@ -8,7 +8,25 @@ public struct OpenAPISchema: Codable, Equatable, Sendable {
     public var required: [String]?
     public var enumValues: [String]?
     public var reference: String?
+    var nullableType = false
+    var enumIncludesNull = false
     private var itemStorage: Item?
+
+    /// Whether this concrete schema accepts JSON null. Property presence is controlled
+    /// separately by the containing object's `required` list. References are not expanded.
+    public var isNullable: Bool {
+        (type == "null" || nullableType) && (enumValues == nil || enumIncludesNull)
+    }
+
+    /// Includes JSON null alongside this concrete type (and alongside string enum values).
+    /// For a reference, mark the referenced component nullable instead. Wrapping a
+    /// non-null reference would require composition, which is outside this subset.
+    public func nullable() -> Self {
+        var schema = self
+        schema.nullableType = type != "null"
+        if enumValues != nil { schema.enumIncludesNull = true }
+        return schema
+    }
 
     private indirect enum Item: Equatable, Sendable {
         case schema(OpenAPISchema)
@@ -63,28 +81,58 @@ public struct OpenAPISchema: Codable, Equatable, Sendable {
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         reference = try container.decodeIfPresent(String.self, forKey: .reference)
-        type = try container.decodeIfPresent(String.self, forKey: .type) ?? "object"
+        if let types = try? container.decode([String].self, forKey: .type) {
+            guard types.count == 2, Set(types).count == 2, types.contains("null"),
+                  let concrete = types.first(where: { $0 != "null" }),
+                  ["object", "array", "string", "integer", "number", "boolean"].contains(concrete) else {
+                throw DecodingError.dataCorruptedError(forKey: .type, in: container,
+                    debugDescription: "Only one concrete type plus null is supported.")
+            }
+            type = concrete
+            nullableType = true
+        } else {
+            type = try container.decodeIfPresent(String.self, forKey: .type) ?? "object"
+        }
         format = try container.decodeIfPresent(String.self, forKey: .format)
         swiftType = try container.decodeIfPresent(String.self, forKey: .swiftType)
         properties = try container.decodeIfPresent([String: Self].self, forKey: .properties)
         required = try container.decodeIfPresent([String].self, forKey: .required)
-        enumValues = try container.decodeIfPresent([String].self, forKey: .enumValues)
+        if let values = try container.decodeIfPresent([String?].self, forKey: .enumValues) {
+            guard values.filter({ $0 == nil }).count <= 1 else {
+                throw DecodingError.dataCorruptedError(forKey: .enumValues, in: container,
+                    debugDescription: "Enum values must be unique.")
+            }
+            enumValues = values.compactMap { $0 }
+            enumIncludesNull = values.contains(nil)
+        }
         items = try container.decodeIfPresent(Self.self, forKey: .items)
     }
 
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         if let reference {
+            guard !nullableType else {
+                throw EncodingError.invalidValue(self, .init(codingPath: encoder.codingPath,
+                    debugDescription: "Mark the referenced component nullable; nullable reference wrappers are unsupported."))
+            }
             try container.encode(reference, forKey: .reference)
         } else {
-            try container.encode(type, forKey: .type)
+            if nullableType {
+                try container.encode([type, "null"], forKey: .type)
+            } else {
+                try container.encode(type, forKey: .type)
+            }
         }
         try container.encodeIfPresent(format, forKey: .format)
         try container.encodeIfPresent(swiftType, forKey: .swiftType)
         try container.encodeIfPresent(properties, forKey: .properties)
         try container.encodeIfPresent(required, forKey: .required)
         try container.encodeIfPresent(items, forKey: .items)
-        try container.encodeIfPresent(enumValues, forKey: .enumValues)
+        if let enumValues {
+            var values = enumValues.map(Optional.some)
+            if enumIncludesNull { values.append(nil) }
+            try container.encode(values, forKey: .enumValues)
+        }
     }
 }
 

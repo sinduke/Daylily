@@ -24,7 +24,7 @@ while [[ $# -gt 0 ]]; do
         --keep) KEEP_WORKDIR=1; shift;;
         --help|-h)
             echo 'Usage: scripts/contract-regression-test.sh [--mode path|revision|release] [--package-path PATH] [--repo-url URL] [--revision SHA] [--version VERSION] [--workdir EMPTY] [--keep]'
-            echo 'Environment: CONTRACT_PORT (default 18085), SMOKE_SWIFT_VERSION, DEVELOPER_DIR.'
+            echo 'Environment: CONTRACT_PORT (default 18085), SMOKE_JOBS (default 4), SMOKE_SWIFT_VERSION, DEVELOPER_DIR.'
             exit 0;;
         *) echo "Unknown option: $1" >&2; exit 2;;
     esac
@@ -43,6 +43,12 @@ python3 "$SCRIPT_DIR/openapi-compatibility-check.py" "$FIXTURES/old.json" "$FIXT
 compatibility_status=$?
 set -e
 [[ "$compatibility_status" == 1 ]] || { echo 'Required request addition was not rejected as a supported breaking change' >&2; exit 1; }
+python3 "$SCRIPT_DIR/openapi-compatibility-check.py" "$FIXTURES/nullable-old.json" "$FIXTURES/nullable-compatible.json" --output "$WORKDIR/nullable-compatible-diff.json"
+set +e
+python3 "$SCRIPT_DIR/openapi-compatibility-check.py" "$FIXTURES/nullable-old.json" "$FIXTURES/nullable-breaking.json" --output "$WORKDIR/nullable-breaking-diff.json"
+compatibility_status=$?
+set -e
+[[ "$compatibility_status" == 1 ]] || { echo 'Nullable request narrowing and response expansion were not rejected' >&2; exit 1; }
 cat > "$WORKDIR/Package.swift" <<SWIFT
 // swift-tools-version: 6.3
 import PackageDescription
@@ -57,7 +63,10 @@ let package = Package(name: "DaylilyContractRegression", platforms: [.macOS(.v14
     .target(name: "OldAPI", dependencies: [.product(name: "OpenAPIRuntime", package: "swift-openapi-runtime")], plugins: [.plugin(name: "OpenAPIGenerator", package: "swift-openapi-generator")]),
     .target(name: "NewAPI", dependencies: [.product(name: "OpenAPIRuntime", package: "swift-openapi-runtime")], plugins: [.plugin(name: "OpenAPIGenerator", package: "swift-openapi-generator")]),
     .target(name: "BreakingAPI", dependencies: [.product(name: "OpenAPIRuntime", package: "swift-openapi-runtime")], plugins: [.plugin(name: "OpenAPIGenerator", package: "swift-openapi-generator")]),
-    .executableTarget(name: "ContractRegression", dependencies: ["OldAPI", "NewAPI", "BreakingAPI",
+    .target(name: "NullableOldAPI", dependencies: [.product(name: "OpenAPIRuntime", package: "swift-openapi-runtime")], plugins: [.plugin(name: "OpenAPIGenerator", package: "swift-openapi-generator")]),
+    .target(name: "NullableNewAPI", dependencies: [.product(name: "OpenAPIRuntime", package: "swift-openapi-runtime")], plugins: [.plugin(name: "OpenAPIGenerator", package: "swift-openapi-generator")]),
+    .target(name: "NullableBreakingAPI", dependencies: [.product(name: "OpenAPIRuntime", package: "swift-openapi-runtime")], plugins: [.plugin(name: "OpenAPIGenerator", package: "swift-openapi-generator")]),
+    .executableTarget(name: "ContractRegression", dependencies: ["OldAPI", "NewAPI", "BreakingAPI", "NullableOldAPI", "NullableNewAPI", "NullableBreakingAPI",
         .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
         .product(name: "DaylilyCore", package: "Daylily"),
         .product(name: "DaylilyOpenAPITransport", package: "Daylily"),
@@ -68,7 +77,7 @@ let package = Package(name: "DaylilyContractRegression", platforms: [.macOS(.v14
     ]),
 ])
 SWIFT
-for target in OldAPI NewAPI BreakingAPI; do
+for target in OldAPI NewAPI BreakingAPI NullableOldAPI NullableNewAPI NullableBreakingAPI; do
     mkdir -p "$WORKDIR/Sources/$target"
     printf '// Generated contracts are built by the Swift OpenAPI Generator plugin.\n' > "$WORKDIR/Sources/$target/Marker.swift"
     printf 'generate:\n  - types\n  - client\n  - server\naccessModifier: public\n' > "$WORKDIR/Sources/$target/openapi-generator-config.yaml"
@@ -76,12 +85,15 @@ done
 cp "$FIXTURES/old.json" "$WORKDIR/Sources/OldAPI/openapi.json"
 cp "$FIXTURES/compatible.json" "$WORKDIR/Sources/NewAPI/openapi.json"
 cp "$FIXTURES/breaking-required.json" "$WORKDIR/Sources/BreakingAPI/openapi.json"
+cp "$FIXTURES/nullable-old.json" "$WORKDIR/Sources/NullableOldAPI/openapi.json"
+cp "$FIXTURES/nullable-compatible.json" "$WORKDIR/Sources/NullableNewAPI/openapi.json"
+cp "$FIXTURES/nullable-breaking.json" "$WORKDIR/Sources/NullableBreakingAPI/openapi.json"
 mkdir -p "$WORKDIR/Sources/ContractRegression"
 cp "$FIXTURES/HTTPRegression.swift" "$WORKDIR/Sources/ContractRegression/ContractRegression.swift"
 cd "$WORKDIR"
 swift package resolve
 smoke_record_dependency
-swift build --product ContractRegression
+swift build --jobs "${SMOKE_JOBS:-4}" --product ContractRegression
 bin_path="$(swift build --show-bin-path)"
 python3 - "$bin_path/ContractRegression" <<'PY'
 import os, socket, subprocess, sys

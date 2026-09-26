@@ -4,6 +4,58 @@ import Foundation
 import Testing
 
 @Suite struct OpenAPISchemaTests {
+    @Test func nullableSchemasKeepPresenceSeparateAndRoundTrip() throws {
+        let schema = OpenAPISchema.object(properties: [
+            "requiredNullable": .string().nullable(),
+            "optionalNullable": .string(enum: ["draft", "sent"]).nullable(),
+            "optionalNonNull": .string(),
+            "nullableList": .array(items: .reference("NullableName")).nullable(),
+        ], required: ["requiredNullable"])
+        let document = OpenAPIDocument(info: .init(title: "Nullable", version: "1"), paths: [:],
+            components: .init(schemas: ["Payload": schema, "NullableName": .string().nullable()]))
+        try document.validate()
+        let data = try JSONEncoder().encode(document)
+        #expect(try JSONDecoder().decode(OpenAPIDocument.self, from: data) == document)
+        let encoded = try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(schema)) as? [String: Any])
+        let properties = try #require(encoded["properties"] as? [String: [String: Any]])
+        #expect(encoded["required"] as? [String] == ["requiredNullable"])
+        #expect(properties["requiredNullable"]?["type"] as? [String] == ["string", "null"])
+        let values = try #require(properties["optionalNullable"]?["enum"] as? [Any])
+        #expect(values.count == 3)
+        #expect(values.last is NSNull)
+        #expect(schema.properties?["requiredNullable"]?.isNullable == true)
+        #expect(schema.properties?["optionalNonNull"]?.isNullable == false)
+    }
+
+    @Test func nullableDecodePreservesEnumIntersectionAndRejectsUnions() throws {
+        for (json, nullable) in [
+            (#"{"type":["null","string"],"enum":["a",null]}"#, true),
+            (#"{"type":["string","null"],"enum":["a"]}"#, false),
+            (#"{"type":["string","null"],"enum":[null]}"#, true),
+        ] {
+            let schema = try JSONDecoder().decode(OpenAPISchema.self, from: Data(json.utf8))
+            #expect(schema.isNullable == nullable)
+            #expect(try JSONDecoder().decode(OpenAPISchema.self, from: JSONEncoder().encode(schema)) == schema)
+            try OpenAPIDocument(info: .init(title: "Enum", version: "1"), paths: [:], components: .init(schemas: ["Value": schema])).validate()
+        }
+        for json in [#"{"type":["string","integer"]}"#, #"{"type":["string","null","integer"]}"#,
+                     #"{"type":["null","null"]}"#, #"{"type":["string","null"],"enum":[null,null]}"#] {
+            #expect(throws: DecodingError.self) {
+                try JSONDecoder().decode(OpenAPISchema.self, from: Data(json.utf8))
+            }
+        }
+    }
+
+    @Test func nullableReferenceWrappersAndOpenAPI30AreRejected() throws {
+        var document = OpenAPIDocument(info: .init(title: "Nullable", version: "1"), paths: [:],
+            components: .init(schemas: ["Name": .string(), "Bad": .reference("Name").nullable()]))
+        #expect(throws: OpenAPIValidationError.self) { try document.validate() }
+        #expect(throws: EncodingError.self) { try JSONEncoder().encode(document) }
+        document.components?.schemas["Bad"] = .string().nullable()
+        document.openapi = "3.0.3"
+        #expect(throws: OpenAPIValidationError.self) { try document.validate() }
+    }
+
     @Test func registeredSchemasExportReferencesAndRoundTrip() throws {
         var components = OpenAPIComponents()
         components.registerSchema(.object(properties: [

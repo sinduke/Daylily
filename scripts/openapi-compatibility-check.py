@@ -6,6 +6,7 @@ This is deliberately a documented subset, not a full OpenAPI/JSON Schema validat
 """
 import argparse
 import json
+import math
 import pathlib
 import sys
 
@@ -13,7 +14,51 @@ METHODS = {'get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'}
 SCHEMA_KEYS = {'type', 'format', 'properties', 'required', 'items', 'enum', '$ref',
                'additionalProperties', 'title', 'description', 'default', 'example',
                'examples', 'deprecated'}
-TYPES = {'string', 'integer', 'number', 'boolean', 'object', 'array'}
+TYPES = {'string', 'integer', 'number', 'boolean', 'object', 'array', 'null'}
+
+
+def schema_types(schema):
+    value = schema.get('type')
+    if isinstance(value, str) and value in TYPES:
+        return {value}
+    if (isinstance(value, list) and len(value) == 2
+            and all(isinstance(item, str) and item in TYPES for item in value)
+            and len(set(value)) == 2 and 'null' in value):
+        return set(value)
+    raise Unsupported('A single supported type or exactly one concrete type plus null is required; arbitrary unions are unsupported')
+
+
+def scalar_matches(value, types):
+    if value is None:
+        return 'null' in types
+    if isinstance(value, bool):
+        return 'boolean' in types
+    if isinstance(value, str):
+        return 'string' in types
+    if isinstance(value, (int, float)):
+        if isinstance(value, float) and not math.isfinite(value):
+            raise Unsupported('Enum numbers must be finite JSON values')
+        return 'number' in types or ('integer' in types and int(value) == value)
+    return False
+
+
+def allowed_enum(schema):
+    if 'enum' not in schema:
+        return None
+    types = schema_types(schema)
+    return [value for value in schema['enum'] if scalar_matches(value, types)]
+
+
+def admits_null(schema):
+    values = allowed_enum(schema)
+    return 'null' in schema_types(schema) and (values is None or None in values)
+
+
+def concrete_type(schema):
+    values = allowed_enum(schema)
+    if values is not None and all(value is None for value in values):
+        return None
+    return next(iter(schema_types(schema) - {'null'}), None)
 
 
 class Unsupported(ValueError):
@@ -63,23 +108,25 @@ class Checker:
         unknown = {k for k in schema if k not in SCHEMA_KEYS and not k.startswith('x-')}
         if unknown:
             raise Unsupported('Unsupported schema keywords: ' + ', '.join(sorted(unknown)))
-        if schema.get('type') not in TYPES:
-            raise Unsupported('A supported single schema type is required (nullable/unions are unsupported)')
+        types = schema_types(schema)
+        kind = next(iter(types - {'null'}), None)
         if 'enum' in schema and (not isinstance(schema['enum'], list) or not schema['enum']):
             raise Unsupported('enum must be a nonempty array')
-        if 'enum' in schema and any(v is None or isinstance(v, (dict, list)) for v in schema['enum']):
-            raise Unsupported('Only non-null scalar enum values are supported')
-        if schema['type'] != 'object' and any(k in schema for k in ('properties', 'required', 'additionalProperties')):
+        if 'enum' in schema and any(isinstance(v, (dict, list)) for v in schema['enum']):
+            raise Unsupported('Only scalar enum values (including null) are supported')
+        if 'enum' in schema and not allowed_enum(schema):
+            raise Unsupported('An enum with no values matching its type is outside this subset')
+        if kind != 'object' and any(k in schema for k in ('properties', 'required', 'additionalProperties')):
             raise Unsupported('Object constraints on a non-object schema are unsupported')
-        if schema['type'] != 'array' and 'items' in schema:
+        if kind != 'array' and 'items' in schema:
             raise Unsupported('Items constraints on a non-array schema are unsupported')
         if 'additionalProperties' in schema and not isinstance(schema['additionalProperties'], bool):
             raise Unsupported('Only boolean additionalProperties is supported')
-        if schema['type'] == 'array':
+        if kind == 'array':
             if 'items' not in schema:
                 raise Unsupported('Array items schema is required')
             self.validate_schema(schema['items'], document, seen)
-        if schema['type'] == 'object':
+        if kind == 'object':
             properties = schema.get('properties', {})
             required = schema.get('required', [])
             if not isinstance(properties, dict) or not isinstance(required, list) or any(not isinstance(x, str) for x in required):
@@ -148,18 +195,31 @@ class Checker:
         if key in self.compared:
             return
         self.compared.add(key)
-        if old['type'] != new['type'] or old.get('format') != new.get('format'):
+        old_null, new_null = admits_null(old), admits_null(new)
+        if direction == 'request' and old_null and not new_null:
+            self.issue('request-null-removed', location, direction, 'New server rejects JSON null accepted by the old request contract')
+        if direction == 'response' and new_null and not old_null:
+            self.issue('response-null-added', location, direction, 'New response permits JSON null rejected by the old client contract')
+        old_kind, new_kind = concrete_type(old), concrete_type(new)
+        if old_kind is None or new_kind is None:
+            if direction == 'request' and old_kind is not None:
+                self.issue('request-non-null-removed', location, direction, 'New server rejects non-null values accepted by the old request contract')
+            if direction == 'response' and new_kind is not None:
+                self.issue('response-non-null-added', location, direction, 'New response permits non-null values rejected by the old null-only contract')
+            return
+        if old_kind != new_kind or old.get('format') != new.get('format'):
             self.issue('type-changed', location, direction, 'Schema type/format changed; generated value representations may differ')
             return
-        a = {json.dumps(v, sort_keys=True) for v in old['enum']} if 'enum' in old else None
-        b = {json.dumps(v, sort_keys=True) for v in new['enum']} if 'enum' in new else None
+        old_enum, new_enum = allowed_enum(old), allowed_enum(new)
+        a = {json.dumps(v, sort_keys=True) for v in old_enum if v is not None} if old_enum is not None else None
+        b = {json.dumps(v, sort_keys=True) for v in new_enum if v is not None} if new_enum is not None else None
         if direction == 'request' and b is not None and (a is None or not a <= b):
             self.issue('request-enum-narrowed', location, direction, 'New server rejects enum values accepted by the old request contract')
         if direction == 'response' and a is not None and (b is None or not b <= a):
             self.issue('response-enum-expanded', location, direction, 'New response permits enum values unknown to the old client')
-        if old['type'] == 'array':
+        if old_kind == 'array':
             self.schema(old['items'], new['items'], location + '/items', direction)
-        if old['type'] != 'object':
+        if old_kind != 'object':
             return
         old_props, new_props = old.get('properties', {}), new.get('properties', {})
         old_required, new_required = set(old.get('required', [])), set(new.get('required', []))

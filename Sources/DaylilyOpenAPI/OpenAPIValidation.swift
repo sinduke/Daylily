@@ -30,6 +30,14 @@ public extension OpenAPIDocument {
             }
         }
         func validateSchema(_ schema: OpenAPISchema, at location: String) throws {
+            if schema.nullableType {
+                guard openapi.hasPrefix("3.1."), schema.type != "null" else {
+                    try fail(location, "Nullable type arrays require OpenAPI 3.1 and a concrete non-null type.")
+                }
+                guard schema.reference == nil else {
+                    try fail(location, "Mark the referenced component nullable; nullable reference wrappers are unsupported.")
+                }
+            }
             if let reference = schema.reference {
                 let prefix = "#/components/schemas/"
                 guard reference.hasPrefix(prefix), components.schemas[String(reference.dropFirst(prefix.count))] != nil else {
@@ -58,8 +66,10 @@ public extension OpenAPIDocument {
                 try validateSchema(items, at: "\(location)/items")
             }
             if let values = schema.enumValues {
-                guard schema.type == "string", !values.isEmpty, Set(values).count == values.count else {
-                    try fail(location, "String enums must contain at least one unique string value.")
+                guard schema.type == "string", (!values.isEmpty || schema.enumIncludesNull),
+                      Set(values).count == values.count,
+                      !schema.enumIncludesNull || schema.nullableType else {
+                    try fail(location, "String enums require unique values; a null enum member requires a nullable type.")
                 }
             }
         }

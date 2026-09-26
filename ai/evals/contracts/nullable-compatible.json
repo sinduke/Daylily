@@ -1,0 +1,83 @@
+{
+  "components": {
+    "schemas": {
+      "NotesInput": {
+        "properties": {
+          "note": {
+            "$ref": "#/components/schemas/NullableText"
+          },
+          "notes": {
+            "items": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "type": "array"
+          },
+          "tag": {
+            "$ref": "#/components/schemas/NullableText"
+          }
+        },
+        "required": [
+          "notes"
+        ],
+        "type": "object"
+      },
+      "NotesOutput": {
+        "properties": {
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "notes"
+        ],
+        "type": "object"
+      },
+      "NullableText": {
+        "type": [
+          "string",
+          "null"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Nullable notes",
+    "version": "2"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/notes": {
+      "post": {
+        "operationId": "notes",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotesInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotesOutput"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        }
+      }
+    }
+  }
+}

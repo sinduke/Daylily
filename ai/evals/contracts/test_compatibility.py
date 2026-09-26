@@ -15,6 +15,94 @@ BASE = json.loads((HERE / 'old.json').read_text())
 
 
 class CompatibilityTests(unittest.TestCase):
+    @staticmethod
+    def schema_document(schema, direction):
+        media = {'content': {'application/json': {'schema': schema}}}
+        operation = {'responses': {'200': {'description': 'OK'}}}
+        if direction == 'request':
+            operation['requestBody'] = media
+        else:
+            operation['responses']['200'].update(media)
+        return {'openapi': '3.1.0', 'paths': {'/value': {'post': operation}}}
+
+    def compare_schema(self, old, new, direction):
+        return module.compare(self.schema_document(old, direction), self.schema_document(new, direction))
+
+    def test_nullable_required_matrix(self):
+        # Independent finite wire-value model: absence, explicit null and a string.
+        for old_required in (False, True):
+            for new_required in (False, True):
+                for old_nullable in (False, True):
+                    for new_nullable in (False, True):
+                        def contract(required, nullable):
+                            return {'type': 'object', 'properties': {'note': {'type': ['string', 'null'] if nullable else 'string'}},
+                                    'required': ['note'] if required else []}
+                        def values(required, nullable):
+                            return {'value'} | ({'absent'} if not required else set()) | ({'null'} if nullable else set())
+                        for direction in ('request', 'response'):
+                            with self.subTest(old_required=old_required, new_required=new_required,
+                                              old_nullable=old_nullable, new_nullable=new_nullable, direction=direction):
+                                a, b = values(old_required, old_nullable), values(new_required, new_nullable)
+                                result = self.compare_schema(contract(old_required, old_nullable), contract(new_required, new_nullable), direction)
+                                self.assertTrue(result['supported'], result)
+                                self.assertEqual(result['compatible'], a <= b if direction == 'request' else b <= a, result)
+
+    def test_nullable_enum_intersection(self):
+        # A nullable type alone does not permit null when enum excludes it.
+        schemas = [
+            ({'type': 'string', 'enum': ['a']}, {'a'}),
+            ({'type': ['string', 'null'], 'enum': ['a']}, {'a'}),
+            ({'type': ['null', 'string'], 'enum': ['a', None]}, {'a', None}),
+            ({'type': ['string', 'null'], 'enum': [None]}, {None}),
+            ({'type': 'null'}, {None}),
+            ({'type': 'string', 'enum': ['a', None]}, {'a'}),
+        ]
+        for old, a in schemas:
+            for new, b in schemas:
+                for direction in ('request', 'response'):
+                    with self.subTest(old=old, new=new, direction=direction):
+                        result = self.compare_schema(old, new, direction)
+                        self.assertTrue(result['supported'], result)
+                        self.assertEqual(result['compatible'], a <= b if direction == 'request' else b <= a, result)
+
+    def test_nullable_arrays_objects_and_local_references(self):
+        for schema in ({'type': ['array', 'null'], 'items': {'type': ['string', 'null']}},
+                       {'type': ['object', 'null'], 'properties': {'value': {'type': 'string'}}}):
+            self.assertTrue(self.compare_schema(schema, copy.deepcopy(schema), 'request')['compatible'])
+        old = self.schema_document({'$ref': '#/components/schemas/Note'}, 'request')
+        old['components'] = {'schemas': {'Note': {'type': ['string', 'null']}}}
+        new = copy.deepcopy(old)
+        new['components']['schemas']['Note']['type'] = 'string'
+        result = module.compare(old, new)
+        self.assertIn('request-null-removed', {finding['code'] for finding in result['findings']})
+
+    def test_general_unions_and_nullable_ref_siblings_still_unsupported(self):
+        for schema in ({'type': ['string', 'integer']}, {'type': ['string', 'null', 'integer']},
+                       {'type': ['null', 'null']}, {'type': ['string']}, {'type': []},
+                       {'type': 'string', 'nullable': True}):
+            result = self.compare_schema({'type': 'string'}, schema, 'request')
+            self.assertFalse(result['supported'], result)
+            self.assertIsNone(result['compatible'], result)
+        old = self.schema_document({'$ref': '#/components/schemas/Note'}, 'request')
+        old['components'] = {'schemas': {'Note': {'type': 'string'}}}
+        new = copy.deepcopy(old)
+        new['paths']['/value']['post']['requestBody']['content']['application/json']['schema']['type'] = ['string', 'null']
+        self.assertFalse(module.compare(old, new)['supported'])
+
+    def test_nullable_fixture_outcomes(self):
+        old = json.loads((HERE / 'nullable-old.json').read_text())
+        compatible = module.compare(old, json.loads((HERE / 'nullable-compatible.json').read_text()))
+        self.assertTrue(compatible['supported'], compatible)
+        self.assertTrue(compatible['compatible'], compatible)
+        breaking = module.compare(old, json.loads((HERE / 'nullable-breaking.json').read_text()))
+        self.assertTrue(breaking['supported'], breaking)
+        self.assertEqual({f['code'] for f in breaking['findings']}, {'request-null-removed', 'response-null-added'})
+
+    def test_empty_or_nonfinite_enum_intersection_is_unsupported(self):
+        for schema in ({'type': 'string', 'enum': [None]}, {'type': 'null', 'enum': ['a']},
+                       {'type': 'number', 'enum': [float('nan')]}, {'type': 'integer', 'enum': [float('inf')]}):
+            self.assertFalse(self.compare_schema({'type': 'string'}, schema, 'request')['supported'])
+
     def check_change(self, mutate, code=None, compatible=False, supported=True):
         new = copy.deepcopy(BASE)
         mutate(new)
