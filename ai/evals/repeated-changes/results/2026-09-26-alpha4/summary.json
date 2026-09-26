@@ -1,0 +1,360 @@
+{
+  "recorded_at": "2026-09-26T12:39:16.813646+00:00",
+  "runner_version": "codex-cli 0.155.0-alpha.9.2",
+  "framework_ref": "0.1.0-alpha.3",
+  "framework_revision": "cfa835792cca3cce614999ddc7adca290015a801",
+  "framework_archive_sha256": "b2de019955723ab044d887e50e9581f8d6263911591384a152e6a46e630dfbdd",
+  "framework_sources_unchanged": true,
+  "baseline_only": false,
+  "trials": 6,
+  "first_pass": 6,
+  "accepted": 6,
+  "repairs": 0,
+  "wall_seconds": 237.628,
+  "cost_usd": null,
+  "limitations": [
+    "Small fixed fixtures, not a general AI capability benchmark.",
+    "Holdout tests are omitted from model workspace; read restrictions are prompt-audited, not hermetic.",
+    "Repair attempts receive failure feedback and are reported separately.",
+    "File persistence exercise is not PostgreSQL integration.",
+    "The immutable dependency snapshot is from a published Git tag; this is not SwiftPM tag-resolution evidence.",
+    "Shared model and compiler caches influence time; monetary cost is unknown."
+  ],
+  "results": [
+    {
+      "task": "04-reservations",
+      "repetition": 1,
+      "model": "gpt-6-astra",
+      "reasoning_effort": "low",
+      "framework_ref": "0.1.0-alpha.3",
+      "framework_revision": "cfa835792cca3cce614999ddc7adca290015a801",
+      "baseline_valid": true,
+      "baseline_exit_code": 1,
+      "baseline_seconds": 19.38,
+      "acceptance_visibility": "withheld on first pass; failure feedback on repair",
+      "fixture_hashes": {
+        "TASK.md": "9a58fd641c25c4695eef2f7df9adbc51d782829d5b34fba0194aaad12670efdb",
+        "HoldoutTests/TrialAcceptanceTests/Acceptance.swift": "ef6b5d71c14fea4adf1df8461f08f0acf2878475ce31335bb434f555f01912c5",
+        "Sources/TrialApp/Inventory.swift": "b46630954e7af08bac1baa4c2c96203e580be3ce07326acbfe0025c615bb8421",
+        "Sources/TrialApp/Models.swift": "b11621ab45cf9791fa020eed363c8b34da2dbc4c1a59539050fd2156aadea8c1",
+        "Sources/TrialApp/Routes.swift": "69d792e2c50a866f8a8f465fd3624532d49e7d8d6c77297400e82ea1db292738"
+      },
+      "success": true,
+      "first_pass": true,
+      "repairs": 0,
+      "stages": [
+        {
+          "attempt": 1,
+          "repair": false,
+          "model_exit_code": 0,
+          "model_completed_turn": true,
+          "model_wall_seconds": 45.269,
+          "acceptance_exit_code": 0,
+          "acceptance_wall_seconds": 4.226,
+          "protected_inputs_unchanged": true,
+          "changed_source_files": [
+            "Sources/TrialApp/Inventory.swift",
+            "Sources/TrialApp/Routes.swift"
+          ],
+          "usage": {
+            "output_tokens": 907,
+            "cached_input_tokens": 91008,
+            "reasoning_output_tokens": 0,
+            "input_tokens": 111025,
+            "cache_write_input_tokens": 0
+          },
+          "success": true,
+          "command_audit": [
+            "/bin/zsh -lc \"pwd && rg --files -g '\"'!'\"\\\\.build/**' -g '\"'!'\"\\\\.git/**' -g '\"'!Tests/**'\"' -g '\"'!fixtures/**'\"' -g '\"'!Fixtures/**'\"'\"",
+            "/bin/zsh -lc 'cat TASK.md Sources/TrialApp/Routes.swift Sources/TrialApp/Models.swift Sources/TrialApp/Inventory.swift docs/runtime-contracts.md docs/api-registry.md'",
+            "/bin/zsh -lc \"rg -n -A 38 '### Route|func Get|func Post|### Application' docs/api-registry.md\"",
+            "/bin/zsh -lc 'cat Sources/TrialApp/Inventory.swift Sources/TrialApp/Routes.swift'"
+          ],
+          "cost_usd": null
+        }
+      ],
+      "cost_usd": null,
+      "cost_status": "Unknown; CLI reports tokens, not billed cost"
+    },
+    {
+      "task": "04-reservations",
+      "repetition": 2,
+      "model": "gpt-6-astra",
+      "reasoning_effort": "low",
+      "framework_ref": "0.1.0-alpha.3",
+      "framework_revision": "cfa835792cca3cce614999ddc7adca290015a801",
+      "baseline_valid": true,
+      "baseline_exit_code": 1,
+      "baseline_seconds": 22.208,
+      "acceptance_visibility": "withheld on first pass; failure feedback on repair",
+      "fixture_hashes": {
+        "TASK.md": "9a58fd641c25c4695eef2f7df9adbc51d782829d5b34fba0194aaad12670efdb",
+        "HoldoutTests/TrialAcceptanceTests/Acceptance.swift": "ef6b5d71c14fea4adf1df8461f08f0acf2878475ce31335bb434f555f01912c5",
+        "Sources/TrialApp/Inventory.swift": "b46630954e7af08bac1baa4c2c96203e580be3ce07326acbfe0025c615bb8421",
+        "Sources/TrialApp/Models.swift": "b11621ab45cf9791fa020eed363c8b34da2dbc4c1a59539050fd2156aadea8c1",
+        "Sources/TrialApp/Routes.swift": "69d792e2c50a866f8a8f465fd3624532d49e7d8d6c77297400e82ea1db292738"
+      },
+      "success": true,
+      "first_pass": true,
+      "repairs": 0,
+      "stages": [
+        {
+          "attempt": 1,
+          "repair": false,
+          "model_exit_code": 0,
+          "model_completed_turn": true,
+          "model_wall_seconds": 49.814,
+          "acceptance_exit_code": 0,
+          "acceptance_wall_seconds": 3.637,
+          "protected_inputs_unchanged": true,
+          "changed_source_files": [
+            "Sources/TrialApp/Inventory.swift",
+            "Sources/TrialApp/Routes.swift"
+          ],
+          "usage": {
+            "output_tokens": 1089,
+            "cached_input_tokens": 118400,
+            "reasoning_output_tokens": 19,
+            "input_tokens": 136116,
+            "cache_write_input_tokens": 0
+          },
+          "success": true,
+          "command_audit": [
+            "/bin/zsh -lc \"pwd; rg --files -g '\"'!'\"\\\\.build/**' -g '\"'!'\"\\\\.git/**' -g 'TASK.md' -g 'AGENTS.md' -g 'Sources/**' -g 'docs/**'\"",
+            "/bin/zsh -lc 'cat TASK.md Sources/TrialApp/Routes.swift Sources/TrialApp/Models.swift Sources/TrialApp/Inventory.swift docs/api-registry.md docs/runtime-contracts.md'",
+            "/bin/zsh -lc \"rg -n 'DependencyKey|struct Dependencies|struct Application|init\\\\(.*dependencies|struct Abort|conflict|func Post|func Get|struct JSON' docs/api-registry.md docs/runtime-contracts.md\"",
+            "/bin/zsh -lc \"sed -n '630,715p' docs/api-registry.md\nsed -n '1600,1670p' docs/api-registry.md\nsed -n '100,160p' docs/runtime-contracts.md\"",
+            "/bin/zsh -lc 'cat Sources/TrialApp/Inventory.swift Sources/TrialApp/Routes.swift'"
+          ],
+          "cost_usd": null
+        }
+      ],
+      "cost_usd": null,
+      "cost_status": "Unknown; CLI reports tokens, not billed cost"
+    },
+    {
+      "task": "05-durable-notes",
+      "repetition": 1,
+      "model": "gpt-6-astra",
+      "reasoning_effort": "low",
+      "framework_ref": "0.1.0-alpha.3",
+      "framework_revision": "cfa835792cca3cce614999ddc7adca290015a801",
+      "baseline_valid": true,
+      "baseline_exit_code": 1,
+      "baseline_seconds": 19.461,
+      "acceptance_visibility": "withheld on first pass; failure feedback on repair",
+      "fixture_hashes": {
+        "TASK.md": "447f341754cb8c35557ea47f6ccf9325c62317c959136648fb91006471ed26fb",
+        "HoldoutTests/TrialAcceptanceTests/Acceptance.swift": "99358d5e165ab8c2b5fb9daf003e59eabddc6d7b849ae7af1746bf7c6b2c3e62",
+        "Sources/TrialApp/Repository.swift": "cf8bb6de3ebfb3a28a27a25f122f5ce85c1c1808bcb0838a95cd8a08665af97a",
+        "Sources/TrialApp/Models.swift": "ac77b8bb2348d40a32f7859957ccaeefbf7d6f045157f1fd01f9c2b99c669675",
+        "Sources/TrialApp/Routes.swift": "7d18604469bfa981fda8d8c284da62f99ed7414e056b69feea648cf8a9f62ccd"
+      },
+      "success": true,
+      "first_pass": true,
+      "repairs": 0,
+      "stages": [
+        {
+          "attempt": 1,
+          "repair": false,
+          "model_exit_code": 0,
+          "model_completed_turn": true,
+          "model_wall_seconds": 51.282,
+          "acceptance_exit_code": 0,
+          "acceptance_wall_seconds": 5.832,
+          "protected_inputs_unchanged": true,
+          "changed_source_files": [
+            "Sources/TrialApp/Repository.swift",
+            "Sources/TrialApp/Routes.swift"
+          ],
+          "usage": {
+            "output_tokens": 1184,
+            "cached_input_tokens": 96512,
+            "reasoning_output_tokens": 24,
+            "input_tokens": 117020,
+            "cache_write_input_tokens": 0
+          },
+          "success": true,
+          "command_audit": [
+            "/bin/zsh -lc \"pwd; rg --files -g '\"'!'\"\\\\.build/**' -g '\"'!'\"\\\\.git/**' -g '\"'!Tests/**'\"' -g '\"'!Package.swift'\"'\"",
+            "/bin/zsh -lc 'cat TASK.md'",
+            "/bin/zsh -lc 'cat Sources/TrialApp/Repository.swift Sources/TrialApp/Routes.swift Sources/TrialApp/Models.swift docs/api-registry.md docs/runtime-contracts.md'",
+            "/bin/zsh -lc \"rg -n -A 65 'public struct Application|public struct DependencyKey|public struct Dependencies|public struct Abort|## Dependencies|### Dependencies' docs/api-registry.md docs/runtime-contracts.md\"",
+            "/bin/zsh -lc \"rg -n 'internalServerError' docs/api-registry.md; cat Sources/TrialApp/Repository.swift Sources/TrialApp/Routes.swift\""
+          ],
+          "cost_usd": null
+        }
+      ],
+      "cost_usd": null,
+      "cost_status": "Unknown; CLI reports tokens, not billed cost"
+    },
+    {
+      "task": "05-durable-notes",
+      "repetition": 2,
+      "model": "gpt-6-astra",
+      "reasoning_effort": "low",
+      "framework_ref": "0.1.0-alpha.3",
+      "framework_revision": "cfa835792cca3cce614999ddc7adca290015a801",
+      "baseline_valid": true,
+      "baseline_exit_code": 1,
+      "baseline_seconds": 19.472,
+      "acceptance_visibility": "withheld on first pass; failure feedback on repair",
+      "fixture_hashes": {
+        "TASK.md": "447f341754cb8c35557ea47f6ccf9325c62317c959136648fb91006471ed26fb",
+        "HoldoutTests/TrialAcceptanceTests/Acceptance.swift": "99358d5e165ab8c2b5fb9daf003e59eabddc6d7b849ae7af1746bf7c6b2c3e62",
+        "Sources/TrialApp/Repository.swift": "cf8bb6de3ebfb3a28a27a25f122f5ce85c1c1808bcb0838a95cd8a08665af97a",
+        "Sources/TrialApp/Models.swift": "ac77b8bb2348d40a32f7859957ccaeefbf7d6f045157f1fd01f9c2b99c669675",
+        "Sources/TrialApp/Routes.swift": "7d18604469bfa981fda8d8c284da62f99ed7414e056b69feea648cf8a9f62ccd"
+      },
+      "success": true,
+      "first_pass": true,
+      "repairs": 0,
+      "stages": [
+        {
+          "attempt": 1,
+          "repair": false,
+          "model_exit_code": 0,
+          "model_completed_turn": true,
+          "model_wall_seconds": 61.559,
+          "acceptance_exit_code": 0,
+          "acceptance_wall_seconds": 4.405,
+          "protected_inputs_unchanged": true,
+          "changed_source_files": [
+            "Sources/TrialApp/Repository.swift",
+            "Sources/TrialApp/Routes.swift"
+          ],
+          "usage": {
+            "output_tokens": 1320,
+            "cached_input_tokens": 146688,
+            "reasoning_output_tokens": 54,
+            "input_tokens": 164750,
+            "cache_write_input_tokens": 0
+          },
+          "success": true,
+          "command_audit": [
+            "/bin/zsh -lc \"pwd; rg --files -g '\"'!'\"\\\\.build/**' -g '\"'!'\"\\\\.git/**' -g '\"'!Tests/**'\"' -g '\"'!'\"\\\\.agents/**' -g '\"'!'\"\\\\.codex/**'\"",
+            "/bin/zsh -lc 'cat TASK.md Sources/TrialApp/Models.swift Sources/TrialApp/Repository.swift Sources/TrialApp/Routes.swift docs/api-registry.md docs/runtime-contracts.md'",
+            "/bin/zsh -lc \"rg -n 'DependencyKey|struct Dependencies|struct Application|init\\\\(routes|dependencies:|struct Abort' docs/api-registry.md docs/runtime-contracts.md\"",
+            "/bin/zsh -lc \"sed -n '635,715p' docs/api-registry.md; sed -n '1620,1645p' docs/api-registry.md; sed -n '790,845p' docs/api-registry.md\"",
+            "/bin/zsh -lc 'cat Sources/TrialApp/Repository.swift Sources/TrialApp/Routes.swift'"
+          ],
+          "cost_usd": null
+        }
+      ],
+      "cost_usd": null,
+      "cost_status": "Unknown; CLI reports tokens, not billed cost"
+    },
+    {
+      "task": "06-body-and-outage-repair",
+      "repetition": 1,
+      "model": "gpt-6-astra",
+      "reasoning_effort": "low",
+      "framework_ref": "0.1.0-alpha.3",
+      "framework_revision": "cfa835792cca3cce614999ddc7adca290015a801",
+      "baseline_valid": true,
+      "baseline_exit_code": 1,
+      "baseline_seconds": 24.842,
+      "acceptance_visibility": "withheld on first pass; failure feedback on repair",
+      "fixture_hashes": {
+        "TASK.md": "997adceedfa87896d09b8e888172f50876dccf4672ee694bde7c280993b33a94",
+        "HoldoutTests/TrialAcceptanceTests/Acceptance.swift": "94812bc5ec845ddc2b6b5d96edaabf45e3279c8407cd9e061bddf855b8bdad25",
+        "Sources/TrialApp/Backend.swift": "75d87b4c9808bb232e9eadd57a54278fa439bc4d5e1d92a3df10deb09b14ac29",
+        "Sources/TrialApp/Audit.swift": "6e8937769bab0be1b639f50314027d6b03282a7b9c8b2c351ccf518ac1609aa6",
+        "Sources/TrialApp/Routes.swift": "a5f5c5ec277f4725cfa5b56d067a03f894eee0d11c4b6553feec56410390843e"
+      },
+      "success": true,
+      "first_pass": true,
+      "repairs": 0,
+      "stages": [
+        {
+          "attempt": 1,
+          "repair": false,
+          "model_exit_code": 0,
+          "model_completed_turn": true,
+          "model_wall_seconds": 44.791,
+          "acceptance_exit_code": 0,
+          "acceptance_wall_seconds": 4.768,
+          "protected_inputs_unchanged": true,
+          "changed_source_files": [
+            "Sources/TrialApp/Audit.swift",
+            "Sources/TrialApp/Routes.swift"
+          ],
+          "usage": {
+            "output_tokens": 801,
+            "cached_input_tokens": 148992,
+            "reasoning_output_tokens": 14,
+            "input_tokens": 167031,
+            "cache_write_input_tokens": 0
+          },
+          "success": true,
+          "command_audit": [
+            "/bin/zsh -lc \"pwd; rg --files -g '\"'!'\"\\\\.build/**' -g '\"'!Tests/**'\"' -g '\"'!'\"\\\\.git/**'\"",
+            "/bin/zsh -lc 'cat TASK.md Sources/TrialApp/*.swift docs/*.md'",
+            "/bin/zsh -lc \"rg -n -A 45 -B 5 'struct DependencyKey|struct Dependencies|struct Application|withBufferedBody|struct Abort|serviceUnavailable' docs/api-registry.md; rg -n -A 65 'Dependencies Contract|Error Contract' docs/runtime-contracts.md\"",
+            "/bin/zsh -lc \"rg -n -A 35 '### Status' docs/api-registry.md; cat Sources/TrialApp/Routes.swift Sources/TrialApp/Audit.swift\"",
+            "/bin/zsh -lc 'cat Sources/TrialApp/Audit.swift Sources/TrialApp/Routes.swift'"
+          ],
+          "cost_usd": null
+        }
+      ],
+      "cost_usd": null,
+      "cost_status": "Unknown; CLI reports tokens, not billed cost"
+    },
+    {
+      "task": "06-body-and-outage-repair",
+      "repetition": 2,
+      "model": "gpt-6-astra",
+      "reasoning_effort": "low",
+      "framework_ref": "0.1.0-alpha.3",
+      "framework_revision": "cfa835792cca3cce614999ddc7adca290015a801",
+      "baseline_valid": true,
+      "baseline_exit_code": 1,
+      "baseline_seconds": 24.959,
+      "acceptance_visibility": "withheld on first pass; failure feedback on repair",
+      "fixture_hashes": {
+        "TASK.md": "997adceedfa87896d09b8e888172f50876dccf4672ee694bde7c280993b33a94",
+        "HoldoutTests/TrialAcceptanceTests/Acceptance.swift": "94812bc5ec845ddc2b6b5d96edaabf45e3279c8407cd9e061bddf855b8bdad25",
+        "Sources/TrialApp/Backend.swift": "75d87b4c9808bb232e9eadd57a54278fa439bc4d5e1d92a3df10deb09b14ac29",
+        "Sources/TrialApp/Audit.swift": "6e8937769bab0be1b639f50314027d6b03282a7b9c8b2c351ccf518ac1609aa6",
+        "Sources/TrialApp/Routes.swift": "a5f5c5ec277f4725cfa5b56d067a03f894eee0d11c4b6553feec56410390843e"
+      },
+      "success": true,
+      "first_pass": true,
+      "repairs": 0,
+      "stages": [
+        {
+          "attempt": 1,
+          "repair": false,
+          "model_exit_code": 0,
+          "model_completed_turn": true,
+          "model_wall_seconds": 44.713,
+          "acceptance_exit_code": 0,
+          "acceptance_wall_seconds": 3.832,
+          "protected_inputs_unchanged": true,
+          "changed_source_files": [
+            "Sources/TrialApp/Audit.swift",
+            "Sources/TrialApp/Routes.swift"
+          ],
+          "usage": {
+            "output_tokens": 799,
+            "cached_input_tokens": 145920,
+            "reasoning_output_tokens": 10,
+            "input_tokens": 166202,
+            "cache_write_input_tokens": 0
+          },
+          "success": true,
+          "command_audit": [
+            "/bin/zsh -lc \"pwd; rg --files -g '\"'!'\"\\\\.build/**' -g '\"'!'\"\\\\.git/**' -g '\"'!Tests/**'\"'\"",
+            "/bin/zsh -lc 'cat TASK.md Sources/TrialApp/*.swift docs/*.md'",
+            "/bin/zsh -lc \"rg -n -A 35 -B 5 'withBufferedBody|struct DependencyKey|struct Dependencies|struct Application|struct Abort|serviceUnavailable' docs/api-registry.md; rg -n -A 55 'Dependencies Contract|Error Contract' docs/runtime-contracts.md\"",
+            "/bin/zsh -lc \"rg -n -A 42 '\"'^### Status'\"' docs/api-registry.md; cat Sources/TrialApp/Routes.swift Sources/TrialApp/Audit.swift\"",
+            "/bin/zsh -lc 'cat Sources/TrialApp/Audit.swift Sources/TrialApp/Routes.swift'"
+          ],
+          "cost_usd": null
+        }
+      ],
+      "cost_usd": null,
+      "cost_status": "Unknown; CLI reports tokens, not billed cost"
+    }
+  ]
+}

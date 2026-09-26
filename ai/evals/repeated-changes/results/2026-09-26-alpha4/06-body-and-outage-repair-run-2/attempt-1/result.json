@@ -1,0 +1,30 @@
+{
+  "attempt": 1,
+  "repair": false,
+  "model_exit_code": 0,
+  "model_completed_turn": true,
+  "model_wall_seconds": 44.713,
+  "acceptance_exit_code": 0,
+  "acceptance_wall_seconds": 3.832,
+  "protected_inputs_unchanged": true,
+  "changed_source_files": [
+    "Sources/TrialApp/Audit.swift",
+    "Sources/TrialApp/Routes.swift"
+  ],
+  "usage": {
+    "output_tokens": 799,
+    "cached_input_tokens": 145920,
+    "reasoning_output_tokens": 10,
+    "input_tokens": 166202,
+    "cache_write_input_tokens": 0
+  },
+  "success": true,
+  "command_audit": [
+    "/bin/zsh -lc \"pwd; rg --files -g '\"'!'\"\\\\.build/**' -g '\"'!'\"\\\\.git/**' -g '\"'!Tests/**'\"'\"",
+    "/bin/zsh -lc 'cat TASK.md Sources/TrialApp/*.swift docs/*.md'",
+    "/bin/zsh -lc \"rg -n -A 35 -B 5 'withBufferedBody|struct DependencyKey|struct Dependencies|struct Application|struct Abort|serviceUnavailable' docs/api-registry.md; rg -n -A 55 'Dependencies Contract|Error Contract' docs/runtime-contracts.md\"",
+    "/bin/zsh -lc \"rg -n -A 42 '\"'^### Status'\"' docs/api-registry.md; cat Sources/TrialApp/Routes.swift Sources/TrialApp/Audit.swift\"",
+    "/bin/zsh -lc 'cat Sources/TrialApp/Audit.swift Sources/TrialApp/Routes.swift'"
+  ],
+  "cost_usd": null
+}

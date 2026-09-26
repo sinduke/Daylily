@@ -1,0 +1,56 @@
+{
+  "task": "06-body-and-outage-repair",
+  "repetition": 1,
+  "model": "gpt-6-astra",
+  "reasoning_effort": "low",
+  "framework_ref": "0.1.0-alpha.3",
+  "framework_revision": "cfa835792cca3cce614999ddc7adca290015a801",
+  "baseline_valid": true,
+  "baseline_exit_code": 1,
+  "baseline_seconds": 24.842,
+  "acceptance_visibility": "withheld on first pass; failure feedback on repair",
+  "fixture_hashes": {
+    "TASK.md": "997adceedfa87896d09b8e888172f50876dccf4672ee694bde7c280993b33a94",
+    "HoldoutTests/TrialAcceptanceTests/Acceptance.swift": "94812bc5ec845ddc2b6b5d96edaabf45e3279c8407cd9e061bddf855b8bdad25",
+    "Sources/TrialApp/Backend.swift": "75d87b4c9808bb232e9eadd57a54278fa439bc4d5e1d92a3df10deb09b14ac29",
+    "Sources/TrialApp/Audit.swift": "6e8937769bab0be1b639f50314027d6b03282a7b9c8b2c351ccf518ac1609aa6",
+    "Sources/TrialApp/Routes.swift": "a5f5c5ec277f4725cfa5b56d067a03f894eee0d11c4b6553feec56410390843e"
+  },
+  "success": true,
+  "first_pass": true,
+  "repairs": 0,
+  "stages": [
+    {
+      "attempt": 1,
+      "repair": false,
+      "model_exit_code": 0,
+      "model_completed_turn": true,
+      "model_wall_seconds": 44.791,
+      "acceptance_exit_code": 0,
+      "acceptance_wall_seconds": 4.768,
+      "protected_inputs_unchanged": true,
+      "changed_source_files": [
+        "Sources/TrialApp/Audit.swift",
+        "Sources/TrialApp/Routes.swift"
+      ],
+      "usage": {
+        "output_tokens": 801,
+        "cached_input_tokens": 148992,
+        "reasoning_output_tokens": 14,
+        "input_tokens": 167031,
+        "cache_write_input_tokens": 0
+      },
+      "success": true,
+      "command_audit": [
+        "/bin/zsh -lc \"pwd; rg --files -g '\"'!'\"\\\\.build/**' -g '\"'!Tests/**'\"' -g '\"'!'\"\\\\.git/**'\"",
+        "/bin/zsh -lc 'cat TASK.md Sources/TrialApp/*.swift docs/*.md'",
+        "/bin/zsh -lc \"rg -n -A 45 -B 5 'struct DependencyKey|struct Dependencies|struct Application|withBufferedBody|struct Abort|serviceUnavailable' docs/api-registry.md; rg -n -A 65 'Dependencies Contract|Error Contract' docs/runtime-contracts.md\"",
+        "/bin/zsh -lc \"rg -n -A 35 '### Status' docs/api-registry.md; cat Sources/TrialApp/Routes.swift Sources/TrialApp/Audit.swift\"",
+        "/bin/zsh -lc 'cat Sources/TrialApp/Audit.swift Sources/TrialApp/Routes.swift'"
+      ],
+      "cost_usd": null
+    }
+  ],
+  "cost_usd": null,
+  "cost_status": "Unknown; CLI reports tokens, not billed cost"
+}

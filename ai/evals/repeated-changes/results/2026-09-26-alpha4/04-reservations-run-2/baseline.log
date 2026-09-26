@@ -1,0 +1,131 @@
+Fetching https://github.com/swift-server/swift-service-lifecycle.git from cache
+Fetching https://github.com/apple/swift-http-types.git from cache
+Fetching https://github.com/swiftlang/swift-syntax.git from cache
+Fetching https://github.com/apple/swift-log.git from cache
+Fetching https://github.com/apple/swift-nio.git from cache
+Fetching https://github.com/apple/swift-openapi-runtime.git from cache
+Fetched https://github.com/swift-server/swift-service-lifecycle.git from cache (2.49s)
+Fetched https://github.com/apple/swift-http-types.git from cache (3.01s)
+Fetched https://github.com/apple/swift-openapi-runtime.git from cache (3.03s)
+Fetched https://github.com/apple/swift-log.git from cache (3.19s)
+Fetched https://github.com/apple/swift-nio.git from cache (3.74s)
+Fetched https://github.com/swiftlang/swift-syntax.git from cache (3.96s)
+Computing version for https://github.com/swiftlang/swift-syntax.git
+Computed https://github.com/swiftlang/swift-syntax.git at 603.0.2 (4.05s)
+Computing version for https://github.com/swift-server/swift-service-lifecycle.git
+Computed https://github.com/swift-server/swift-service-lifecycle.git at 2.12.0 (0.02s)
+Fetching https://github.com/apple/swift-async-algorithms.git from cache
+Fetched https://github.com/apple/swift-async-algorithms.git from cache (1.27s)
+Computing version for https://github.com/apple/swift-openapi-runtime.git
+Computed https://github.com/apple/swift-openapi-runtime.git at 1.12.1 (1.32s)
+Computing version for https://github.com/apple/swift-log.git
+Computed https://github.com/apple/swift-log.git at 1.15.1 (0.03s)
+Computing version for https://github.com/apple/swift-http-types.git
+Computed https://github.com/apple/swift-http-types.git at 1.8.0 (0.02s)
+Computing version for https://github.com/apple/swift-async-algorithms.git
+Computed https://github.com/apple/swift-async-algorithms.git at 1.1.6 (0.03s)
+Fetching https://github.com/apple/swift-collections.git from cache
+Fetched https://github.com/apple/swift-collections.git from cache (1.33s)
+Computing version for https://github.com/apple/swift-collections.git
+Computed https://github.com/apple/swift-collections.git at 1.7.1 (1.38s)
+Computing version for https://github.com/apple/swift-nio.git
+Computed https://github.com/apple/swift-nio.git at 2.103.0 (0.03s)
+Fetching https://github.com/apple/swift-atomics.git from cache
+Fetching https://github.com/apple/swift-system.git from cache
+Fetched https://github.com/apple/swift-atomics.git from cache (1.25s)
+Fetched https://github.com/apple/swift-system.git from cache (1.29s)
+Computing version for https://github.com/apple/swift-atomics.git
+Computed https://github.com/apple/swift-atomics.git at 1.3.1 (1.34s)
+Computing version for https://github.com/apple/swift-system.git
+Computed https://github.com/apple/swift-system.git at 1.8.1 (0.02s)
+Creating working copy for https://github.com/apple/swift-log.git
+Working copy of https://github.com/apple/swift-log.git resolved at 1.15.1
+Creating working copy for https://github.com/apple/swift-system.git
+Working copy of https://github.com/apple/swift-system.git resolved at 1.8.1
+Creating working copy for https://github.com/swiftlang/swift-syntax.git
+Working copy of https://github.com/swiftlang/swift-syntax.git resolved at 603.0.2
+Creating working copy for https://github.com/apple/swift-atomics.git
+Working copy of https://github.com/apple/swift-atomics.git resolved at 1.3.1
+Creating working copy for https://github.com/apple/swift-async-algorithms.git
+Working copy of https://github.com/apple/swift-async-algorithms.git resolved at 1.1.6
+Creating working copy for https://github.com/swift-server/swift-service-lifecycle.git
+Working copy of https://github.com/swift-server/swift-service-lifecycle.git resolved at 2.12.0
+Creating working copy for https://github.com/apple/swift-collections.git
+Working copy of https://github.com/apple/swift-collections.git resolved at 1.7.1
+Creating working copy for https://github.com/apple/swift-openapi-runtime.git
+Working copy of https://github.com/apple/swift-openapi-runtime.git resolved at 1.12.1
+Creating working copy for https://github.com/apple/swift-http-types.git
+Working copy of https://github.com/apple/swift-http-types.git resolved at 1.8.0
+Creating working copy for https://github.com/apple/swift-nio.git
+Working copy of https://github.com/apple/swift-nio.git resolved at 2.103.0
+Building for debugging...
+[0/11] /private/tmp/daylily-alpha4-ai-trials-1/04-reservations-run-2/workspace/.build/arm64-apple-macosx/debug/ExtendedChangeTrialPackageTests.derived/runner.swift
+[1/11] Write sources
+[8/11] Write swift-version-69A768CDF2A0BEE1.txt
+[10/24] Emitting module DaylilyCore
+[11/36] Compiling DaylilyCore Application.swift
+[12/36] Compiling DaylilyCore Body.swift
+[13/36] Compiling DaylilyCore Dependencies.swift
+[14/36] Compiling DaylilyCore Errors.swift
+[15/36] Compiling DaylilyCore HTTPMethod.swift
+[16/36] Compiling DaylilyCore Handler.swift
+[17/36] Compiling DaylilyCore Header.swift
+[18/36] Compiling DaylilyCore Headers.swift
+[19/36] Compiling DaylilyCore Lifecycle.swift
+[20/36] Compiling DaylilyCore Middleware.swift
+[21/36] Compiling DaylilyCore Parameters.swift
+[22/36] Compiling DaylilyCore Path.swift
+[23/36] Compiling DaylilyCore Query.swift
+[24/36] Compiling DaylilyCore QueryParameters.swift
+[25/36] Compiling DaylilyCore Request.swift
+[26/36] Compiling DaylilyCore Response.swift
+[27/36] Compiling DaylilyCore ResponseBody.swift
+[28/36] Compiling DaylilyCore ResponseTransfer.swift
+[29/36] Compiling DaylilyCore Route.swift
+[30/36] Compiling DaylilyCore RouteBuilder.swift
+[31/36] Compiling DaylilyCore RouteMetadata.swift
+[32/36] Compiling DaylilyCore Router.swift
+[33/36] Compiling DaylilyCore ServerConfiguration.swift
+[34/36] Compiling DaylilyCore Status.swift
+[35/42] Emitting module DaylilyOpenAPI
+[36/42] Compiling DaylilyOpenAPI OpenAPI.swift
+[37/42] Compiling DaylilyOpenAPI OpenAPISchema.swift
+[38/43] Compiling DaylilyOpenAPI OpenAPIValidation.swift
+[41/45] Emitting module DaylilyTesting
+[42/46] Emitting module DaylilyJSON
+[43/46] Compiling DaylilyJSON JSON.swift
+[44/47] Compiling DaylilyJSON JSONBody.swift
+[45/47] Compiling DaylilyTesting TestRequest.swift
+[46/50] Compiling TrialApp Inventory.swift
+[47/50] Compiling TrialApp Models.swift
+[48/50] Emitting module TrialApp
+[49/51] Compiling TrialApp Routes.swift
+[50/53] Emitting module TrialAcceptanceTests
+[51/53] Compiling TrialAcceptanceTests Acceptance.swift
+[52/55] Compiling ExtendedChangeTrialPackageTests runner.swift
+[53/55] Emitting module ExtendedChangeTrialPackageTests
+[53/55] Write Objects.LinkFileList
+[54/55] Linking ExtendedChangeTrialPackageTests
+Build complete! (21.33s)
+Test Suite 'All tests' started at 2026-09-26 20:35:41.361.
+Test Suite 'All tests' passed at 2026-09-26 20:35:41.363.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+◇ Test run started.
+↳ Testing Library Version: 1902
+↳ Target Platform: arm64e-apple-macos14.0
+◇ Suite ReservationAcceptance started.
+◇ Test invalidInputPreservesState() started.
+◇ Test atomicConcurrentReservationsAndIdempotency() started.
+✘ Test invalidInputPreservesState() recorded an issue at Acceptance.swift:33:9: Expectation failed: try await reserve(client, "a", 0).status.code == 400
+✘ Test invalidInputPreservesState() recorded an issue at Acceptance.swift:34:9: Expectation failed: try await reserve(client, "b", -2).status.code == 400
+✘ Test invalidInputPreservesState() recorded an issue at Acceptance.swift:35:9: Expectation failed: try await reserve(client, "c", 6).status.code == 409
+✘ Test invalidInputPreservesState() recorded an issue at Acceptance.swift:36:9: Expectation failed: try await client.post("/reservations", body: "not json").status.code == 400
+✘ Test invalidInputPreservesState() failed after 0.001 seconds with 4 issues.
+✘ Test atomicConcurrentReservationsAndIdempotency() recorded an issue at Acceptance.swift:17:9: Expectation failed: (statuses.filter { $0 == 200 }.count → 0) == 11
+✘ Test atomicConcurrentReservationsAndIdempotency() recorded an issue at Acceptance.swift:18:9: Expectation failed: (statuses.filter { $0 == 409 }.count → 0) == 13
+✘ Test atomicConcurrentReservationsAndIdempotency() recorded an issue at Acceptance.swift:19:9: Expectation failed: await store.available() == 0
+✘ Test atomicConcurrentReservationsAndIdempotency() recorded an issue at Acceptance.swift:23:9: Expectation failed: (a.status.code == 200 → false) && (b.status.code == 200 → <not evaluated>)
+✘ Test atomicConcurrentReservationsAndIdempotency() recorded an issue at Acceptance.swift:10:6: Caught error: DecodingError.dataCorrupted: Data was corrupted. Debug description: The given data was not valid JSON.. Underlying error: Error Domain=NSCocoaErrorDomain Code=3840 "Unexpected end of file" UserInfo={NSDebugDescription=Unexpected end of file}
+✘ Test atomicConcurrentReservationsAndIdempotency() failed after 0.001 seconds with 5 issues.
+✘ Suite ReservationAcceptance failed after 0.002 seconds with 9 issues.
+✘ Test run with 2 tests in 1 suite failed after 0.002 seconds with 9 issues.

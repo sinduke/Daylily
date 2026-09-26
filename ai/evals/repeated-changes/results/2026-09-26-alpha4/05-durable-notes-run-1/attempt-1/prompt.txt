@@ -1,0 +1,6 @@
+Implement TASK.md in this isolated Swift application package. Read TASK.md, Sources/ and docs/ as needed.
+Edit only Sources/. Preserve the manifest, placeholder Tests/, TASK.md and docs/.
+Independent acceptance tests are withheld until you finish. Task requirements are the specification.
+Do not read outside this workspace, .build/, other attempts, the framework checkout, fixture directories or reference solutions. Do not use web/connectors/external services. Do not create commits.
+Do not run swift build/test/package; the independent harness compiles and tests after your turn.
+Implement the solution yourself and briefly state the change when finished.

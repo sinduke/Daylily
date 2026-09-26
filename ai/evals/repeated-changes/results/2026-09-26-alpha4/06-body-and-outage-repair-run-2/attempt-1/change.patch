@@ -1,0 +1,44 @@
+--- before/Sources/TrialApp/Audit.swift
++++ after/Sources/TrialApp/Audit.swift
+@@ -9,8 +9,9 @@
+     public let trail: AuditTrail
+     public init(trail: AuditTrail) { self.trail=trail }
+     public func handle(_ request: Request, next: Handler) async throws -> Response {
+-        let bytes=try await request.body.collect(upTo: .bytes(256))
+-        if !bytes.isEmpty { await trail.record() }
+-        return try await next.respond(to: request)
++        try await request.withBufferedBody(upTo: .bytes(256)) { bufferedRequest, bytes in
++            if !bytes.isEmpty { await trail.record() }
++            return try await next.respond(to: bufferedRequest)
++        }
+     }
+ }
+--- before/Sources/TrialApp/Routes.swift
++++ after/Sources/TrialApp/Routes.swift
+@@ -1,12 +1,24 @@
+ import DaylilyCore
+ import DaylilyJSON
+ public enum RecoveryApp {
++    private static let backendKey = DependencyKey<EchoBackend>("echoBackend")
++
+     public static func application(backend: EchoBackend, audit: AuditTrail) -> Application {
+-        Application {
++        Application(dependencies: { dependencies in
++            dependencies.register(backend, for: backendKey)
++        }) {
+             Get("/health") { "ok" }
+             Post("/echo") { request in
+                 let input=try await request.json(EchoInput.self)
+-                return JSON(EchoOutput(text: try await backend.echo(input.text)))
++                let backend = try request.dependencies.require(backendKey)
++                do {
++                    return JSON(EchoOutput(text: try await backend.echo(input.text)))
++                } catch BackendFailure.unavailable {
++                    throw Abort(
++                        Status(503, reasonPhrase: "Service Unavailable"),
++                        reason: "Service temporarily unavailable"
++                    )
++                }
+             }.middleware(Audit(trail: audit))
+         }
+     }

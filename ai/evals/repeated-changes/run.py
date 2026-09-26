@@ -132,7 +132,8 @@ def main():
     output.mkdir(parents=True, exist_ok=True)
     if any(output.iterdir()):
         parser.error('output must be empty')
-    tasks = sorted(p for p in (HERE / 'fixtures').iterdir() if p.is_dir() and (p / 'TASK.md').is_file())
+    tasks = sorted(p for p in (HERE / 'fixtures').iterdir()
+                   if p.is_dir() and (p / 'TASK.md').is_file() and (p / 'Tests').is_dir())
     version = subprocess.check_output([args.codex, '--version'], text=True).strip()
     started = time.time()
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as pool:

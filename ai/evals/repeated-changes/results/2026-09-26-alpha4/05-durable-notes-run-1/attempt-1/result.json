@@ -1,0 +1,30 @@
+{
+  "attempt": 1,
+  "repair": false,
+  "model_exit_code": 0,
+  "model_completed_turn": true,
+  "model_wall_seconds": 51.282,
+  "acceptance_exit_code": 0,
+  "acceptance_wall_seconds": 5.832,
+  "protected_inputs_unchanged": true,
+  "changed_source_files": [
+    "Sources/TrialApp/Repository.swift",
+    "Sources/TrialApp/Routes.swift"
+  ],
+  "usage": {
+    "output_tokens": 1184,
+    "cached_input_tokens": 96512,
+    "reasoning_output_tokens": 24,
+    "input_tokens": 117020,
+    "cache_write_input_tokens": 0
+  },
+  "success": true,
+  "command_audit": [
+    "/bin/zsh -lc \"pwd; rg --files -g '\"'!'\"\\\\.build/**' -g '\"'!'\"\\\\.git/**' -g '\"'!Tests/**'\"' -g '\"'!Package.swift'\"'\"",
+    "/bin/zsh -lc 'cat TASK.md'",
+    "/bin/zsh -lc 'cat Sources/TrialApp/Repository.swift Sources/TrialApp/Routes.swift Sources/TrialApp/Models.swift docs/api-registry.md docs/runtime-contracts.md'",
+    "/bin/zsh -lc \"rg -n -A 65 'public struct Application|public struct DependencyKey|public struct Dependencies|public struct Abort|## Dependencies|### Dependencies' docs/api-registry.md docs/runtime-contracts.md\"",
+    "/bin/zsh -lc \"rg -n 'internalServerError' docs/api-registry.md; cat Sources/TrialApp/Repository.swift Sources/TrialApp/Routes.swift\""
+  ],
+  "cost_usd": null
+}

@@ -1,0 +1,63 @@
+--- before/Sources/TrialApp/Inventory.swift
++++ after/Sources/TrialApp/Inventory.swift
+@@ -1,9 +1,29 @@
+ import DaylilyCore
+ public actor Inventory {
+     private var stock: Int
++    private var receipts: [String: Receipt] = [:]
+     public init(stock: Int = 10) { self.stock = stock }
+     public func available() -> Int { stock }
+     public func reserve(key: String, quantity: Int) throws -> Receipt {
+-        return Receipt(key: key, quantity: quantity, remaining: stock)
++        guard quantity > 0 else {
++            throw Abort(.badRequest, reason: "Quantity must be positive")
++        }
++
++        if let receipt = receipts[key] {
++            guard receipt.quantity == quantity else {
++                throw Abort(Status(409, reasonPhrase: "Conflict"), reason: "Reservation quantity differs from the original request")
++            }
++            return receipt
++        }
++
++        guard quantity <= stock else {
++            throw Abort(Status(409, reasonPhrase: "Conflict"), reason: "Insufficient stock")
++        }
++
++        // No suspension points: stock and the retry receipt change atomically.
++        stock -= quantity
++        let receipt = Receipt(key: key, quantity: quantity, remaining: stock)
++        receipts[key] = receipt
++        return receipt
+     }
+ }
+--- before/Sources/TrialApp/Routes.swift
++++ after/Sources/TrialApp/Routes.swift
+@@ -1,11 +1,24 @@
+ import DaylilyCore
+ import DaylilyJSON
+ public enum ReservationApp {
++    private static let inventoryKey = DependencyKey<Inventory>("reservation.inventory")
++
+     public static func application(inventory: Inventory = Inventory()) -> Application {
+-        Application {
++        Application(dependencies: { dependencies in
++            dependencies.register(inventory, for: inventoryKey)
++        }) {
+             Get("/health") { "ok" }
+-            Get("/stock") { JSON(Stock(available: 0)) }
+-            Post("/reservations") { Status(501, reasonPhrase: "Not Implemented") }
++            Get("/stock") { request in
++                let inventory = try request.dependencies.require(inventoryKey)
++                let available = await inventory.available()
++                return JSON(Stock(available: available))
++            }
++            Post("/reservations") { request in
++                let input = try await request.json(ReserveInput.self)
++                let inventory = try request.dependencies.require(inventoryKey)
++                let receipt = try await inventory.reserve(key: input.key, quantity: input.quantity)
++                return JSON(receipt)
++            }
+         }
+     }
+ }

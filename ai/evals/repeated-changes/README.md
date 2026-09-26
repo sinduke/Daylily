@@ -53,3 +53,16 @@ The [official noninteractive guide](https://learn.chatgpt.com/docs/non-interacti
 and [OpenAI eval guidance](https://developers.openai.com/blog/eval-skills) describe
 using structured CLI events and deterministic acceptance. The installed CLI help
 is authoritative for the flags used by this local runner.
+
+
+## Extended withheld-acceptance suite
+
+`run.py` retains only the three original open-test fixtures. `run_extended.py` adds inventory reservations, durable JSON-file repository wiring, and body replay/outage repair. It archives an explicit published framework ref (alpha.3 by default), tests each incomplete baseline, removes acceptance sources before the model turn, and permits a separately recorded bounded repair using failure feedback. Initial editing must touch at least two source files.
+
+```sh
+python3 ai/evals/repeated-changes/run_extended.py --baseline-only --repetitions 1 --output /new/empty/baselines
+# Opt-in actual account-consuming evaluation:
+python3 ai/evals/repeated-changes/run_extended.py --framework-ref 0.1.0-alpha.3 --jobs 2 --repetitions 2 --output /new/empty/trials
+```
+
+Baseline mode requires Swift/Git/Python, makes no model calls, and can run in CI without Codex installed. Actual mode also requires the existing Codex login. Acceptance is withheld by workspace setup and read policy, not a hermetic adversarial boundary; baseline build artifacts exist but model reads are prohibited and audited. Raw events and all attempts are retained in output. [Recorded results](results/2026-09-26-alpha4/README.md) include 6/6 first-pass edits and no repairs; this remains a narrow fixed-task result.

@@ -1,0 +1,30 @@
+{
+  "attempt": 1,
+  "repair": false,
+  "model_exit_code": 0,
+  "model_completed_turn": true,
+  "model_wall_seconds": 61.559,
+  "acceptance_exit_code": 0,
+  "acceptance_wall_seconds": 4.405,
+  "protected_inputs_unchanged": true,
+  "changed_source_files": [
+    "Sources/TrialApp/Repository.swift",
+    "Sources/TrialApp/Routes.swift"
+  ],
+  "usage": {
+    "output_tokens": 1320,
+    "cached_input_tokens": 146688,
+    "reasoning_output_tokens": 54,
+    "input_tokens": 164750,
+    "cache_write_input_tokens": 0
+  },
+  "success": true,
+  "command_audit": [
+    "/bin/zsh -lc \"pwd; rg --files -g '\"'!'\"\\\\.build/**' -g '\"'!'\"\\\\.git/**' -g '\"'!Tests/**'\"' -g '\"'!'\"\\\\.agents/**' -g '\"'!'\"\\\\.codex/**'\"",
+    "/bin/zsh -lc 'cat TASK.md Sources/TrialApp/Models.swift Sources/TrialApp/Repository.swift Sources/TrialApp/Routes.swift docs/api-registry.md docs/runtime-contracts.md'",
+    "/bin/zsh -lc \"rg -n 'DependencyKey|struct Dependencies|struct Application|init\\\\(routes|dependencies:|struct Abort' docs/api-registry.md docs/runtime-contracts.md\"",
+    "/bin/zsh -lc \"sed -n '635,715p' docs/api-registry.md; sed -n '1620,1645p' docs/api-registry.md; sed -n '790,845p' docs/api-registry.md\"",
+    "/bin/zsh -lc 'cat Sources/TrialApp/Repository.swift Sources/TrialApp/Routes.swift'"
+  ],
+  "cost_usd": null
+}
