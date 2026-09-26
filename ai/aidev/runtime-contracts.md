@@ -48,7 +48,10 @@ Guarantees:
 - `Application.run` calls `started` after NIO bind succeeds.
 - `Application.run` calls `shutdown` after server close.
 - `Application.run` calls `cleanup` after shutdown.
-- `shutdown` and `cleanup` are attempted if server run fails after boot.
+- Configure failure runs cleanup; partial boot, bind, started, or serving failure runs shutdown then cleanup.
+- Every teardown hook is attempted once in registration order; teardown is awaited independently of caller cancellation.
+- A single error is preserved; combined primary/teardown failures use `LifecycleRunError` with indexed `LifecycleFailure` entries.
+- Hooks must tolerate partial startup; the framework does not discover resources or infer which resources an arbitrary hook created.
 - SIGINT/SIGTERM close the default NIO server channel so lifecycle shutdown can continue.
 - Cancelling the NIO server run task closes the server channel so external lifecycle systems can stop the server.
 - Lifecycle APIs do not expose NIO types.
@@ -490,7 +493,8 @@ Shape:
 public enum DaylilyOpenAPITransportError: Error, Equatable, Sendable
 
 public final class DaylilyOpenAPITransport: ServerTransport, @unchecked Sendable {
-    public init(responseBodyBufferLimit: ByteCount = .megabytes(1))
+    public init(responseBodyPolicy: OpenAPIResponseBodyPolicy = .stream)
+    public convenience init(responseBodyBufferLimit: ByteCount)
     public func routes() -> [Route]
     public func application(dependencies configureDependencies: @Sendable (inout Dependencies) -> Void = { _ in }) -> Application
 }
@@ -506,7 +510,7 @@ Guarantees:
 - `ServerRequestMetadata.pathParameters` is populated from Daylily route parameters.
 - Daylily requests and responses cross the boundary through `DaylilyHTTPTypes`.
 - Daylily request bodies remain one-shot and stream into OpenAPIRuntime `HTTPBody`.
-- OpenAPIRuntime response bodies are buffered into Daylily `Response` under an explicit limit.
+- OpenAPIRuntime response bodies stream lazily through `ResponseBody` by default; `responseBodyPolicy: .collect(upTo:)` or explicit `responseBodyBufferLimit:` retains bounded buffering.
 - Unsupported templates, including mixed parameter segments such as `{name}.zip`, throw during registration.
 
 Non-goals:
@@ -514,7 +518,6 @@ Non-goals:
 - replacing `Application.run(...)`
 - replacing Daylily routing ownership
 - forced umbrella re-export
-- response streaming
 - running the generator plugin inside Daylily
 
 ## Route Contract
@@ -793,16 +796,21 @@ Fields:
 - `status`
 - `headers`
 - `body`
+- `responseBody`
 
 Guarantees:
 
 - `Response.text` sets `content-type` to `text/plain; charset=utf-8` if absent.
-- `bodyString` decodes body bytes as UTF-8.
+- `responseBody` owns bytes or a one-shot stream. `body`/`bodyString` are buffered compatibility views and are empty for streams; use explicit async collection for streams.
+- Assigning `body` replaces any stream. Copies share one-shot producer consumption.
+- `ResponseBodyWriter.write` must be awaited. Concurrent/escaped writes fail; length mismatches fail.
+- `collect(upTo:)` requires a limit and propagates producer failures.
+- `Response.eventStream` sets event-stream content type and default no-cache; callers own event timing and heartbeats.
 
 Extension points:
 
 - JSON response customization
-- streaming response
+- stream convenience helpers
 - file response
 - response compression
 
@@ -913,18 +921,22 @@ Guarantees:
 - Fails `BodyBytes` with `BodyError.streamFailed` on channel/protocol errors.
 - Uses bounded Daylily buffering plus NIO `autoRead` control for practical backpressure.
 - Calls responder asynchronously.
-- Writes response status, headers, body, and content length.
+- Writes buffered or streaming responses with awaited socket writes and coherent length/chunked framing.
+- HEAD, 204, and 304 do not start response producers; errors after headers close the connection.
+- Observed disconnect cancels request handling and response production cooperatively; body waiters wake on task cancellation. Unread backpressured input may delay EOF detection.
+- HEAD preserves an explicit representation Content-Length, or derives it from the body length. 1xx/204 remove Content-Length; 304 may retain representation length.
+- Bind failure shuts down the event loop group.
 
 Known limitations:
 
 - No TLS.
 - No HTTP/2.
-- No graceful signal handling.
-- No configurable backlog or worker count beyond current defaults.
+- No configurable worker count; backlog and signal policy are configurable.
+- No request draining deadline or request/header timeouts yet.
 
 Extension points:
 
-- response body streaming
+- file and stream convenience helpers
 - graceful shutdown
 - TLS
 - HTTP/2
@@ -994,8 +1006,9 @@ Guarantees:
 - `Request` parameters are called with the route request.
 - `@Path` parameters lower into `req.parameters.require(_:as:)`.
 - `@Path` names must match `:name` route segments in the full route path.
-- `@Query` parameters lower into `req.query.require(_:as:)`.
-- `@Header` parameters lower into `req.headers.require(_:as:)`.
+- Required `@Query` parameters lower into `req.query.require(_:as:)`; optional inputs lower into `req.query.get(_:as:)`.
+- Required `@Header` parameters lower into `req.headers.require(_:as:)`; optional inputs lower into `req.headers.get(_:as:)`.
+- Optional `T?`, `Optional<T>`, and `Swift.Optional<T>` query/header inputs use the wrapped type and `required: false` metadata. Missing values become `nil`; invalid present values still return 400. Optional `@Path` inputs are rejected at compile time.
 - `@Body` parameters lower into `try await req.json(Type.self)`.
 - `@JSONBody` remains as a compatibility alias spelling with the same lowering.
 - `@Dependency(key)` parameters lower into `try req.dependencies.require(key)`.
@@ -1014,7 +1027,7 @@ Known limitations:
 - Server type must be default-initializable.
 - Group types must be default-initializable.
 - Static route handlers are not supported.
-- Optional typed inputs and keyless dependency inference are not supported yet.
+- Optional path inputs and keyless dependency inference are not supported. Optional query/header inputs use runtime `get`, wrapped scalar metadata, and `required: false`.
 - OpenAPI metadata lowering exists for typed inputs; deeper schema inference and richer operation metadata are deferred.
 
 These are macro limitations, not runtime limitations.
@@ -1024,3 +1037,10 @@ Extension points:
 - more macro typed input families
 - richer route metadata
 - better diagnostics
+
+
+## Body Cancellation and Async Test Consumption (0023)
+
+A cancelled task reading buffered or streaming RequestBody throws CancellationError. Cancelling a suspended producer/reader wakes the associated waiters. Explicit transport writer.cancel() still ends reads normally. One-shot consumption is unchanged.
+
+DaylilyTesting has collectBody(upTo:), bodyString(upTo:), requireBody(_:upTo:), json(_:upTo:), and requireJSON(_:as:upTo:) async helpers. They require a bound, consume streams once, and propagate producer/limit failures. Synchronous body/JSON helpers reject streams. See api-registry for complete signatures.

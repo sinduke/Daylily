@@ -8,6 +8,26 @@ Daylily is currently experimental. Public APIs may change before beta or stable 
 
 ### Added
 
+- Demand-driven ResponseBody streams, awaited writes, SSE events, explicit bounded async testing helpers, and real socket regressions.
+- Explicit OpenAPI schema and security components with validation, and actual generated server/client HTTP example.
+- Optional query/header macro inputs and clear optional-path diagnostics.
+- Exact revision/release external consumption with independent current and legacy API profiles.
+- Reproducible application-change exercises and pinned Swift 6.3.2 CI across macOS/Linux.
+
+### Fixed
+
+- Request/response cancellation on disconnect and cancellation of suspended body producers/readers.
+- Bind-failure resource cleanup, response framing, and response writer completion/length errors.
+- Shared lifecycle teardown that attempts all hooks exactly once, preserves original failures, and completes after caller cancellation.
+
+### Compatibility
+
+- The package now requires Swift tools 6.3; SwiftSyntax uses stable 603.0.1 or later within 603.x.
+- OpenAPITransport streams responses by default. Use an explicit responseBodyBufferLimit or responseBodyPolicy.collect for bounded buffering.
+- Synchronous response body views remain buffered-only. Async stream tests must specify a collection limit.
+
+### Previously unreleased
+
 - External SwiftPM consumer smoke test script and CI coverage for local path and released package consumption.
 - Minimal app template with `AppCore`, executable startup, in-memory tests, and template smoke validation.
 - Commerce API example with products, orders, state, metadata, tests, and example smoke validation.

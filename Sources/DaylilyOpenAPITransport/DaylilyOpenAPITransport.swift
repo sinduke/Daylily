@@ -11,13 +11,23 @@ public enum DaylilyOpenAPITransportError: Error, Equatable, Sendable {
     case missingPathParameter(String)
 }
 
+public enum OpenAPIResponseBodyPolicy: Equatable, Sendable {
+    case stream
+    case collect(upTo: ByteCount)
+}
+
 public final class DaylilyOpenAPITransport: ServerTransport, @unchecked Sendable {
-    private let responseBodyBufferLimit: ByteCount
+    private let responseBodyPolicy: OpenAPIResponseBodyPolicy
     private let lock = NSLock()
     private var registeredRoutes: [Route] = []
 
-    public init(responseBodyBufferLimit: ByteCount = .megabytes(1)) {
-        self.responseBodyBufferLimit = responseBodyBufferLimit
+    public init(responseBodyPolicy: OpenAPIResponseBodyPolicy = .stream) {
+        self.responseBodyPolicy = responseBodyPolicy
+    }
+
+    /// Explicit compatibility path for consumers that require buffered responses.
+    public convenience init(responseBodyBufferLimit: ByteCount) {
+        self.init(responseBodyPolicy: .collect(upTo: responseBodyBufferLimit))
     }
 
     public func register(
@@ -33,14 +43,31 @@ public final class DaylilyOpenAPITransport: ServerTransport, @unchecked Sendable
         }
 
         let registeredPath = try Self.registeredPath(from: path)
-        let responseBodyBufferLimit = responseBodyBufferLimit
+        let responseBodyPolicy = responseBodyPolicy
         let route = Route(method: daylilyMethod, path: registeredPath.daylilyPath) { request in
             let httpRequest = try request.httpTypesRequest()
             let body = HTTPBody(daylilyBody: request.body, length: Self.bodyLength(from: request))
             let metadata = try Self.metadata(from: request, parameterNames: registeredPath.parameterNames)
             let (httpResponse, httpBody) = try await handler(httpRequest, body, metadata)
-            let responseBody = try await Self.collectResponseBody(httpBody, upTo: responseBodyBufferLimit)
-            return Response(httpTypesResponse: httpResponse, body: responseBody)
+            var response = Response(httpTypesResponse: httpResponse)
+            if let httpBody {
+                switch responseBodyPolicy {
+                case .collect(let limit):
+                    response.body = try await Array(collecting: httpBody, upTo: limit.bytes)
+                case .stream:
+                    let length: Int?
+                    switch httpBody.length {
+                    case .known(let count): length = Int(exactly: count)
+                    case .unknown: length = nil
+                    }
+                    response.responseBody = .stream(length: length) { writer in
+                        for try await chunk in httpBody {
+                            try await writer.write(Array(chunk))
+                        }
+                    }
+                }
+            }
+            return response
         }
 
         append(route)
@@ -128,13 +155,6 @@ public final class DaylilyOpenAPITransport: ServerTransport, @unchecked Sendable
         return .known(byteCount)
     }
 
-    private static func collectResponseBody(_ body: HTTPBody?, upTo limit: ByteCount) async throws -> [UInt8] {
-        guard let body else {
-            return []
-        }
-
-        return try await Array(collecting: body, upTo: limit.bytes)
-    }
 }
 
 private struct RegisteredPath: Sendable {

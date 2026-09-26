@@ -303,9 +303,10 @@ Current conformances:
 - `String`
 - `JSON<Value>` where `Value: Encodable & Sendable`
 
+Streaming responses use `Response(body: .stream { writer in ... })` and `Response.eventStream`. See the response body contract and bounded async testing helpers.
+
 Future:
 
-- streaming response
 - file response
 
 ## ResponseError
@@ -467,8 +468,8 @@ MVP assumptions:
 - handlers are instance methods
 - handlers may have zero parameters, one `Request` parameter, `@Path`, `@Query`, `@Header`, and one `@Body` parameter, with `@JSONBody` accepted as a compatibility alias spelling
 - `@Path` lowers into `req.parameters.require(_:as:)`
-- `@Query` lowers into `req.query.require(_:as:)`
-- `@Header` lowers into `req.headers.require(_:as:)`
+- Required `@Query` lowers into `req.query.require(_:as:)`; optional inputs use `get(_:as:)`.
+- Required `@Header` lowers into `req.headers.require(_:as:)`; optional inputs use `get(_:as:)`.
 - `@Body` lowers into `try await req.json(Type.self)`; `@JSONBody` remains as a compatibility alias spelling with the same lowering
 
 Macros create or expose the same route graph the runtime DSL creates.

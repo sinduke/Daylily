@@ -1,5 +1,6 @@
 import Daylily
 import DaylilyOpenAPITransport
+import DaylilyTesting
 import HTTPTypes
 import OpenAPIRuntime
 import Testing
@@ -44,7 +45,38 @@ func daylilyOpenAPITransportRegistersGeneratedHandlersAsRoutes() async throws {
     #expect(response.status.code == 202)
     #expect(response.headers["content-type"] == "text/plain")
     #expect(response.headers.values(for: "set-cookie") == ["a=1", "b=2"])
-    #expect(response.bodyString == "accepted:42")
+    #expect(response.responseBody.isStreaming)
+    #expect(try await response.bodyString(upTo: .kilobytes(1)) == "accepted:42")
+}
+
+@Test("OpenAPI responses stream beyond the former default buffer limit")
+func openAPIResponseStreamsWithoutDefaultLimit() async throws {
+    let transport = DaylilyOpenAPITransport()
+    let bytes = [UInt8](repeating: 65, count: 1_048_577)
+    try transport.register({ _, _, _ in
+        (HTTPResponse(status: .ok), HTTPBody(bytes))
+    }, method: .get, path: "/large")
+    let response = await transport.application().respond(to: Request(method: .get, path: "/large"))
+    #expect(response.status == .ok)
+    #expect(response.responseBody.isStreaming)
+    #expect(try await response.collectBody(upTo: .megabytes(2)) == bytes)
+}
+
+@Test("OpenAPI buffering remains explicit and bounded")
+func openAPIResponseBufferingIsExplicit() async throws {
+    let transport = DaylilyOpenAPITransport(responseBodyBufferLimit: .bytes(4))
+    try transport.register({ _, _, _ in
+        (HTTPResponse(status: .ok), HTTPBody("four"))
+    }, method: .get, path: "/ok")
+    try transport.register({ _, _, _ in
+        (HTTPResponse(status: .ok), HTTPBody("too large"))
+    }, method: .get, path: "/large")
+    let app = transport.application()
+    let ok = await app.respond(to: Request(method: .get, path: "/ok"))
+    #expect(!ok.responseBody.isStreaming)
+    #expect(ok.bodyString == "four")
+    let large = await app.respond(to: Request(method: .get, path: "/large"))
+    #expect(large.status == .internalServerError)
 }
 
 @Test("Daylily OpenAPI transport rejects unsupported path templates")

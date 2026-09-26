@@ -190,3 +190,8 @@ Only task-level completion may enter Finish Mode for commit and push.
 Tiny typo fixes do not need a new task file.
 
 Any change that affects architecture, public API, runtime behavior, commands, or AI workflow needs a task.
+
+
+## Concurrent delivery
+
+Independent tasks may run concurrently with explicit file ownership. A parent integrates shared AIDEV and runs repository-wide validation; per-task records distinguish implemented code from pending integration/CI. Exact candidate revision tests must use committed state, while path smoke may test the working tree. Task-level commits can share a final integration task for cross-cutting documentation and release evidence.

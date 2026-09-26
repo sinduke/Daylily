@@ -1,6 +1,6 @@
 # 0011 DaylilyTesting
 
-Status: in-progress
+Status: implemented
 
 Purpose:
 

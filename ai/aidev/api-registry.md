@@ -76,14 +76,15 @@ Rules:
 - Bare `@Path` uses the Swift local parameter name.
 - `@Path("name")` maps to an explicit path parameter name.
 - `@Path` names must match `:name` segments in the full route path.
-- `@Query` lowers into `req.query.require(_:as:)`.
+- Required `@Query` lowers into `req.query.require(_:as:)`; optional inputs lower into `req.query.get(_:as:)` for the wrapped type.
 - `@Query` also lowers into `RouteInputMetadata.query(...)`.
 - Bare `@Query` uses the Swift local parameter name.
 - `@Query("name")` maps to an explicit query parameter name.
-- `@Header` lowers into `req.headers.require(_:as:)`.
+- Required `@Header` lowers into `req.headers.require(_:as:)`; optional inputs lower into `req.headers.get(_:as:)` for the wrapped type.
 - `@Header` also lowers into `RouteInputMetadata.header(...)`.
 - Bare `@Header` uses the Swift local parameter name.
 - `@Header("name")` maps to an explicit header name.
+- Optional query/header inputs support `T?`, `Optional<T>`, and `Swift.Optional<T>`, with wrapped-type metadata and `required: false`; missing values become `nil`, and invalid present values still return 400. Optional `@Path` inputs are rejected at compile time.
 - `@Body` lowers into `try await req.json(Type.self)`.
 - `@Body` also lowers into `RouteBodyMetadata.json(...)`.
 - `@JSONBody` is a compatibility alias spelling for `@Body` and uses the same lowering.
@@ -391,7 +392,8 @@ public enum DaylilyOpenAPITransportError: Error, Equatable, Sendable {
 
 ```swift
 public final class DaylilyOpenAPITransport: ServerTransport, @unchecked Sendable {
-    public init(responseBodyBufferLimit: ByteCount = .megabytes(1))
+    public init(responseBodyPolicy: OpenAPIResponseBodyPolicy = .stream)
+    public convenience init(responseBodyBufferLimit: ByteCount)
 
     public func register(
         _ handler: @Sendable @escaping (
@@ -420,7 +422,7 @@ Rules:
 - `ServerRequestMetadata.pathParameters` is populated from matched Daylily route parameters.
 - Daylily requests and responses cross the boundary through `DaylilyHTTPTypes`.
 - Daylily request bodies remain one-shot and stream into OpenAPIRuntime `HTTPBody`.
-- OpenAPIRuntime response bodies are buffered into Daylily `Response` under an explicit limit.
+- OpenAPIRuntime response bodies stream into Daylily `ResponseBody` by default. Explicit `.collect(upTo:)` policy or `responseBodyBufferLimit:` retains bounded buffering.
 - Unsupported templates, including mixed parameter segments such as `{name}.zip`, throw during registration.
 - The adapter must not replace `Application.run(...)`, Daylily routing ownership, or Daylily-owned request/response models.
 
@@ -463,7 +465,7 @@ Rules:
 - JSON body metadata maps to OpenAPI request body content.
 - Response metadata maps to OpenAPI responses.
 - Route security metadata maps to OpenAPI operation `security`.
-- Security scheme components are not generated in this slice.
+- Security scheme components are explicitly registered through OpenAPIComponents; validatedOpenAPI checks referenced names.
 - Unknown Swift type names map to object schemas with `x-swift-type`.
 - Deep schema derivation is deferred.
 
@@ -1151,7 +1153,8 @@ Mappings:
 public struct Response: Sendable {
     public var status: Status
     public var headers: Headers
-    public var body: [UInt8]
+    public var body: [UInt8] // Buffered compatibility view; assigning replaces the stream.
+    public var responseBody: ResponseBody
 
     public init(status: Status = .ok, headers: Headers = [:], body: [UInt8] = [])
 
@@ -1162,8 +1165,47 @@ public struct Response: Sendable {
     ) -> Response
 
     public var bodyString: String { get }
+    public init(status: Status = .ok, headers: Headers = [:], body: ResponseBody)
+    public static func eventStream(status: Status = .ok, headers: Headers = [:], _ producer: @escaping ResponseBody.Producer) -> Response
 }
 ```
+
+### ResponseBody and ServerSentEvent
+
+```swift
+public struct ResponseBody: Sendable {
+    public typealias Producer = @Sendable (ResponseBodyWriter) async throws -> Void
+    public static func bytes(_ bytes: [UInt8]) -> ResponseBody
+    public static func stream(length: Int? = nil, _ producer: @escaping Producer) -> ResponseBody
+    public var bufferedBytes: [UInt8]? { get }
+    public var isStreaming: Bool { get }
+    public var length: Int? { get }
+    public func collect(upTo limit: ByteCount) async throws -> [UInt8]
+}
+public struct ResponseBodyWriter: Sendable {
+    public func write(_ chunk: ByteChunk) async throws
+    public func write(_ bytes: [UInt8]) async throws
+    public func write(_ string: String) async throws
+    public func write(_ event: ServerSentEvent) async throws
+}
+public enum ResponseBodyError: Error, Equatable, Sendable {
+    case alreadyConsumed
+    case tooLarge(limit: ByteCount)
+    case lengthMismatch(expected: Int, actual: Int)
+    case concurrentWrite
+    case writerFinished
+}
+public struct ServerSentEvent: Equatable, Sendable {
+    public var data: String
+    public var id: String?
+    public var event: String?
+    public var retry: Int?
+    public init(data: String, id: String? = nil, event: String? = nil, retry: Int? = nil)
+    public var encoded: String { get }
+}
+```
+
+Streams are one-shot across copies, producers await writes, and the framework owns stream completion. Buffered collection is repeatable. Retry is milliseconds. SSE users own heartbeats and reconnect storage.
 
 ### ResponseConvertible
 
@@ -1180,9 +1222,7 @@ Current conformances:
 - `String`
 - `JSON<Value>` where `Value: Encodable & Sendable`
 
-Planned conformances:
-
-- Byte/stream response wrapper
+Streaming bodies are provided by `ResponseBody` inside `Response`; `ResponseConvertible` remains the handler boundary.
 
 ### Handler
 
@@ -1439,6 +1479,7 @@ Rules:
 - It is public so users can write `func user(@Path id: Int)`.
 - It does not perform extraction by itself.
 - Macro lowering calls `Parameters.require(_:as:)`.
+- Optional `@Path` inputs are rejected at compile time.
 - Supported value types are the current `ParameterDecodable` conformers.
 - `UUID` is not supported yet.
 
@@ -1446,7 +1487,7 @@ Rules:
 
 ```swift
 @propertyWrapper
-public struct Query<Value: ParameterDecodable>: Sendable {
+public struct Query<Value: Sendable>: Sendable {
     public var wrappedValue: Value
     public init(wrappedValue: Value)
     public init(wrappedValue: Value, _ name: String)
@@ -1456,13 +1497,14 @@ public struct Query<Value: ParameterDecodable>: Sendable {
 Rules:
 
 - `Query` is a parameter marker used by `@DaylilyServer`.
-- Macro lowering calls `QueryParameters.require(_:as:)`.
+- Macro lowering calls `QueryParameters.require(_:as:)` for required inputs and `QueryParameters.get(_:as:)` for optional `T?`, `Optional<T>`, and `Swift.Optional<T>` inputs.
+- Optional inputs use the wrapped type and `required: false` metadata; missing values become `nil`, while invalid present values still return 400.
 
 ### Header
 
 ```swift
 @propertyWrapper
-public struct Header<Value: ParameterDecodable>: Sendable {
+public struct Header<Value: Sendable>: Sendable {
     public var wrappedValue: Value
     public init(wrappedValue: Value)
     public init(wrappedValue: Value, _ name: String)
@@ -1472,7 +1514,8 @@ public struct Header<Value: ParameterDecodable>: Sendable {
 Rules:
 
 - `Header` is a parameter marker used by `@DaylilyServer`.
-- Macro lowering calls `Headers.require(_:as:)`.
+- Macro lowering calls `Headers.require(_:as:)` for required inputs and `Headers.get(_:as:)` for optional `T?`, `Optional<T>`, and `Swift.Optional<T>` inputs.
+- Optional inputs use the wrapped type and `required: false` metadata; missing values become `nil`, while invalid present values still return 400.
 
 ### ResponseError
 
@@ -1648,3 +1691,107 @@ Rules:
 - Macro implementations generate code that uses `Application` and runtime route DSL functions.
 - `@GROUP` changes generated route paths, not `DaylilyCore`.
 - Macro implementations must not replace the runtime route system.
+
+
+## Reliability Delivery APIs (0023)
+
+### Lifecycle error reporting — DaylilyCore
+
+```swift
+public struct LifecycleFailure: Sendable {
+    public let phase: LifecyclePhase
+    public let hookIndex: Int
+    public let error: any Error
+    public init(phase: LifecyclePhase, hookIndex: Int, error: any Error)
+}
+public struct LifecycleRunError: Error, Sendable {
+    public let primaryError: (any Error)?
+    public let failures: [LifecycleFailure]
+    public init(primaryError: (any Error)?, failures: [LifecycleFailure])
+}
+```
+
+The SPI `Application.runWithLifecycle` accepts a transport operation with an async started callback. Normal `Application.run` and the optional ServiceLifecycle adapter share it. Teardown attempts all hooks once; standalone failures preserve original types, combined failures expose the aggregate.
+
+### Optional handler markers — DaylilyCore / macros
+
+`Query<Value: Sendable>` and `Header<Value: Sendable>` accept optional wrapped values. Macro declarations `T?`, `Optional<T>`, and `Swift.Optional<T>` lower to existing runtime `get(_:as:)`. Metadata retains wrapped type with `required: false`; required values retain `require`. Optional paths are rejected with a targeted diagnostic.
+
+### OpenAPI streaming policy — DaylilyOpenAPITransport
+
+```swift
+public enum OpenAPIResponseBodyPolicy: Equatable, Sendable {
+    case stream
+    case collect(upTo: ByteCount)
+}
+```
+
+Default initialization streams. The explicit `responseBodyBufferLimit:` initializer is retained as bounded collection compatibility. Streaming producer errors are observed during body consumption and terminate an already-started network response.
+
+### Async helpers — DaylilyTesting
+
+```swift
+public extension Response {
+    func collectBody(upTo limit: ByteCount) async throws -> [UInt8]
+    func bodyString(upTo limit: ByteCount) async throws -> String
+    func requireBody(_ expected: String, upTo limit: ByteCount) async throws
+    func json<Value: Decodable>(_ type: Value.Type = Value.self, upTo limit: ByteCount) async throws -> Value
+    func requireJSON<Value: Decodable & Equatable>(_ expected: Value, as type: Value.Type = Value.self, upTo limit: ByteCount) async throws
+}
+```
+
+`TestFailure.streamingBodyRequiresCollection` rejects synchronous body/JSON assertions on a stream. Async helpers consume streams under explicit limits.
+
+### Explicit OpenAPI components — DaylilyOpenAPI
+
+```swift
+public struct OpenAPIComponents: Codable, Equatable, Sendable {
+    public var schemas: [String: OpenAPISchema]
+    public var securitySchemes: [String: OpenAPISecurityScheme]
+    public init(schemas: [String: OpenAPISchema] = [:], securitySchemes: [String: OpenAPISecurityScheme] = [:])
+    public mutating func registerSchema(_ schema: OpenAPISchema, named name: String)
+    public mutating func registerSecurityScheme(_ scheme: OpenAPISecurityScheme, named name: String)
+}
+public struct OpenAPISchema: Codable, Equatable, Sendable {
+    // Existing type: String, format, swiftType, and initializer remain.
+    public var properties: [String: OpenAPISchema]?
+    public var required: [String]?
+    public var items: OpenAPISchema?
+    public var enumValues: [String]?
+    public var reference: String?
+    public static func object(properties: [String: OpenAPISchema], required: [String] = []) -> Self
+    public static func array(items: OpenAPISchema) -> Self
+    public static func string(enum values: [String]? = nil) -> Self
+    public static func reference(_ componentName: String) -> Self
+}
+public struct OpenAPISecurityScheme: Codable, Equatable, Sendable {
+    public enum APIKeyLocation: String, Codable, Sendable { case header, query, cookie }
+    public var type: String
+    public var scheme: String?
+    public var bearerFormat: String?
+    public var name: String?
+    public var location: APIKeyLocation?
+    public init(type: String, scheme: String? = nil, bearerFormat: String? = nil, name: String? = nil, location: APIKeyLocation? = nil)
+    public static func bearer(format: String? = nil) -> Self
+    public static var basic: Self { get }
+    public static func apiKey(name: String, location: APIKeyLocation = .header) -> Self
+}
+public struct OpenAPIValidationError: Error, Equatable, Sendable, CustomStringConvertible {
+    public let location: String
+    public let reason: String
+    public init(location: String, reason: String)
+    public var description: String { get }
+}
+public extension OpenAPIDocument {
+    // New optional components property and defaulted components initializer parameter.
+    func validate() throws
+}
+public extension Application {
+    func openAPI(title: String, version: String, openapi: String = "3.1.0", components: OpenAPIComponents = .init()) -> OpenAPIDocument
+    func validatedOpenAPI(title: String, version: String, openapi: String = "3.1.0", components: OpenAPIComponents = .init()) throws -> OpenAPIDocument
+}
+// OpenAPIBuilder gains public var components and init(components: OpenAPIComponents = .init()).
+```
+
+
+Schema validation covers supported explicit shapes and local references; unknown Swift type names retain the legacy object/x-swift-type fallback. Register a matching component name to emit a real reference. This is not full JSON Schema validation or runtime authentication.

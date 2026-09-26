@@ -27,6 +27,8 @@
 
 ---
 
+当前源码新增能力与兼容说明：[可靠性和流式响应](docs/reliability-and-streaming.md)。要求 Swift 6.3，验证工具链为 Swift 6.3.2；已发布的 alpha.1 不包含本轮新增能力。
+
 ## 为什么 Daylily 存在
 
 服务端 Swift 的底层基础很强。
@@ -130,7 +132,10 @@ Daylily 围绕现代 Swift 设计：
 | AIDEV AI handoff system | 已实现 |
 | Dependencies registry | MVP + keyed runtime |
 | Macro `@Dependency` inputs | 已实现 |
-| Macro middleware attributes | Planned |
+| Macro middleware attributes | 已实现 |
+| 显式 OpenAPI schema 和安全方案 | 已实现 |
+| 流式响应与 SSE | 已实现 |
+| 可选 query/header 参数 | 已实现 |
 | Full Swift schema derivation | Planned |
 
 ## 架构
@@ -476,7 +481,7 @@ try handler.registerHandlers(
 try await transport.application().run()
 ```
 
-`DaylilyOpenAPITransport` 会把 OpenAPIRuntime `ServerTransport` registrations 适配成 Daylily routes。它不会被 umbrella `Daylily` 模块 re-export。`{id}` 这种整段 generated path parameter 会映射成 Daylily `:id` parameter；`{name}.zip` 这种 mixed template segment 会在 registration 阶段抛错。Generated response body 会在显式 limit 内被 buffer，直到 Daylily 提供 streaming response。
+`DaylilyOpenAPITransport` 会把 OpenAPIRuntime `ServerTransport` registrations 适配成 Daylily routes。它不会被 umbrella `Daylily` 模块 re-export。`{id}` 这种整段 generated path parameter 会映射成 Daylily `:id` parameter；`{name}.zip` 这种 mixed template segment 会在 registration 阶段抛错。Generated response body 默认流式传输；需要显式限量缓冲时，使用 `responseBodyPolicy: .collect(upTo: limit)`。
 
 ## Dependencies
 
@@ -881,15 +886,16 @@ MVP 限制：
 - handler 可以没有参数，可以有一个 `Request` 参数，可以有 `@Path`、`@Query`、`@Header`、`@Dependency` 参数，也可以有一个 `@Body` 参数；`@JSONBody` 作为兼容别名写法也会被接受；
 - `@Path` 会降级到 `req.parameters.require(_:as:)`；
 - `@Path` 名称必须匹配 `:name` route segment；
-- `@Query` 会降级到 `req.query.require(_:as:)`；
-- `@Header` 会降级到 `req.headers.require(_:as:)`；
+- 必填 `@Query` 会降级到 `req.query.require(_:as:)`，可选参数则使用 `req.query.get(_:as:)`；
+- 必填 `@Header` 会降级到 `req.headers.require(_:as:)`，可选参数则使用 `req.headers.get(_:as:)`；
 - `@Body` 会降级到 `try await req.json(Type.self)`；`@JSONBody` 是同样 lowering 的兼容别名写法；
 - `@Dependency(key)` 会降级到 `try req.dependencies.require(key)`；
 - `@Use(middleware)` 会降级到 runtime `.middleware(middleware)`，可以用于 app、group 或 route scope；
 - `@Security("scheme")` 会降级到 route security metadata 和 OpenAPI operation security；
 - raw one-shot request body 类型是 `RequestBody`；
 - group type 必须可以默认初始化；
-- optional typed inputs、keyless dependency inference 和深度 OpenAPI schema 推导都是后续工作。
+- 可选 query/header 参数支持 `T?`、`Optional<T>` 和 `Swift.Optional<T>`，使用 `get(_:as:)` 并生成 `required: false` 元数据；可选 path 参数会在编译时被拒绝；
+- keyless dependency inference 和深度 OpenAPI schema 推导属于后续工作。
 
 这些是 macro MVP 的限制，不是 runtime 的限制。
 

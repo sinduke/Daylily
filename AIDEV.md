@@ -84,3 +84,15 @@ curl -X POST -H 'content-type: application/json' --data '{"message":"hi"}' http:
 - 如果引入新命令或验证方式，更新 `README.md`、`AIDEV.md` 和相关 task。
 - 如果调整计划或工作流程，更新 `ai/epics/`、`ai/tasks/`、`workflow.md`、`task-protocol.md` 和 `registry.yml`。
 - 如果 AIDEV 与源码不一致，优先修正 AIDEV 或明确记录源码偏差，不能让 AI 依赖隐含知识继续推进。
+
+
+## Reliability delivery validation
+
+Current checkout requires Swift 6.3 and is validated with Swift 6.3.2. See [Reliability and streaming](docs/reliability-and-streaming.md) for migration and ownership contracts. In addition to build/test/check and the consumer/template/commerce scripts, run:
+
+```sh
+scripts/openapi-smoke-test.sh --mode path
+scripts/ai-exercises-smoke-test.sh
+```
+
+Consumer dependency source is independent of API profile. Use `--profile current` for current candidates and `--profile legacy-alpha1` only when testing `0.1.0-alpha.1`. Revision and release smoke verify exact resolver pins. CI runs core/path/revision/legacy suites in parallel on both platforms and preserves diagnostic artifacts.

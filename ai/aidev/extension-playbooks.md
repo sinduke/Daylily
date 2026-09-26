@@ -80,10 +80,11 @@ Rules:
 
 1. Keep runtime extraction in `DaylilyCore`.
 2. Keep `@Query` and `@Header` as markers.
-3. Lower `@Query` into `req.query.require(_:as:)`.
-4. Lower `@Header` into `req.headers.require(_:as:)`.
+3. Lower required `@Query` into `req.query.require(_:as:)`; lower optional inputs into `req.query.get(_:as:)`.
+4. Lower required `@Header` into `req.headers.require(_:as:)`; lower optional inputs into `req.headers.get(_:as:)`.
 5. Preserve source-specific error messages.
-6. Keep optional macro values and repeated query values for separate tasks.
+6. Support `T?`, `Optional<T>`, and `Swift.Optional<T>` query/header inputs using the wrapped type and `required: false` metadata. Missing values become `nil`; invalid present values still return 400. Reject optional `@Path` inputs at compile time.
+7. Keep repeated-value macro injection, optional aliases, nested optionals, and default-argument fallback for separate tasks.
 
 ## Extend JSON Body Decoding
 
@@ -340,8 +341,8 @@ When extending:
 
 Still non-goals until separate tasks:
 
-- optional typed inputs
-- DI
+- additional typed input families
+- keyless dependency inference
 - deep OpenAPI schema derivation
 
 ## Extend JSON Body Macro Injection

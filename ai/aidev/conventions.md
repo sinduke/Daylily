@@ -131,11 +131,12 @@ func search(
 
 Rules:
 
-- `@Query` lowers to `req.query.require(_:as:)`.
-- `@Header` lowers to `req.headers.require(_:as:)`.
+- Required `@Query` lowers to `req.query.require(_:as:)`.
+- Required `@Header` lowers to `req.headers.require(_:as:)`.
 - Bare marker names use the Swift local parameter name.
 - Explicit marker names use the string literal mapping.
-- Optional macro values are future work.
+- Optional query/header values (`T?`, `Optional<T>`, or `Swift.Optional<T>`) lower to `get(_:as:)` for the wrapped type: missing becomes `nil`, invalid still returns 400, and metadata uses `required: false`.
+- Optional path values are rejected at compile time. Type aliases, nested optionals, and default-argument fallback are outside this macro subset.
 
 ## Request Body
 

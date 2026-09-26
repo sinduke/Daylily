@@ -515,3 +515,18 @@ Daylily/
 `ai/prompts/daylily-agent.md`
 
 - Standard agent prompt for future AI sessions.
+
+
+## Reliability Delivery (0023)
+
+- `Sources/DaylilyCore/ResponseBody.swift`: demand-driven body, writer state, SSE encoding, errors.
+- `Sources/DaylilyCore/Application.swift` / `Lifecycle.swift`: shared lifecycle execution and aggregate failures.
+- `Sources/DaylilyOpenAPI/OpenAPISchema.swift` / `OpenAPIValidation.swift`: explicit components and supported-subset validation.
+- `Tests/DaylilyTests/ResponseStreamingTests.swift`: real socket and cancellation regressions.
+- `Tests/DaylilyTests/LifecycleRecoveryTests.swift`: failure/teardown and adapter parity.
+- `Tests/DaylilyTests/OptionalInputTests.swift`: optional runtime semantics and schema metadata; macro HTTP/negative compile checks live in the consumer script.
+- `examples/openapi-service`: spec exporter, actual generator plugin, generated client/server HTTP example.
+- `ai/evals/application-changes`: three fixed application exercises, reference implementations, and acceptance tests.
+- `scripts/smoke-common.sh`: dependency profiles, exact pin verification, isolated workspaces and process cleanup.
+- `scripts/openapi-smoke-test.sh` / `scripts/ai-exercises-smoke-test.sh`: external generation and application exercise validation.
+- `docs/reliability-and-streaming.md`: current-checkout behavior and migration guide.

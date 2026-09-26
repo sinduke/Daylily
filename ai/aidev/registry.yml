@@ -4,8 +4,8 @@ project:
   summary: "AI-native web framework for Swift"
   license: MIT
   license_file: LICENSE
-  swift_tools_version: "6.0"
-  current_phase: "ecosystem_compatibility"
+  swift_tools_version: "6.3"
+  current_phase: "reliability_and_streaming"
   authoritative_ai_entry:
     - AIDEV.md
     - ai/aidev/start-here.md
@@ -54,7 +54,7 @@ dependencies:
     resolved: "2.11.0"
   swift-syntax:
     url: "https://github.com/swiftlang/swift-syntax.git"
-    requirement: "from 603.0.0-latest"
+    requirement: "from 603.0.1"
     resolved: "603.0.1"
 
 source_reading_policy:
@@ -165,6 +165,7 @@ products:
     depends_on:
       - DaylilyCore
       - NIOCore
+      - NIOConcurrencyHelpers
       - NIOHTTP1
       - NIOPosix
   DaylilyObservability:
@@ -375,7 +376,7 @@ implemented_features:
       - "@Path names must match :name route segments in the full route path"
       - "missing and invalid values keep ParameterError 400 mappings"
       - "JSON body macro input is delivered separately as @JSONBody in 0010-003 and preferred as @Body in 0017-001"
-      - "@Query, @Header, optional path values, and UUID remain out of scope"
+      - "@Query and @Header are delivered in the separate query/header input feature; optional path values are rejected at compile time, and UUID remains deferred"
   json_body_macro_bridge:
     status: implemented
     epic: "0010-typed-handler-inputs"
@@ -418,8 +419,8 @@ implemented_features:
       - "Headers.require(_:as:)"
       - "Headers.get(_:as:)"
     lowering:
-      - "@DaylilyServer lowers @Query parameters into req.query.require(_:as:)"
-      - "@DaylilyServer lowers @Header parameters into req.headers.require(_:as:)"
+      - "@DaylilyServer lowers required @Query parameters into req.query.require(_:as:), and optional inputs into req.query.get(_:as:)"
+      - "@DaylilyServer lowers required @Header parameters into req.headers.require(_:as:), and optional inputs into req.headers.get(_:as:)"
       - "@DaylilyServer lowers @Query parameters into RouteInputMetadata.query(...)"
       - "@DaylilyServer lowers @Header parameters into RouteInputMetadata.header(...)"
     decisions:
@@ -429,8 +430,9 @@ implemented_features:
       - "Request.path stores the route path without query text"
       - "NIO passes the full request target to Request so query text is available"
       - "query parsing supports &, name=value, empty values, plus-as-space, percent-decoded UTF-8, repeated names, and flag parameters"
-      - "missing and invalid query/header values map to source-specific 400 responses"
-      - "optional macro values and cookies are deferred"
+      - "Missing required and invalid present query/header values map to source-specific 400 responses; missing optional values become nil"
+      - "Optional query/header inputs support T?, Optional<T>, and Swift.Optional<T> with wrapped-type metadata and required: false; optional path inputs are rejected at compile time"
+      - "optional query/header macros are implemented; cookies remain deferred"
   application_lifecycle_mvp:
     status: implemented
     epic: "0012-lifecycle-server-controls"
@@ -891,11 +893,10 @@ implemented_features:
       - "Unsupported or mixed path parameter templates throw during registration."
       - "Daylily request and response conversion goes through DaylilyHTTPTypes."
       - "Daylily request bodies remain one-shot and stream into OpenAPIRuntime HTTPBody."
-      - "OpenAPIRuntime response bodies are buffered into Daylily Response under an explicit limit."
+      - "OpenAPIRuntime response bodies stream by default; explicit collection retains a bounded buffer."
     non_goals:
       - "replacing Application.run"
       - "replacing Daylily routing ownership"
-      - "response streaming"
       - "umbrella re-export"
       - "running the generator plugin inside Daylily"
   dependency_injection_design:
@@ -1783,6 +1784,10 @@ public_api:
         - "public func httpTypesHeaderFields() throws -> HTTPFields"
       contract: "Converts ordered Daylily HeaderField values to/from Swift HTTP Types HTTPFields and preserves dynamic table indexing strategy hints."
   DaylilyOpenAPITransport:
+    OpenAPIResponseBodyPolicy:
+      kind: enum
+      conforms: [Equatable, Sendable]
+      cases: [stream, "collect(upTo: ByteCount)"]
     DaylilyOpenAPITransportError:
       kind: enum
       conforms:
@@ -1801,13 +1806,33 @@ public_api:
         - ServerTransport
         - "@unchecked Sendable"
       initializers:
-        - "public init(responseBodyBufferLimit: ByteCount = .megabytes(1))"
+        - "public init(responseBodyPolicy: OpenAPIResponseBodyPolicy = .stream)"
+        - "public convenience init(responseBodyBufferLimit: ByteCount)"
       methods:
         - "public func register(_:method:path:) throws"
         - "public func routes() -> [Route]"
         - "public func application(dependencies configureDependencies: @Sendable (inout Dependencies) -> Void = { _ in }) -> Application"
-      contract: "Adapts Swift OpenAPI Generator server registrations into Daylily routes, using DaylilyHTTPTypes for request/response conversion and an explicit response body buffer limit."
+      contract: "Adapts Swift OpenAPI Generator server registrations into Daylily routes, using DaylilyHTTPTypes for request/response conversion and demand-driven response streaming with optional bounded buffering."
   DaylilyOpenAPI:
+    OpenAPIComponents:
+      kind: struct
+      conforms: [Codable, Equatable, Sendable]
+      properties: ["schemas: [String: OpenAPISchema]", "securitySchemes: [String: OpenAPISecurityScheme]"]
+      methods: ["init(schemas: [String: OpenAPISchema] = [:], securitySchemes: [String: OpenAPISecurityScheme] = [:])", "registerSchema(_:named:)", "registerSecurityScheme(_:named:)"]
+    OpenAPISecurityScheme:
+      kind: struct
+      conforms: [Codable, Equatable, Sendable]
+      methods: ["bearer(format: String? = nil)", "basic", "apiKey(name: String, location: APIKeyLocation = .header)"]
+      properties: ["type: String", "scheme: String?", "bearerFormat: String?", "name: String?", "location: APIKeyLocation?"]
+      contract: "Explicit bearer/basic/api-key definitions; APIKeyLocation is header/query/cookie."
+    OpenAPIValidationError:
+      kind: struct
+      conforms: [Error, Equatable, Sendable, CustomStringConvertible]
+      properties: ["location: String", "reason: String", "description: String"]
+      methods: ["init(location: String, reason: String)"]
+    Application_validatedOpenAPI:
+      kind: extension_method
+      signature: "validatedOpenAPI(title: String, version: String, openapi: String = \"3.1.0\", components: OpenAPIComponents = .init()) throws -> OpenAPIDocument"
     OpenAPIDocument:
       kind: struct
       conforms:
@@ -1818,6 +1843,9 @@ public_api:
         - "openapi: String"
         - "info: OpenAPIInfo"
         - "paths: [String: [String: OpenAPIOperation]]"
+        - "components: OpenAPIComponents?"
+      methods:
+        - "public func validate() throws"
     OpenAPIInfo:
       kind: struct
       conforms:
@@ -1890,6 +1918,16 @@ public_api:
         - "type: String"
         - "format: String?"
         - "swiftType: String?"
+        - "properties: [String: OpenAPISchema]?"
+        - "required: [String]?"
+        - "items: OpenAPISchema?"
+        - "enumValues: [String]?"
+        - "reference: String?"
+      methods:
+        - "public static func object(properties: [String: OpenAPISchema], required: [String] = []) -> Self"
+        - "public static func array(items: OpenAPISchema) -> Self"
+        - "public static func string(enum values: [String]? = nil) -> Self"
+        - "public static func reference(_ componentName: String) -> Self"
       coding:
         swiftType: "x-swift-type"
     OpenAPIBuilder:
@@ -1897,12 +1935,12 @@ public_api:
       conforms:
         - Sendable
       methods:
-        - "public init()"
+        - "public init(components: OpenAPIComponents = .init())"
         - "public func document(for routes: [RouteDescription], title: String, version: String, openapi: String = \"3.1.0\") -> OpenAPIDocument"
     Application_openAPI:
       kind: extension_method
-      signature: "public func openAPI(title: String, version: String, openapi: String = \"3.1.0\") -> OpenAPIDocument"
-      contract: "Builds a minimal OpenAPI document from Application.describeRoutes()."
+      signature: "public func openAPI(title: String, version: String, openapi: String = \"3.1.0\", components: OpenAPIComponents = .init()) -> OpenAPIDocument"
+      contract: "Builds a document from route metadata and explicitly registered components; validatedOpenAPI additionally throws on invalid contracts."
   DaylilyTesting:
     TestClient:
       kind: struct
@@ -1962,6 +2000,7 @@ public_api:
         - "status(expected: Status, actual: Status)"
         - "body(expected: String, actual: String)"
         - "json(reason: String)"
+        - "streamingBodyRequiresCollection"
     Response_testing_helpers:
       kind: extension_methods
       methods:
@@ -1969,8 +2008,47 @@ public_api:
         - "public func requireStatus(_ expected: Status) throws"
         - "public func requireBody(_ expected: String) throws"
         - "public func requireJSON<Value: Decodable & Equatable>(_ expected: Value, as type: Value.Type = Value.self) throws"
-      contract: "Testing-only response decode and assertion helpers in DaylilyTesting."
+        - "public func collectBody(upTo: ByteCount) async throws -> [UInt8]"
+        - "public func bodyString(upTo: ByteCount) async throws -> String"
+        - "public func requireBody(_: String, upTo: ByteCount) async throws"
+        - "public func json<Value: Decodable>(_: Value.Type, upTo: ByteCount) async throws -> Value"
+        - "public func requireJSON<Value: Decodable & Equatable>(_: Value, as: Value.Type, upTo: ByteCount) async throws"
+      contract: "Synchronous body helpers reject streams; async helpers consume under explicit limits."
   DaylilyCore:
+    ResponseBody:
+      kind: struct
+      conforms: [Sendable]
+      properties: ["bufferedBytes: [UInt8]?", "isStreaming: Bool", "length: Int?"]
+      methods:
+        - "public static func bytes(_ bytes: [UInt8]) -> ResponseBody"
+        - "public static func stream(length: Int? = nil, _ producer: @escaping Producer) -> ResponseBody"
+        - "public func collect(upTo: ByteCount) async throws -> [UInt8]"
+      contract: "Buffered bytes or a one-shot demand-driven producer shared by copies."
+    ResponseBodyWriter:
+      kind: struct
+      conforms: [Sendable]
+      methods: ["write(ByteChunk) async throws", "write([UInt8]) async throws", "write(String) async throws", "write(ServerSentEvent) async throws"]
+      contract: "Await writes; concurrent or post-finish use throws. Transport owns completion."
+    ResponseBodyError:
+      kind: enum
+      conforms: [Error, Equatable, Sendable]
+      cases: [alreadyConsumed, "tooLarge(limit: ByteCount)", "lengthMismatch(expected: Int, actual: Int)", concurrentWrite, writerFinished]
+    ServerSentEvent:
+      kind: struct
+      conforms: [Equatable, Sendable]
+      properties: ["data: String", "id: String?", "event: String?", "retry: Int?", "encoded: String"]
+      methods: ["init(data: String, id: String? = nil, event: String? = nil, retry: Int? = nil)"]
+      contract: "UTF-8 SSE fields; retry is milliseconds, data supports multiline values."
+    LifecycleFailure:
+      kind: struct
+      conforms: [Sendable]
+      properties: ["phase: LifecyclePhase", "hookIndex: Int", "error: any Error"]
+      methods: ["init(phase: LifecyclePhase, hookIndex: Int, error: any Error)"]
+    LifecycleRunError:
+      kind: struct
+      conforms: [Error, Sendable]
+      properties: ["primaryError: (any Error)?", "failures: [LifecycleFailure]"]
+      methods: ["init(primaryError: (any Error)?, failures: [LifecycleFailure])"]
     Application:
       kind: struct
       conforms:
@@ -2358,24 +2436,24 @@ public_api:
       kind: propertyWrapper
       conforms:
         - Sendable
-      generic: "Value: ParameterDecodable"
+      generic: "Value: Sendable"
       properties:
         - "wrappedValue: Value"
       initializers:
         - "public init(wrappedValue: Value)"
         - "public init(wrappedValue: Value, _ name: String)"
-      contract: "Marker for @DaylilyServer macro query input lowering; extraction is performed by QueryParameters.require(_:as:)."
+      contract: "Marker for @DaylilyServer macro query input lowering; required inputs use QueryParameters.require, optional inputs use get with wrapped scalar metadata."
     Header:
       kind: propertyWrapper
       conforms:
         - Sendable
-      generic: "Value: ParameterDecodable"
+      generic: "Value: Sendable"
       properties:
         - "wrappedValue: Value"
       initializers:
         - "public init(wrappedValue: Value)"
         - "public init(wrappedValue: Value, _ name: String)"
-      contract: "Marker for @DaylilyServer macro header input lowering; extraction is performed by Headers.require(_:as:)."
+      contract: "Marker for @DaylilyServer macro header input lowering; required inputs use Headers.require, optional inputs use get with wrapped scalar metadata."
     RequestBody:
       kind: struct
       conforms:
@@ -2448,7 +2526,8 @@ public_api:
       properties:
         - "status: Status"
         - "headers: Headers"
-        - "body: [UInt8]"
+        - "body: [UInt8] (buffered compatibility view)"
+        - "responseBody: ResponseBody"
     ResponseConvertible:
       kind: protocol
       methods:
@@ -2581,10 +2660,10 @@ runtime_rules:
     - wildcard
   path_parameter_prefix: ":"
   typed_path_parameter_policy: "Parameters.require(_:as:) and Parameters.get(_:as:) use ParameterDecodable; missing required and invalid values map to 400; UUID is deferred."
-  macro_path_parameter_policy: "@Path parameters are marker wrappers; @DaylilyServer validates route membership and lowers them into Parameters.require(_:as:) plus RouteInputMetadata.path(...)."
+  macro_path_parameter_policy: "@Path parameters are marker wrappers; @DaylilyServer validates route membership and lowers them into Parameters.require(_:as:) plus RouteInputMetadata.path(...). Optional path inputs are rejected at compile time."
   default_path_policy: "Daylily provides recommended defaults, not mandatory application architecture. Runtime APIs are first-class; macros are convenience syntax; built-in helpers such as Dependencies must remain optional."
   macro_limit_policy: "Macro limitations must stay macro limitations. Applications may use runtime DSL, custom composition roots, and their own service wiring when macro or helper defaults do not fit."
-  query_and_header_input_policy: "Request.query uses ordered QueryParameters that preserve repeated names and raw query text; Headers uses ordered HeaderField storage that preserves repeated fields; typed require/get remains convenience lookup. @Query lowers to req.query.require plus RouteInputMetadata.query(...) and @Header lowers to req.headers.require plus RouteInputMetadata.header(...)."
+  query_and_header_input_policy: "Request.query uses ordered QueryParameters that preserve repeated names and raw query text; Headers uses ordered HeaderField storage that preserves repeated fields; typed require/get remains convenience lookup. Required @Query/@Header inputs lower to req.query.require/req.headers.require; optional T?, Optional<T>, and Swift.Optional<T> inputs lower to the corresponding get with wrapped-type metadata and required: false. Missing optional values become nil; invalid present values remain 400. RouteInputMetadata.query/header describe both forms. Optional path inputs are rejected at compile time."
   macro_json_body_policy: "@Body parameters are the preferred marker wrappers in DaylilyJSON; @DaylilyServer lowers them into try await req.json(Type.self) plus RouteBodyMetadata.json(...). @JSONBody remains as a compatibility alias spelling with the same lowering. The raw one-shot request body type is RequestBody."
   lifecycle_policy: "Application lifecycle phases are configure, boot, started, shutdown, cleanup. Application.run binds lifecycle to transport; Application.respond(to:) does not run lifecycle. The default NIO server closes on SIGINT/SIGTERM and also closes when its run task is cancelled. DaylilyServiceLifecycle adapts Application into a ServiceLifecycle Service without replacing lifecycle hooks or creating a ServiceGroup. Managed service lifecycle is designed around future ApplicationService and Application.service(_:), with Application owning lifecycle and Dependencies remaining lookup-only."
   dependencies_policy: "Dependencies is an app-wide concrete and keyed Sendable registry in DaylilyCore. Application.respond(to:) stamps dependencies onto each request. Missing required dependencies map to 500 Internal Server Error. Protocol-oriented and same-type multi-instance lookup uses typed DependencyKey<Value>; direct protocol metatype lookup is not the preferred surface. @Dependency lowers keyed handler parameters to Request.dependencies.require(key). Managed service lifecycle is designed around future ApplicationService but not implemented."
@@ -2775,7 +2854,7 @@ verification:
     cleanup: "stop the HelloDaylily process"
 
 roadmap:
-  current_task: null
+  current_task: "0023-007-integration-and-release-readiness"
   epics:
     completed:
       - "0001-runtime-foundation"
@@ -2793,9 +2872,9 @@ roadmap:
       - "0019-release-hygiene"
       - "0020-package-consumer-experience"
       - "0021-ecosystem-compatibility"
-    in_progress: []
+    in_progress:
+      - "0023-reliability-and-streaming"
     next_recommended:
-      - "macro-middleware-attributes"
       - "openapi-schema-expansion"
   completed:
     - "0001-001-minimal-http-server"
@@ -2846,10 +2925,42 @@ roadmap:
     - "0021-002-service-lifecycle-integration"
     - "0021-003-swift-http-types-adapter"
     - "0021-004-swift-openapi-generator-transport"
-  in_progress: []
+    - "0022-001-macro-middleware-and-security-attributes"
+    - "0023-001-release-and-consumer-validation"
+    - "0023-002-request-cancellation-and-transport-hardening"
+    - "0023-003-openapi-schema-generator-roundtrip"
+    - "0023-004-response-streaming"
+    - "0023-005-lifecycle-failure-recovery"
+    - "0023-006-optional-inputs-and-ai-exercises"
+  in_progress:
+    - "0023-007-integration-and-release-readiness"
   next_recommended:
-    - "macro-middleware-attributes"
     - "openapi-schema-expansion"
   later:
-    - "macro-middleware-attributes"
     - "0013-003-observability-hooks"
+
+reliability_delivery:
+  epic: "0023-reliability-and-streaming"
+  status: in-progress
+  guide: docs/reliability-and-streaming.md
+  task_ids: ["0023-001", "0023-002", "0023-003", "0023-004", "0023-005", "0023-006", "0023-007"]
+  source_files:
+    - Sources/DaylilyCore/ResponseBody.swift
+    - Sources/DaylilyOpenAPI/OpenAPISchema.swift
+    - Sources/DaylilyOpenAPI/OpenAPIValidation.swift
+  additional_validation:
+    - "scripts/openapi-smoke-test.sh --mode path"
+    - "scripts/ai-exercises-smoke-test.sh"
+  ci:
+    compiler: "6.3.2"
+    macos: "macos-26 / Xcode 26.5"
+    linux: "ubuntu-24.04 / swift:6.3.2-noble"
+    suites: [core, path, revision, legacy]
+    optional_suite: "exact current release via workflow_dispatch release_version"
+  contracts:
+    - "Caller cancellation does not skip awaited teardown; all teardown hooks run once."
+    - "Observed socket disconnect cancels cooperative handler/producer tasks; unread backpressured input may delay EOF detection."
+    - "Response producers await writes, share one-shot state, and must not escape writers."
+    - "Optional query/header inputs use get and required=false; optional paths are rejected."
+    - "OpenAPI security is descriptive; application middleware owns enforcement."
+    - "External revision/release profiles validate exact resolver pins and identical current capabilities."

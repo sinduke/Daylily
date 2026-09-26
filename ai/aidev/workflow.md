@@ -206,38 +206,19 @@ curl -X POST -H 'content-type: application/json' --data '{"message":"hi"}' http:
 
 ## GitHub Actions CI
 
-Workflow:
+The workflow runs Swift 6.3.2 on macOS (macos-26 / Xcode 26.5) and Linux (ubuntu-24.04 / swift:6.3.2-noble). Independent core, path, revision, and legacy suites run concurrently. Documentation-only Markdown/registry updates do not rerun compiled suites; YAML and whitespace are checked locally. A workflow_dispatch `release_version` adds exact current-release consumption.
 
-```text
-.github/workflows/ci.yml
-```
+Core executes build/test/check. Current consumers compile the standalone consumer, template, commerce, and generated OpenAPI example. Path also runs fixed application exercises. Candidate revision tests resolve a local Git URL at the checked-out commit SHA, so source-control packaging is verified before tagging. Legacy uses alpha.1-compatible source with the separate `legacy-alpha1` profile. Logs and resolver pins are archived even on failure.
 
-Triggers:
-
-- push to `main`
-- pull request to `main`
-- manual `workflow_dispatch`
-
-CI mirrors the required local validation on macOS and Linux:
+Commands and release gates: `docs/release-readiness.md`. New smoke commands:
 
 ```sh
-swift build
-swift test
-swift run HelloDaylily --check
-scripts/consumer-smoke-test.sh --mode path
-scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.1
-scripts/template-smoke-test.sh --mode path
-scripts/template-smoke-test.sh --mode release --version 0.1.0-alpha.1
-scripts/example-smoke-test.sh --mode path
+scripts/openapi-smoke-test.sh --mode path
+scripts/ai-exercises-smoke-test.sh
+scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.1 --profile legacy-alpha1
 ```
 
-The Linux job runs on `ubuntu-latest` inside the official `swift:6.3.2-noble` container. The macOS job runs on `macos-latest`.
-
-The consumer smoke script creates a fresh SwiftPM package outside the Daylily repository. Path mode validates the current checkout before release, including an HTTP check for the generated macro `@Dependency` route. Release mode validates the published SwiftPM dependency shape from `0.1.0-alpha.1` with source compatible with that tag.
-
-The template smoke script copies `templates/minimal-app` into a fresh external directory. It verifies the recommended app structure in both current-checkout and released-package modes.
-
-The example smoke script copies `examples/commerce-api` into a fresh external directory. It verifies the first product-shaped API example in current-checkout path mode. Release-mode example smoke should be run after a tag includes the current example source.
+Source mode and capability profile are independent. Revision and release consumption verify exact resolved versions; path tests may include uncommitted changes and must not be described as release validation. Use new/empty scratch directories and stop every server started by verification. Parallel implementation uses explicit file ownership; shared builds and final documentation are coordinated by the parent.
 
 ## Epic and Task Files
 

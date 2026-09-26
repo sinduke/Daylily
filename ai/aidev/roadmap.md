@@ -413,7 +413,7 @@ runtime registry -> usage polish -> protocol/key design -> lifecycle design -> k
 
 Next:
 
-- `0021-001-swift-log-adapter`
+- Delivered; see current 0023 integration.
 
 ## Ecosystem Compatibility
 
@@ -492,8 +492,17 @@ Design stance:
 
 - Macro middleware remains syntax over runtime `.middleware(...)`.
 - Security metadata is explicit and is not inferred from middleware.
-- OpenAPI security scheme components remain a future OpenAPI slice.
+- Explicit OpenAPI security scheme components are delivered by 0023-003; authentication remains application-owned.
 
 ### Future Epics
 
-- Continue OpenAPI schema expansion and security scheme components after the current macro/runtime bridge stays stable.
+- Expand the explicit OpenAPI schema subset only against concrete consumer needs; deep Swift type derivation remains deferred.
+
+
+## 0023 Reliability and Streaming
+
+Status: in-progress
+
+The active delivery completes six task slices: exact package-consumer validation, transport cancellation, explicit OpenAPI/generator round trip, response streaming/SSE, lifecycle failure recovery, and optional inputs/application exercises. See `ai/epics/0023-reliability-and-streaming.md` and `docs/reliability-and-streaming.md`.
+
+The next release gate is the complete macOS/Linux matrix on the integrated candidate revision. Keep ORM, deep schema reflection, managed ApplicationService runtime, and native TLS/HTTP2 separate from this delivery.

@@ -23,6 +23,7 @@ Daylily provides default paths, not mandatory paths. Runtime APIs are first-clas
 - [Swift OpenAPI Generator Transport](examples/openapi-transport.md): optional `DaylilyOpenAPITransport` adapter for generated server handlers.
 - [JSON API](examples/json-api.md): request decoding, JSON responses, and macro `@Body` input.
 - [Middleware](examples/middleware.md): application/group/route middleware, observability, and one-shot body rules.
+- [Reliability and streaming](reliability-and-streaming.md): current-checkout streaming, lifecycle, OpenAPI, and optional input contracts.
 - [Testing](examples/testing.md): transport-free tests with `DaylilyTesting`.
 
 ## Deeper Project Docs
@@ -35,7 +36,7 @@ Daylily provides default paths, not mandatory paths. Runtime APIs are first-clas
 
 ## Current Support
 
-- Swift tools version: Swift 6.0.
+- Swift tools version: Swift 6.3; validation toolchain: Swift 6.3.2.
 - Platform declared by the package today: macOS 14+.
 - CI validation: macOS and Linux.
 - External consumer validation: fresh SwiftPM package in path and release modes.

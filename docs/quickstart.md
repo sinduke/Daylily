@@ -4,7 +4,7 @@ This guide covers both SwiftPM package usage and running the Daylily repository 
 
 ## Requirements
 
-- Swift 6 toolchain.
+- Swift 6.3.2 toolchain for the current checkout (package minimum Swift 6.3).
 - macOS 14+ for local package development today.
 - Linux is validated in GitHub Actions with the official Swift Docker image.
 - Xcode toolchain for Swift Testing if Command Line Tools cannot find the `Testing` module.
@@ -17,7 +17,7 @@ Add Daylily as a package dependency:
 .package(url: "https://github.com/sinduke/Daylily.git", from: "0.1.0-alpha.1")
 ```
 
-Documentation on `main` may describe APIs newer than the latest tag. The `Dependencies` registry is available from the source checkout and will be included in a future pre-release tag.
+Documentation on `main` may describe APIs newer than the latest tag. Keyed dependencies, ecosystem adapters, optional inputs, explicit schemas, and response streaming are available in the current checkout; `0.1.0-alpha.1` does not contain them.
 
 Add the product to your target:
 
@@ -28,7 +28,7 @@ Add the product to your target:
 Daylily validates this external package path with a generated consumer smoke package:
 
 ```sh
-scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.1
+scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.1 --profile legacy-alpha1
 ```
 
 ## Clone and Build

@@ -298,6 +298,10 @@ Implemented:
 - Explicit `request.withBufferedBody(upTo:_:)` helper for bounded body buffering and replacement.
 - `ByteChunk`, `BodyBytes`, `ByteCount`, `BodyError`, and `ResponseError`.
 - True NIO request body streaming bridge with bounded buffering and practical backpressure.
+- ResponseBody streaming, SSE, socket backpressure, and task cancellation propagation.
+- Optional query/header macro inputs with matching runtime/OpenAPI semantics.
+- Explicit OpenAPI schema/security components and generated server/client HTTP example.
+- Shared failure-safe lifecycle execution for normal and ServiceLifecycle startup.
 - Async JSON body decoding with `request.body.json(...)` and `request.json(...)`.
 - JSON responses with `JSON(...)`.
 - Request and response types.
@@ -316,12 +320,10 @@ Implemented:
 
 Not implemented:
 
-- Macro typed input injection beyond `@Path`, `@Query`, `@Header`, and `@Body` (optional values, etc.).
+- Typed input families beyond current scalar query/header/path and JSON body injection.
 - Deep OpenAPI schema derivation.
 - Managed service lifecycle runtime APIs.
 - Keyless `@Dependency` inference and property injection on route owner types.
-- Macro middleware attributes.
-- Response streaming.
 
 ## Read Order
 

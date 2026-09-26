@@ -6,7 +6,7 @@ This matrix tracks the current beta-facing capability surface. It is intentional
 
 | Capability | Status | Notes |
 | --- | --- | --- |
-| Swift package | Implemented | Swift tools version 6.0. |
+| Swift package | Implemented | Swift tools version 6.3; Swift 6.3.2 is the validated compiler. |
 | Platform declaration | Implemented | macOS 14+ for local package development today. |
 | Linux CI | Implemented | GitHub Actions validates with `swift:6.3.2-noble`. |
 | External consumer smoke | Implemented | Fresh SwiftPM package validates local path and released package dependency modes. |
@@ -21,6 +21,8 @@ This matrix tracks the current beta-facing capability surface. It is intentional
 | Lossless HTTP boundary | Implemented | Custom method tokens, repeated headers, raw request targets, repeated query parameters, and HTTPTypes pseudo fields are preserved at adapter boundaries. |
 | JSON body decoding | Implemented | `request.body.json(...)` and `request.json(...)`. |
 | JSON responses | Implemented | `JSON(...)` response wrapper. |
+| Streaming responses and SSE | Implemented | `ResponseBody.stream`, awaited writes, cancellation, explicit collection, and `Response.eventStream`. |
+| Lifecycle failure recovery | Implemented | Shared runner, teardown once, all teardown hooks attempted, aggregated failures. |
 | Middleware | Implemented | Application, group, and route scope. |
 | Lifecycle hooks | Implemented | `configure`, `boot`, `started`, `shutdown`, `cleanup`. |
 | Server configuration | Implemented | Host, port, backlog, address reuse, read batching, shutdown signals. |
@@ -41,7 +43,7 @@ This matrix tracks the current beta-facing capability surface. It is intentional
 | `@Dependency` | Implemented | Handler parameter lowering to keyed `Request.dependencies.require(...)`; keyless inference is not supported. |
 | `@Use` | Implemented | App, group, and route middleware lowering; accepts a single Swift expression, including named values. |
 | `@Security` | Implemented | Route-level explicit security metadata lowering for OpenAPI operation security. |
-| Optional typed inputs | Planned | Not implemented yet. |
+| Optional query/header inputs | Implemented | `T?`, `Optional<T>`, and `Swift.Optional<T>` lower to runtime `get`; optional path inputs are rejected. |
 
 ## Metadata, OpenAPI, and Observability
 
@@ -49,8 +51,10 @@ This matrix tracks the current beta-facing capability surface. It is intentional
 | --- | --- | --- |
 | Runtime route metadata | Implemented | `Route.describe(...)` and `Application.describeRoutes()`. |
 | OpenAPI generation | MVP | Minimal document generation from runtime metadata. |
-| OpenAPI operation security | Implemented | Explicit route security metadata maps to operation `security`; security scheme components are not generated. |
-| Deep Swift schema derivation | Planned | Currently explicit metadata only. |
+| OpenAPI operation security | Implemented | Explicit route security metadata maps to operation `security`; explicit security scheme components are registered and validated. |
+| Explicit OpenAPI schemas | Implemented | Object, array, string enum, local references, named components, and validation. |
+| Generated server/client round trip | Implemented | `examples/openapi-service` runs actual generated code over HTTP with ServiceGroup and SwiftLog. |
+| Deep Swift schema derivation | Planned | Explicit schema registration remains the supported path. |
 | Request ID middleware | MVP | Daylily-owned request ID plus external correlation ID behavior. |
 | Request logging middleware | MVP | Method, path, status, IDs, duration, and public error reason. |
 | Logging backend integration | Implemented | Optional `DaylilySwiftLog` adapter; core intentionally avoids backend dependencies. |

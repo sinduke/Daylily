@@ -27,6 +27,8 @@ Designed for humans and AI agents together.
 
 ---
 
+Current-checkout additions and migration notes: [Reliability and streaming](docs/reliability-and-streaming.md). Requires Swift 6.3; validated with Swift 6.3.2. Published alpha.1 predates these additions.
+
 ## Why Daylily Exists
 
 Server-side Swift has powerful foundations.
@@ -130,7 +132,10 @@ Daylily is designed around modern Swift:
 | AIDEV AI handoff system | Implemented |
 | Dependencies registry | MVP + keyed runtime |
 | Macro `@Dependency` inputs | Implemented |
-| Macro middleware attributes | Planned |
+| Macro middleware attributes | Implemented |
+| Explicit OpenAPI schemas and security schemes | Implemented |
+| Streaming responses and SSE | Implemented |
+| Optional query/header inputs | Implemented |
 | Full Swift schema derivation | Planned |
 
 ## Architecture
@@ -476,7 +481,7 @@ try handler.registerHandlers(
 try await transport.application().run()
 ```
 
-`DaylilyOpenAPITransport` adapts OpenAPIRuntime `ServerTransport` registrations into Daylily routes. It is not re-exported by the umbrella `Daylily` module. Whole-segment generated path parameters such as `{id}` map to Daylily `:id` parameters; mixed template segments such as `{name}.zip` throw during registration. Generated response bodies are buffered under an explicit limit until Daylily exposes streaming responses.
+`DaylilyOpenAPITransport` adapts OpenAPIRuntime `ServerTransport` registrations into Daylily routes. It is not re-exported by the umbrella `Daylily` module. Whole-segment generated path parameters such as `{id}` map to Daylily `:id` parameters; mixed template segments such as `{name}.zip` throw during registration. Generated response bodies stream by default. Use `responseBodyPolicy: .collect(upTo: limit)` for explicit bounded buffering.
 
 ## Dependencies
 
@@ -881,15 +886,15 @@ MVP limits:
 - handlers may use zero parameters, one `Request` parameter, `@Path`, `@Query`, `@Header`, `@Dependency`, and one `@Body` parameter, with `@JSONBody` accepted as a compatibility alias spelling;
 - `@Path` lowers into `req.parameters.require(_:as:)`;
 - `@Path` names must match `:name` route segments;
-- `@Query` lowers into `req.query.require(_:as:)`;
-- `@Header` lowers into `req.headers.require(_:as:)`;
+- required `@Query` and `@Header` lower into `require(_:as:)`; optional values lower into `get(_:as:)` with `required: false` metadata;
 - `@Body` lowers into `try await req.json(Type.self)`; `@JSONBody` is a compatibility alias spelling with the same lowering;
 - `@Dependency(key)` lowers into `try req.dependencies.require(key)`;
 - `@Use(middleware)` lowers into runtime `.middleware(middleware)` and can be applied at app, group, or route scope;
 - `@Security("scheme")` lowers into route security metadata and OpenAPI operation security;
 - the raw one-shot request body type is `RequestBody`;
 - grouped types must be default-initializable;
-- optional typed inputs, keyless dependency inference, and deep OpenAPI schema derivation are future work.
+- optional query/header inputs support `T?`, `Optional<T>`, and `Swift.Optional<T>`; optional paths are rejected;
+- keyless dependency inference and deep OpenAPI schema derivation are future work.
 
 These are macro MVP limits, not runtime limits.
 

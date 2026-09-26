@@ -109,7 +109,7 @@ DaylilyTests -> DaylilyTesting
 DaylilyTests -> Swift Testing
 DaylilyMacros -> SwiftSyntax
 DaylilyNIO -> DaylilyCore
-DaylilyNIO -> SwiftNIO
+DaylilyNIO -> SwiftNIO (NIOCore, NIOHTTP1, NIOPosix, internal NIOConcurrencyHelpers)
 DaylilyCore -> Standard Library only
 ```
 
@@ -406,16 +406,19 @@ Implemented macro flow:
   parameter marker
   used by @DaylilyServer
   lowers into Parameters.require(_:as:)
+  rejects optional inputs at compile time
 
 @Query
   parameter marker
   used by @DaylilyServer
-  lowers into QueryParameters.require(_:as:)
+  required inputs lower into QueryParameters.require(_:as:)
+  optional inputs lower into QueryParameters.get(_:as:) for the wrapped type
 
 @Header
   parameter marker
   used by @DaylilyServer
-  lowers into Headers.require(_:as:)
+  required inputs lower into Headers.require(_:as:)
+  optional inputs lower into Headers.get(_:as:) for the wrapped type
 
 @Dependency
   parameter marker
@@ -445,8 +448,18 @@ MVP limits:
 - route handlers may have zero parameters, one `Request` parameter, `@Path`, `@Query`, `@Header`, `@Dependency`, and one `@Body` parameter; `@JSONBody` remains as a compatibility alias spelling
 - `@Path` names must match `:name` route segments
 - raw one-shot request body values use `RequestBody`
-- optional typed inputs, keyless dependency inference, and deep OpenAPI schema derivation are not part of this MVP
+- optional query/header inputs support `T?`, `Optional<T>`, and `Swift.Optional<T>`; missing values become `nil`, invalid present values remain 400, and metadata uses the wrapped type with `required: false`
+- optional path inputs are rejected; optional aliases, nested optionals, default-argument fallback, keyless dependency inference, and deep OpenAPI schema derivation remain outside this macro subset
 
 Important rule:
 
 The macro layer must not become the only way to build routes. Runtime APIs remain the ground truth, and macro limitations must not become runtime limitations.
+
+
+## Failure and streaming ownership
+
+`Application` owns lifecycle phase execution behind a shared SPI; both server entry points supply transport startup to that runner. Teardown is awaited once, attempts every hook, and is independent of caller cancellation. The core adds no NIO or ServiceLifecycle dependency.
+
+`ResponseBody` owns buffered bytes or one-shot producers; NIO consumes the body through transport SPI and awaits each write. Cancellation crosses the socket/task boundary. OpenAPITransport streams generated bodies by default; collection is an explicit policy. `Response.body` remains a buffered compatibility view, not a second body store.
+
+OpenAPI explicit schema/components and validation stay in `DaylilyOpenAPI`. Generator/client dependencies live in the independent example, not the runtime core. Optional input macro lowering reads the same runtime extraction semantics and stores the wrapped scalar and required flag in existing route metadata.
