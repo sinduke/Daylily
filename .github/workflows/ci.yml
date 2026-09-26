@@ -119,7 +119,7 @@ jobs:
           exit "$failed"
 
       - name: Preserve resolver and smoke diagnostics
-        if: always()
+        if: always() && env.SMOKE_ARTIFACT_DIR != ''
         uses: actions/upload-artifact@v4
         with:
           name: validation-${{ matrix.platform }}-${{ matrix.suite }}
