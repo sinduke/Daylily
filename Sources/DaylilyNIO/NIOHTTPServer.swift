@@ -20,6 +20,8 @@ public struct NIOServerConfiguration: Sendable {
     public var requestHeaderTimeout: Duration?
     public var uploadIdleTimeout: Duration?
     public var shutdownGracePeriod: Duration?
+    public var responseWriteTimeout: Duration?
+    public var responseObserverCapacity: Int
 
     public init(
         host: String = "127.0.0.1",
@@ -30,7 +32,9 @@ public struct NIOServerConfiguration: Sendable {
         gracefulShutdownSignals: Bool = true,
         requestHeaderTimeout: Duration? = .seconds(15),
         uploadIdleTimeout: Duration? = .seconds(30),
-        shutdownGracePeriod: Duration? = .seconds(10)
+        shutdownGracePeriod: Duration? = .seconds(10),
+        responseWriteTimeout: Duration? = .seconds(30),
+        responseObserverCapacity: Int = 64
     ) {
         self.host = host
         self.port = port
@@ -44,6 +48,10 @@ public struct NIOServerConfiguration: Sendable {
         self.requestHeaderTimeout = requestHeaderTimeout
         self.uploadIdleTimeout = uploadIdleTimeout
         self.shutdownGracePeriod = shutdownGracePeriod
+        precondition(responseWriteTimeout.map { $0 > .zero } ?? true, "Response write timeout must be positive")
+        precondition(responseObserverCapacity > 0, "Response observer capacity must be positive")
+        self.responseWriteTimeout = responseWriteTimeout
+        self.responseObserverCapacity = responseObserverCapacity
     }
 
     public init(_ configuration: ServerConfiguration) {
@@ -56,7 +64,9 @@ public struct NIOServerConfiguration: Sendable {
             gracefulShutdownSignals: configuration.gracefulShutdownSignals,
             requestHeaderTimeout: configuration.requestHeaderTimeout,
             uploadIdleTimeout: configuration.uploadIdleTimeout,
-            shutdownGracePeriod: configuration.shutdownGracePeriod
+            shutdownGracePeriod: configuration.shutdownGracePeriod,
+            responseWriteTimeout: configuration.responseWriteTimeout,
+            responseObserverCapacity: configuration.responseObserverCapacity
         )
     }
 }
@@ -64,7 +74,13 @@ public struct NIOServerConfiguration: Sendable {
 public struct NIOHTTPServer: Sendable {
     private let configuration: NIOServerConfiguration
     private let responder: @Sendable (Request) async -> Response
-    private let responseObserver: (any ResponseTransferObserver)?
+    private let responseDispatcher: ResponseTransferDispatcher?
+
+    /// Shared observation-delivery counters for this server instance, or nil if
+    /// observation is disabled. No observation task is created in the nil case.
+    public var responseObserverSnapshot: ResponseTransferDeliverySnapshot? {
+        responseDispatcher?.snapshot
+    }
 
     public init(
         configuration: NIOServerConfiguration = NIOServerConfiguration(),
@@ -73,7 +89,11 @@ public struct NIOHTTPServer: Sendable {
     ) {
         self.configuration = configuration
         self.responder = responder
-        self.responseObserver = responseObserver
+        precondition(configuration.responseWriteTimeout.map { $0 > .zero } ?? true, "Response write timeout must be positive")
+        precondition(configuration.responseObserverCapacity > 0, "Response observer capacity must be positive")
+        self.responseDispatcher = responseObserver.map {
+            ResponseTransferDispatcher(observer: $0, capacity: configuration.responseObserverCapacity)
+        }
     }
 
     public func run(
@@ -95,7 +115,7 @@ public struct NIOHTTPServer: Sendable {
 
         let responder = responder
         let configuration = configuration
-        let responseObserver = responseObserver
+        let responseDispatcher = responseDispatcher
         let bootstrap = ServerBootstrap(group: group)
             .serverChannelOption(ChannelOptions.backlog, value: Int32(configuration.backlog))
             .serverChannelOption(ChannelOptions.socketOption(.so_reuseaddr), value: configuration.reuseAddress ? 1 : 0)
@@ -117,7 +137,7 @@ public struct NIOHTTPServer: Sendable {
                         responder: responder,
                         taskGate: taskGate,
                         configuration: configuration,
-                        responseObserver: responseObserver
+                        responseDispatcher: responseDispatcher
                     ))
                 }.map {
                     connection.initialized()
@@ -363,7 +383,7 @@ private final class DaylilyHTTPHandler: ChannelInboundHandler, @unchecked Sendab
     private let responder: @Sendable (Request) async -> Response
     private let taskGate: ChannelTaskGate
     private let configuration: NIOServerConfiguration
-    private let responseObserver: (any ResponseTransferObserver)?
+    private let responseDispatcher: ResponseTransferDispatcher?
     private var currentRequest: CurrentRequest?
     private var nextRequestID = 0
     private var responseTask: Task<Void, Never>?
@@ -376,12 +396,12 @@ private final class DaylilyHTTPHandler: ChannelInboundHandler, @unchecked Sendab
         responder: @escaping @Sendable (Request) async -> Response,
         taskGate: ChannelTaskGate,
         configuration: NIOServerConfiguration,
-        responseObserver: (any ResponseTransferObserver)?
+        responseDispatcher: ResponseTransferDispatcher?
     ) {
         self.responder = responder
         self.taskGate = taskGate
         self.configuration = configuration
-        self.responseObserver = responseObserver
+        self.responseDispatcher = responseDispatcher
     }
 
     func channelActive(context: ChannelHandlerContext) {
@@ -762,9 +782,9 @@ private final class DaylilyHTTPHandler: ChannelInboundHandler, @unchecked Sendab
         let suppressBody = isHead || forbidsBody
         nextTransferID &+= 1
         let transferID = nextTransferID
-        let transfer = responseObserver.map {
+        let transfer = responseDispatcher.map {
             ResponseTransferState(
-                observer: $0,
+                dispatcher: $0,
                 method: currentRequest?.requestMethod,
                 path: currentRequest?.path,
                 status: response.status,
@@ -803,24 +823,32 @@ private final class DaylilyHTTPHandler: ChannelInboundHandler, @unchecked Sendab
             headers: headers
         )
 
-        responseTask = Task {
+        responseTask = Task { [weak self] in
             do {
                 try Task.checkCancellation()
-                try await taskGate.perform { continuation in
-                    channel.writeAndFlush(HTTPServerResponsePart.head(head)).whenComplete {
+                try await taskGate.perform { [weak self] continuation in
+                    guard let self, channel.isActive else {
+                        continuation.resume(throwing: ChannelError.ioOnClosedChannel)
+                        return
+                    }
+                    self.writeWithDeadline(.head(head), context: loopBoundContext.value, transfer: transfer) {
                         continuation.resume(with: $0)
                     }
                 }
                 if !suppressBody {
-                    try await response.responseBody.write { chunk in
+                    try await response.responseBody.write { [weak self] chunk in
                         try Task.checkCancellation()
                         var buffer = channel.allocator.buffer(capacity: chunk.count)
                         buffer.writeBytes(chunk.bytes)
                         // A completed write promise means this chunk has left NIO's pending
                         // write queue. Await it before pulling more bytes from the producer.
                         let chunkBuffer = buffer
-                        try await taskGate.perform { continuation in
-                            channel.writeAndFlush(HTTPServerResponsePart.body(.byteBuffer(chunkBuffer))).whenComplete {
+                        try await taskGate.perform { [weak self] continuation in
+                            guard let self, channel.isActive else {
+                                continuation.resume(throwing: ChannelError.ioOnClosedChannel)
+                                return
+                            }
+                            self.writeWithDeadline(.body(.byteBuffer(chunkBuffer)), context: loopBoundContext.value, transfer: transfer) {
                                 if case .success = $0 { transfer?.addBytes(chunk.count) }
                                 continuation.resume(with: $0)
                             }
@@ -850,13 +878,13 @@ private final class DaylilyHTTPHandler: ChannelInboundHandler, @unchecked Sendab
                             }
                         }
                     }
-                    context.writeAndFlush(self.wrapOutboundOut(.end(nil))).whenComplete {
+                    self.writeWithDeadline(.end(nil), context: context, transfer: transfer) {
                         switch $0 {
                         case .success:
                             transfer?.finish(.completed)
                             // The next header budget starts after response framing flushes.
                             // A queued next request may already have populated currentRequest.
-                            self.startHeaderDeadline(context: context)
+                            self.startHeaderDeadline(context: loopBoundContext.value)
                         case .failure: transfer?.finish(channel.isActive ? .failed : .cancelled)
                         }
                         self.transfers.removeValue(forKey: transferID)
@@ -877,6 +905,31 @@ private final class DaylilyHTTPHandler: ChannelInboundHandler, @unchecked Sendab
         }
     }
 
+    /// Each timer exists only while this write is pending. Producer suspension
+    /// between chunks and time spent building the response have no write timer.
+    private func writeWithDeadline(
+        _ part: HTTPServerResponsePart,
+        context: ChannelHandlerContext,
+        transfer: ResponseTransferState?,
+        completion: @escaping @Sendable (Result<Void, any Error>) -> Void
+    ) {
+        let loopBoundContext = context.loopBound
+        let deadline = configuration.responseWriteTimeout.map { timeout in
+            context.eventLoop.scheduleTask(in: Self.timeAmount(timeout)) { [weak self] in
+                // Arbitrate before closing: channelInactive and cancellation are
+                // consequences of a failed write, not a replacement outcome.
+                transfer?.finish(.failed)
+                self?.currentRequest?.handlerTask?.cancel()
+                self?.responseTask?.cancel()
+                loopBoundContext.value.close(promise: nil)
+            }
+        }
+        context.writeAndFlush(wrapOutboundOut(part)).whenComplete { result in
+            deadline?.cancel()
+            completion(result)
+        }
+    }
+
     private static func requestTarget(from uri: String) -> String {
         uri.isEmpty ? "/" : uri
     }
@@ -885,7 +938,7 @@ private final class DaylilyHTTPHandler: ChannelInboundHandler, @unchecked Sendab
 /// Mutable accounting is confined to the connection's event loop. Delivery uses
 /// an immutable snapshot on a Swift task and never delays socket or shutdown work.
 private final class ResponseTransferState: @unchecked Sendable {
-    let observer: any ResponseTransferObserver
+    let dispatcher: ResponseTransferDispatcher
     let method: DaylilyCore.HTTPMethod?
     let path: String?
     let status: Status
@@ -896,8 +949,8 @@ private final class ResponseTransferState: @unchecked Sendable {
     private var isTerminal = false
     private var bytesSent = 0
 
-    init(observer: any ResponseTransferObserver, method: DaylilyCore.HTTPMethod?, path: String?, status: Status, requestID: String?, correlationID: String?) {
-        self.observer = observer
+    init(dispatcher: ResponseTransferDispatcher, method: DaylilyCore.HTTPMethod?, path: String?, status: Status, requestID: String?, correlationID: String?) {
+        self.dispatcher = dispatcher
         self.method = method
         self.path = path
         self.status = status
@@ -923,8 +976,7 @@ private final class ResponseTransferState: @unchecked Sendable {
             durationNanoseconds: DispatchTime.now().uptimeNanoseconds &- started,
             outcome: outcome
         )
-        let observer = observer
-        Task { await observer.record(event) }
+        dispatcher.submit(event)
     }
 }
 

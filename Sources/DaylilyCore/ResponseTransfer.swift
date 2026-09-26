@@ -48,9 +48,30 @@ public struct ResponseTransferEvent: Equatable, Sendable {
 /// The transport arbitrates terminal state exactly once for each observed response,
 /// then delivers the event asynchronously outside its event loop. Different responses
 /// may invoke this method concurrently and in a different order from their requests.
+/// The NIO server bounds active deliveries using `responseObserverCapacity`. When
+/// all slots are occupied, it drops the new event without creating a task or queue.
+/// Its `responseObserverSnapshot` reports active, completed and dropped deliveries.
 /// Server shutdown does not wait indefinitely for observers: delivery is best effort
 /// if the process exits. Applications own durable buffering or exporter shutdown.
 /// No observation task is created when no observer is configured.
 public protocol ResponseTransferObserver: Sendable {
     func record(_ event: ResponseTransferEvent) async
+}
+
+/// A point-in-time view of a server's bounded observation delivery, across all
+/// connections. A completed delivery means `record` returned, not durable export.
+/// Counters belong to the server instance and include every run of that instance.
+public struct ResponseTransferDeliverySnapshot: Equatable, Sendable {
+    public let capacity: Int
+    /// Admitted deliveries, including tasks that have not entered `record` yet.
+    public let inFlight: Int
+    public let completedEvents: UInt64
+    public let droppedEvents: UInt64
+
+    public init(capacity: Int, inFlight: Int, completedEvents: UInt64, droppedEvents: UInt64) {
+        self.capacity = capacity
+        self.inFlight = inFlight
+        self.completedEvents = completedEvents
+        self.droppedEvents = droppedEvents
+    }
 }

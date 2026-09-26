@@ -560,21 +560,38 @@ func externalPackageConfiguresOperationDeadlines() {
     #expect(defaults.requestHeaderTimeout == .seconds(15))
     #expect(defaults.uploadIdleTimeout == .seconds(30))
     #expect(defaults.shutdownGracePeriod == .seconds(10))
+    #expect(defaults.responseWriteTimeout == .seconds(30))
+    #expect(defaults.responseObserverCapacity == 64)
 
     var configuration = ServerConfiguration(
         requestHeaderTimeout: .milliseconds(750),
         uploadIdleTimeout: .seconds(2),
-        shutdownGracePeriod: .zero
+        shutdownGracePeriod: .zero,
+        responseWriteTimeout: .milliseconds(250), responseObserverCapacity: 3
     )
     #expect(configuration.requestHeaderTimeout == .milliseconds(750))
     #expect(configuration.uploadIdleTimeout == .seconds(2))
     #expect(configuration.shutdownGracePeriod == .zero)
+    #expect(configuration.responseWriteTimeout == .milliseconds(250))
+    #expect(configuration.responseObserverCapacity == 3)
     configuration.requestHeaderTimeout = nil
     configuration.uploadIdleTimeout = nil
     configuration.shutdownGracePeriod = nil
+    configuration.responseWriteTimeout = nil
     #expect(configuration == ServerConfiguration(
-        requestHeaderTimeout: nil, uploadIdleTimeout: nil, shutdownGracePeriod: nil
+        requestHeaderTimeout: nil, uploadIdleTimeout: nil, shutdownGracePeriod: nil,
+        responseWriteTimeout: nil, responseObserverCapacity: 3
     ))
+
+    let mapped = NIOServerConfiguration(configuration)
+    #expect(mapped.responseWriteTimeout == nil && mapped.responseObserverCapacity == 3)
+    let server = NIOHTTPServer(configuration: mapped, responseObserver: InMemoryResponseTransferObserver()) { _ in
+        Response(status: .ok)
+    }
+    #expect(server.responseObserverSnapshot == ResponseTransferDeliverySnapshot(
+        capacity: 3, inFlight: 0, completedEvents: 0, droppedEvents: 0
+    ))
+    #expect(NIOHTTPServer { _ in Response(status: .ok) }.responseObserverSnapshot == nil)
 }
 
 @Test("external package consumes all response transfer observer adapters")

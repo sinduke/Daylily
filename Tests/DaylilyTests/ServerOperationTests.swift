@@ -358,20 +358,21 @@ private actor BlockingOperationObserver: ResponseTransferObserver {
     }
 }
 
-private enum OperationTestError: Error {
+enum OperationTestError: Error {
     case expected
     case timeout
     case socket(String, Int32)
     case incompleteResponse(String)
 }
 
-private struct OperationServer: Sendable {
+struct OperationServer: Sendable {
     let port: Int
     let shutdown: AsyncStream<Void>.Continuation
     let task: Task<Void, any Error>
+    let server: NIOHTTPServer
 }
 
-private func operationTimeout<T: Sendable>(_ operation: @escaping @Sendable () async throws -> T) async throws -> T {
+func operationTimeout<T: Sendable>(_ operation: @escaping @Sendable () async throws -> T) async throws -> T {
     try await withThrowingTaskGroup(of: T.self) { group in
         group.addTask(operation: operation)
         group.addTask { try await Task.sleep(for: .seconds(5)); throw OperationTestError.timeout }
@@ -380,13 +381,13 @@ private func operationTimeout<T: Sendable>(_ operation: @escaping @Sendable () a
     }
 }
 
-private func operationEventually(_ condition: @escaping @Sendable () async -> Bool) async throws {
+func operationEventually(_ condition: @escaping @Sendable () async -> Bool) async throws {
     try await operationTimeout {
         while !(await condition()) { try await Task.sleep(for: .milliseconds(5)) }
     }
 }
 
-private func withOperationServer(
+func withOperationServer(
     _ app: Application,
     configuration: NIOServerConfiguration = .init(),
     observer: (any ResponseTransferObserver)? = nil,
@@ -413,7 +414,7 @@ private func withOperationServer(
     }
     do {
         try await operationTimeout { for try await _ in ready.stream {} }
-        try await operation(OperationServer(port: port, shutdown: shutdown.continuation, task: task))
+        try await operation(OperationServer(port: port, shutdown: shutdown.continuation, task: task, server: server))
         task.cancel()
         try await task.value
     } catch {
@@ -424,7 +425,7 @@ private func withOperationServer(
 }
 
 /// A bounded blocking socket, used off the cooperative executor for response reads.
-private final class OperationSocket: @unchecked Sendable {
+final class OperationSocket: @unchecked Sendable {
     private let lock = NSLock()
     private var descriptor: Int32
 
