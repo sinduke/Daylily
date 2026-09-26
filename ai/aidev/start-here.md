@@ -410,3 +410,7 @@ Current strategic order:
 2. Keep ecosystem integrations optional and outside `DaylilyCore`.
 3. Keep lifecycle-managed services separate from dependency lookup and macro work.
 4. Implement runtime slices only after the contracts stay stable across docs and examples.
+
+## Alpha.4 candidate work (0026)
+
+The current checkout adds bounded observation delivery, per-write response deadlines and explicit nullable schemas, plus a separate persistent commerce consumer. See [the candidate guide](../../docs/alpha4-candidate.md) and [execution checklist](../epics/0026-real-business-and-sustained-operation.md) for exact state; the latest published tag remains alpha.3 until a separate release.

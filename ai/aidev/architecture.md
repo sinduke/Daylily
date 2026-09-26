@@ -287,7 +287,7 @@ Request logging is a normal middleware and follows the same ordering, short-circ
 
 Response-transfer observation begins after the handler produces its response. `DaylilyCore` owns `ResponseTransferEvent`, `ResponseTransferOutcome`, and the nonthrowing async `ResponseTransferObserver` protocol. NIO owns successful body-write accounting and exactly-once terminal arbitration on the connection event loop, including disconnect or forced closure while a producer ignores cancellation. The duration ends at transport completion/cancellation/failure and excludes handler production time; byte counts exclude headers/framing and do not guarantee peer consumption.
 
-NIO freezes an immutable event and awaits its observer in a Swift task outside the event loop. Observer calls can overlap or arrive out of request order. Server shutdown does not await observers, so a blocked exporter cannot defeat the grace deadline; process-exit delivery is best effort and durable exporter lifecycle belongs to the application. `DaylilyObservability` offers in-memory/console implementations; optional `DaylilySwiftLog` adapts the same event to application-owned logging without making core depend on `Logging`.
+NIO freezes an immutable event and passes a synchronous server-wide capacity gate before awaiting its observer in a Swift task outside the event loop. The alpha.4 candidate defaults to 64 in-flight callbacks, drops newest excess events without a queue, and exposes delivery counters on the server. Pending response writes also have independent per-write deadlines; handler/producer idle time is excluded. Observer calls can overlap or arrive out of request order. Server shutdown does not await observers, so a blocked exporter cannot defeat the grace deadline; process-exit delivery is best effort and durable exporter lifecycle belongs to the application. `DaylilyObservability` offers in-memory/console implementations; optional `DaylilySwiftLog` adapts the same event to application-owned logging without making core depend on `Logging`.
 
 0013-002 request ID and timing:
 
@@ -473,3 +473,8 @@ The macro layer must not become the only way to build routes. Runtime APIs remai
 `ResponseBody` owns buffered bytes or one-shot producers; NIO consumes the body through transport SPI and awaits each write. Cancellation crosses the socket/task boundary. OpenAPITransport streams generated bodies by default; collection is an explicit policy. `Response.body` remains a buffered compatibility view, not a second body store.
 
 OpenAPI explicit schema/components and validation stay in `DaylilyOpenAPI`. Generator/client dependencies live in the independent example, not the runtime core. Optional input macro lowering reads the same runtime extraction semantics and stores the wrapped scalar and required flag in existing route metadata.
+
+
+## Persistent consumer boundary (0026)
+
+`examples/commerce-api/persistent` is an independent application package, with PostgresNIO and ServiceLifecycle owned by its composition root. Its pool, migrations, transactions, idempotency and readiness policy stay outside framework products. The original commerce AppCore supplies DTOs. The external Linux harness and private TLS proxy likewise stay outside runtime modules.

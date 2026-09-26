@@ -108,3 +108,17 @@ python3 scripts/deployment-trial.py --duration 300 --artifacts /tmp/daylily-depl
 ```
 
 The last command requires Docker and an empty/new evidence directory. CI runs contract subset checks in core jobs, actual generated old/new clients in path/revision/release jobs, and a separate Linux reverse-proxy deployment job with 30 seconds of sustained traffic. Uploaded artifacts preserve resolver/schema/build/transfer/shutdown evidence. Real model-edit evaluations are opt-in, use the configured Codex account and remain outside automatic CI; see `ai/evals/repeated-changes/README.md`.
+
+
+## Alpha.4 candidate validation (0026)
+
+The [execution checklist](ai/epics/0026-real-business-and-sustained-operation.md) covers persistent commerce, bounded runtime resources, nullable contracts, sustained external Linux deployment and broader AI edits. Current API and ownership semantics: [candidate guide](docs/alpha4-candidate.md).
+
+```sh
+scripts/persistent-consumer-smoke-test.sh --mode path
+python3 scripts/persistent-commerce-smoke-test.py --help
+python3 scripts/sustained-deployment-trial.py --duration 3600 --artifacts /new/empty/daylily-business
+python3 ai/evals/repeated-changes/run_extended.py --baseline-only --repetitions 1 --output /new/empty/ai-baselines
+```
+
+The persistent consumer also accepts exact revision/release sources and records resolver pins. The actual database harness requires Docker. CI adds macOS/Linux persistent consumers and a private TLS/database Linux trial; workflow dispatch with `business_trial_seconds=3600` supplies the one-hour acceptance run. Ordinary CI uses 60 seconds. Baseline-only AI checks make no model calls. Actual `run_extended.py` without `--baseline-only` is opt-in and uses the configured Codex account; published trial evidence records token usage, unknown monetary cost and all repair attempts.

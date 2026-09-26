@@ -507,6 +507,8 @@ implemented_features:
       requestHeaderTimeout: ".seconds(15)"
       uploadIdleTimeout: ".seconds(30)"
       shutdownGracePeriod: ".seconds(10)"
+      responseWriteTimeout: ".seconds(30)"
+      responseObserverCapacity: 64
     decisions:
       - "ServerConfiguration is NIO-free and lives in DaylilyCore"
       - "Application.run(host:port:) remains convenience sugar"
@@ -1947,6 +1949,7 @@ public_api:
       properties:
         - "schema: OpenAPISchema"
     OpenAPISchema:
+      nullable_contract: "nullable() returns a concrete schema accepting null; isNullable reads type/enum intersection without resolving references. Presence is controlled independently by the enclosing object required list; nullable reference wrappers are invalid."
       kind: struct
       conforms:
         - Codable
@@ -1964,6 +1967,8 @@ public_api:
       methods:
         - "public static func object(properties: [String: OpenAPISchema], required: [String] = []) -> Self"
         - "public static func array(items: OpenAPISchema) -> Self"
+        - "public func nullable() -> Self"
+        - "public var isNullable: Bool { get }"
         - "public static func string(enum values: [String]? = nil) -> Self"
         - "public static func reference(_ componentName: String) -> Self"
       coding:
@@ -2220,8 +2225,16 @@ public_api:
         - "requestHeaderTimeout: Duration?"
         - "uploadIdleTimeout: Duration?"
         - "shutdownGracePeriod: Duration?"
-      initializer: "public init(host: String = \"127.0.0.1\", port: Int = 8080, backlog: Int = 256, reuseAddress: Bool = true, maxMessagesPerRead: Int = 16, gracefulShutdownSignals: Bool = true, requestHeaderTimeout: Duration? = .seconds(15), uploadIdleTimeout: Duration? = .seconds(30), shutdownGracePeriod: Duration? = .seconds(10))"
+        - "responseWriteTimeout: Duration?"
+        - "responseObserverCapacity: Int"
+      initializer: "public init(host: String = \"127.0.0.1\", port: Int = 8080, backlog: Int = 256, reuseAddress: Bool = true, maxMessagesPerRead: Int = 16, gracefulShutdownSignals: Bool = true, requestHeaderTimeout: Duration? = .seconds(15), uploadIdleTimeout: Duration? = .seconds(30), shutdownGracePeriod: Duration? = .seconds(10), responseWriteTimeout: Duration? = .seconds(30), responseObserverCapacity: Int = 64)"
       contract: "NIO-free equatable configuration. Nil disables a deadline; nil grace waits until completion or force cancellation; zero grace closes immediately. Header/upload durations must be positive and grace nonnegative."
+    ResponseTransferDeliverySnapshot:
+      kind: struct
+      conforms: [Equatable, Sendable]
+      properties: ["public let capacity: Int", "public let inFlight: Int", "public let completedEvents: UInt64", "public let droppedEvents: UInt64"]
+      initializer: "public init(capacity: Int, inFlight: Int, completedEvents: UInt64, droppedEvents: UInt64)"
+      contract: "Server-wide bounded callback delivery counters; nil server snapshot when observer is disabled. Excess newest events are dropped without queuing tasks."
     ResponseTransferOutcome:
       kind: enum
       raw_type: String
@@ -2247,7 +2260,7 @@ public_api:
       conforms: [Sendable]
       methods:
         - "func record(_ event: ResponseTransferEvent) async"
-      contract: "Nonthrowing sink delivered outside the event loop after exactly-once terminal arbitration. Calls may overlap or arrive out of order; shutdown does not await sink completion and durable delivery belongs to the application."
+      contract: "Nonthrowing sink delivered outside the event loop after exactly-once terminal arbitration and bounded synchronous admission. Saturation drops newest events; calls may overlap or arrive out of order. Shutdown does not await sink completion; durable delivery belongs to the application."
     Route:
       kind: struct
       conforms:
@@ -2692,6 +2705,7 @@ public_api:
       kind: struct
       role: transport
       conforms: [Sendable]
+      properties: ["public var responseObserverSnapshot: ResponseTransferDeliverySnapshot? { get }"]
       initializer: "public init(configuration: NIOServerConfiguration = NIOServerConfiguration(), responseObserver: (any ResponseTransferObserver)? = nil, responder: @escaping @Sendable (Request) async -> Response)"
       methods:
         - "public func run(started: @escaping @Sendable () async throws -> Void = {}) async throws"
@@ -2709,8 +2723,10 @@ public_api:
         - "requestHeaderTimeout: Duration?"
         - "uploadIdleTimeout: Duration?"
         - "shutdownGracePeriod: Duration?"
+        - "responseWriteTimeout: Duration?"
+        - "responseObserverCapacity: Int"
       initializers:
-        - "public init(host: String = \"127.0.0.1\", port: Int = 8080, backlog: Int = 256, reuseAddress: Bool = true, maxMessagesPerRead: Int = 16, gracefulShutdownSignals: Bool = true, requestHeaderTimeout: Duration? = .seconds(15), uploadIdleTimeout: Duration? = .seconds(30), shutdownGracePeriod: Duration? = .seconds(10))"
+        - "public init(host: String = \"127.0.0.1\", port: Int = 8080, backlog: Int = 256, reuseAddress: Bool = true, maxMessagesPerRead: Int = 16, gracefulShutdownSignals: Bool = true, requestHeaderTimeout: Duration? = .seconds(15), uploadIdleTimeout: Duration? = .seconds(30), shutdownGracePeriod: Duration? = .seconds(10), responseWriteTimeout: Duration? = .seconds(30), responseObserverCapacity: Int = 64)"
         - "public init(_ configuration: ServerConfiguration)"
       defaults:
         host: "127.0.0.1"
@@ -2722,6 +2738,8 @@ public_api:
         requestHeaderTimeout: ".seconds(15)"
         uploadIdleTimeout: ".seconds(30)"
         shutdownGracePeriod: ".seconds(10)"
+        responseWriteTimeout: ".seconds(30)"
+        responseObserverCapacity: 64
   DaylilyMacros:
     DaylilyServerMacro:
       kind: macro_implementation
@@ -2763,7 +2781,7 @@ runtime_rules:
   middleware_order: "application -> router dispatch -> group -> route -> handler"
   middleware_body_policy: "middleware can read RequestBody, but RequestBody remains one-shot and no automatic replay occurs"
   explicit_buffered_body_policy: "withBufferedBody consumes the original RequestBody, buffers under an explicit limit, creates a one-shot replacement RequestBody.bytes value, and does not enable automatic replay"
-  observability_policy: "DaylilyCore owns transport-free ResponseTransferEvent/Outcome/Observer. DaylilyObservability owns request ID/logging plus console and in-memory transfer observers. NIO freezes exactly one terminal event on its event loop and asynchronously awaits the nonthrowing sink outside it; shutdown does not wait for sink completion. Bytes count successful body flushes and duration excludes handler time. Optional DaylilySwiftLog directly depends on Core and Observability, adapts both request logs and transfer events, and never bootstraps LoggingSystem."
+  observability_policy: "DaylilyCore owns transport-free ResponseTransferEvent/Outcome/Observer. DaylilyObservability owns request ID/logging plus console and in-memory transfer observers. NIO freezes exactly one terminal event on its event loop and asynchronously awaits the nonthrowing sink outside it; shutdown does not wait for sink completion. Bytes count successful body flushes and duration excludes handler time. Optional DaylilySwiftLog directly depends on Core and Observability, adapts both request logs and transfer events, and never bootstraps LoggingSystem. Transport event delivery is admitted through a server-wide bounded gate; excess newest events are dropped and counted. Delivery counters are lock-protected across threads, while terminal selection/body-byte accounting stays on the event loop."
   ecosystem_adapter_policy: "SwiftLog, ServiceLifecycle, Swift HTTP Types, and Swift OpenAPI Generator integrations live in optional modules and are not re-exported by Daylily. DaylilyHTTPTypes adapts boundary types while DaylilyCore keeps Daylily-owned Request/Response models and does not import HTTPTypes. DaylilyOpenAPITransport adapts OpenAPIRuntime ServerTransport registrations while DaylilyCore does not import OpenAPIRuntime."
   errors:
     response_error: "status + reason"
@@ -3038,9 +3056,14 @@ roadmap:
     - "0024-005-contract-and-ai-regression"
     - "0024-006-operational-readiness-closure"
     - "0025-001-publish-alpha3"
-  in_progress: []
-  next_recommended:
-    - "select-external-deployment-and-longer-trial"
+    - "0026-001-persistent-commerce"
+    - "0026-005-broader-ai-edits"
+    - "0026-004-nullable-contracts"
+    - "0026-002-runtime-resource-bounds"
+  in_progress:
+    - "0026-003-sustained-linux-deployment"
+    - "0026-006-integration-and-verification"
+  next_recommended: []
   later:
     - "0013-003-observability-hooks"
 
@@ -3145,3 +3168,23 @@ alpha3_release:
   exact_tag_ci_result: "11/11 jobs passed"
   resolver_evidence: "Ten Package.resolved files across both release platforms pin alpha.3 to cfa835792cca3cce614999ddc7adca290015a801"
   release_consumers: "Each platform passed 8 consumer tests and all 4 actual generated-client HTTP scenarios"
+
+real_business_delivery:
+  epic: "0026-real-business-and-sustained-operation"
+  status: in-progress
+  guide: docs/alpha4-candidate.md
+  tasks: ["0026-001", "0026-002", "0026-003", "0026-004", "0026-005", "0026-006"]
+  candidate_version: "0.1.0-alpha.4 (unreleased)"
+  scope:
+    - "Application-owned PostgreSQL commerce pool/transactions/readiness and lifecycle"
+    - "Server-wide bounded observer callbacks and per-write stall deadline"
+    - "Explicit concrete-type-plus-null OpenAPI and old-client/new-server HTTP regression"
+    - "Private external Linux TLS/API/SSE/database trial with at least 3600 seconds of sustained traffic"
+    - "Three additional actual cross-file AI edit tasks with withheld first-pass acceptance"
+  commands:
+    - "scripts/persistent-consumer-smoke-test.sh --mode path"
+    - "python3 scripts/persistent-commerce-smoke-test.py --help"
+    - "python3 scripts/sustained-deployment-trial.py --duration 3600 --artifacts /new/empty/evidence"
+    - "python3 ai/evals/repeated-changes/run_extended.py --baseline-only --repetitions 1 --output /new/empty/baselines"
+  model_trial_evidence: ai/evals/repeated-changes/results/2026-09-26-alpha4/README.md
+  beta_gate: "A separate 24-hour soak; one-hour evidence does not prove leak freedom or production capacity"

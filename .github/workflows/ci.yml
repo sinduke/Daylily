@@ -17,12 +17,23 @@ on:
         description: Optional published version to validate with the complete current capability set
         required: false
         type: string
+      business_trial_seconds:
+        description: Sustained business deployment seconds (3600 for alpha.4 acceptance)
+        required: false
+        default: '60'
+        type: string
+      business_only:
+        description: Run only the sustained business deployment against this ref
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
 
 jobs:
   validate:
+    if: ${{ !inputs.business_only }}
     name: ${{ matrix.platform }} · Swift 6.3.2 · ${{ matrix.suite }}
     runs-on: ${{ matrix.runner }}
     container: ${{ matrix.container }}
@@ -86,6 +97,7 @@ jobs:
           swift test
           swift run --skip-build HelloDaylily --check
           python3 ai/evals/contracts/test_compatibility.py
+          python3 ai/evals/repeated-changes/run_extended.py --baseline-only --repetitions 1 --jobs 2 --output "$SMOKE_ARTIFACT_DIR/ai-baselines"
 
       - name: Validate external packages
         if: matrix.suite != 'core'
@@ -134,9 +146,13 @@ jobs:
             ${{ env.SMOKE_ARTIFACT_DIR }}/*/dependency-record.json
             ${{ env.SMOKE_ARTIFACT_DIR }}/*/*-diff.json
             ${{ env.SMOKE_ARTIFACT_DIR }}/*/*.log
+            ${{ env.SMOKE_ARTIFACT_DIR }}/ai-baselines/summary.json
+            ${{ env.SMOKE_ARTIFACT_DIR }}/ai-baselines/*/result.json
+            ${{ env.SMOKE_ARTIFACT_DIR }}/ai-baselines/*/baseline.log
           if-no-files-found: ignore
 
   deployment:
+    if: ${{ !inputs.business_only }}
     name: Linux · reverse-proxy deployment
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -152,4 +168,78 @@ jobs:
         with:
           name: deployment-Linux
           path: ${{ runner.temp }}/daylily-deployment
+          if-no-files-found: ignore
+
+  persistent-consumer:
+    if: ${{ !inputs.business_only }}
+    name: ${{ matrix.platform }} · persistent commerce consumer
+    runs-on: ${{ matrix.runner }}
+    container: ${{ matrix.container }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macOS
+            runner: macos-26
+            container: ''
+            developer_directory: /Applications/Xcode_26.5.app/Contents/Developer
+          - platform: Linux
+            runner: ubuntu-24.04
+            container: swift:6.3.2-noble
+            developer_directory: ''
+    defaults:
+      run:
+        shell: bash
+    env:
+      DEVELOPER_DIR: ${{ matrix.developer_directory }}
+      SMOKE_SWIFT_VERSION: '6.3.2'
+      RELEASE_VERSION: ${{ inputs.release_version }}
+    steps:
+      - name: Linux prerequisites
+        if: matrix.platform == 'Linux'
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends ca-certificates curl git python3
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Exact-source persistent package and unit tests
+        run: |
+          if [[ "$RUNNER_OS" == Linux ]]; then
+            git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          fi
+          source_args=(--mode revision --repo-url "file://$GITHUB_WORKSPACE" --revision "$(git rev-parse HEAD)")
+          if [[ -n "$RELEASE_VERSION" ]]; then source_args=(--mode release --version "$RELEASE_VERSION"); fi
+          scripts/persistent-consumer-smoke-test.sh "${source_args[@]}" --workdir "$RUNNER_TEMP/persistent-consumer" --keep 2>&1 | tee "$RUNNER_TEMP/persistent-consumer.log"
+      - name: Preserve persistent dependency records
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: persistent-consumer-${{ matrix.platform }}
+          path: |
+            ${{ runner.temp }}/persistent-consumer.log
+            ${{ runner.temp }}/persistent-consumer/Package.resolved
+            ${{ runner.temp }}/persistent-consumer/dependency-record.json
+          if-no-files-found: ignore
+
+  business-deployment:
+    name: Linux · sustained persistent business
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    env:
+      BUSINESS_TRIAL_SECONDS: ${{ inputs.business_trial_seconds || '60' }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Persistent API, verified TLS, SSE, failures and sustained traffic
+        run: python3 scripts/sustained-deployment-trial.py --duration "$BUSINESS_TRIAL_SECONDS" --artifacts "$RUNNER_TEMP/daylily-business"
+      - name: Preserve business deployment evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sustained-business-Linux
+          path: ${{ runner.temp }}/daylily-business
           if-no-files-found: ignore

@@ -469,3 +469,9 @@ Future:
 Keep public configuration/observations NIO-free and transport state on its owning event loop. Cover idle and partial heads, stalled input, paused reads, early responses, long SSE, pipelined shutdown, force cancellation and slow/throwing producers. Verify one terminal response event independent of HTTP status and handler timing. A blocked observer must not block a channel or server shutdown. Update the operational guide and run the real reverse-proxy trial after meaningful transport changes.
 
 For an OpenAPI compatibility change, add a directional old-client/new-server regression and reject unsupported schema semantics explicitly. Run the actual generated clients, not only a schema comparison. Repeated AI trials must begin from incomplete sources, preserve immutable acceptance, and record actual model edits and usage; reference implementations alone are not model-edit evidence.
+
+## Extend resource-bound or persistent behavior (0026)
+
+Maintain synchronous observation admission before task creation; never move the bound behind an actor hop that can itself queue unlimited tasks. Exercise saturation with permanently suspended observers and all connections sharing one server. Write deadlines cover pending flushes only; test both slow peers and idle SSE producers. Terminal failure must be selected before timeout-induced cancellation.
+
+Keep database clients in the external persistent consumer and close HTTP before the pool. Validate startup failure, concurrent/idempotent orders, rollback, restart persistence, dependency blackholes and recovery. Changes require the short actual PostgreSQL smoke and an external one-hour exact-candidate run before claiming this delivery complete.

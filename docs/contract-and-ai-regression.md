@@ -44,7 +44,7 @@ rules are checked explicitly, but this is not a proof of general JSON Schema set
 inclusion. Type/format changes are conservative even when a numeric widening
 could be safe for a specific client.
 
-Composition (`oneOf`/`anyOf`/`allOf`), nullable/type unions, external references,
+Composition (`oneOf`/`anyOf`/`allOf`), general type unions, external references,
 custom parameter serialization, validation bounds/patterns, security requirements,
 callbacks/webhooks, response headers/links, and schema-valued additional properties
 return unsupported. Response status ranges such as `2XX` also return unsupported.
@@ -66,7 +66,7 @@ selectors as other smoke scripts and records the resolved Daylily dependency.
 `--keep` preserves generated code, schema diffs and resolver records.
 
 The isolated SwiftPM consumer uses Swift OpenAPI Generator 1.13.1 to generate
-three real modules from checked-in old, compatible-new and breaking-new schemas.
+six real modules from checked-in old, compatible-new and breaking-new schemas, including a separate nullable trio in the alpha.4 candidate.
 The old schema is derived from `examples/openapi-service`; that example remains
 unchanged. Real localhost HTTP checks cover:
 
@@ -92,3 +92,9 @@ CI; deterministic acceptance/reference checks can run in CI independently.
 
 Six passing fixed examples provide local evidence for these tasks, not a general
 success-rate estimate or performance/cost promise.
+
+## Alpha.4 nullable and held-out extensions
+
+The candidate checker accepts one concrete type plus null and pure null, including type/enum intersections. Required presence remains independent. Request null removal and response null addition can break compatibility; local nullable component references are resolved by the checker. Unknown constructs still return 2. The expanded generated suite has ten HTTP check groups (four original and six nullable); inline nullable elements avoid the pinned generator's nullable-reference array limitation. Swift Codable optional values still collapse absent/null.
+
+The extended opt-in runner adds three cross-file business/persistence/repair tasks against an immutable alpha.3 source snapshot. It withholds acceptance during model turns and records bounded repairs separately. See [candidate semantics](alpha4-candidate.md) and [six actual first-pass results](../ai/evals/repeated-changes/results/2026-09-26-alpha4/README.md). Baseline-only CI starts no model calls.

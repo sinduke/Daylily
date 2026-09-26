@@ -757,6 +757,8 @@ public struct ServerConfiguration: Equatable, Sendable {
     public var requestHeaderTimeout: Duration?
     public var uploadIdleTimeout: Duration?
     public var shutdownGracePeriod: Duration?
+    public var responseWriteTimeout: Duration?
+    public var responseObserverCapacity: Int
 
     public init(
         host: String = "127.0.0.1",
@@ -767,7 +769,9 @@ public struct ServerConfiguration: Equatable, Sendable {
         gracefulShutdownSignals: Bool = true,
         requestHeaderTimeout: Duration? = .seconds(15),
         uploadIdleTimeout: Duration? = .seconds(30),
-        shutdownGracePeriod: Duration? = .seconds(10)
+        shutdownGracePeriod: Duration? = .seconds(10),
+        responseWriteTimeout: Duration? = .seconds(30),
+        responseObserverCapacity: Int = 64
     )
 }
 ```
@@ -816,7 +820,7 @@ public protocol ResponseTransferObserver: Sendable {
 - The transport arbitrates one terminal event per observed response, including disconnect while a producer ignores cancellation. A late producer cannot emit another terminal event.
 - `bytesSent` counts body bytes whose write/flush completed successfully, excluding headers/framing; it does not guarantee peer consumption.
 - Duration runs from response transmission start to terminal state, excluding handler response production and observer execution. Outcome is independent of HTTP status.
-- Delivery awaits `record` in a Swift task outside the event loop. Calls may be concurrent or out of order. Shutdown does not await sink completion; process-exit delivery is best effort, and durable buffering/exporter shutdown belongs to the application.
+- Delivery first passes the server-wide synchronous capacity gate, then awaits `record` in a Swift task outside the event loop. Saturation drops the newest event and increments droppedEvents. Admitted calls may be concurrent or out of order. Shutdown does not await sink completion; process-exit delivery is best effort, and durable buffering/exporter shutdown belongs to the application.
 
 ### Route
 
@@ -1714,6 +1718,8 @@ public struct NIOServerConfiguration: Sendable {
     public var requestHeaderTimeout: Duration?
     public var uploadIdleTimeout: Duration?
     public var shutdownGracePeriod: Duration?
+    public var responseWriteTimeout: Duration?
+    public var responseObserverCapacity: Int
 
     public init(
         host: String = "127.0.0.1",
@@ -1724,7 +1730,9 @@ public struct NIOServerConfiguration: Sendable {
         gracefulShutdownSignals: Bool = true,
         requestHeaderTimeout: Duration? = .seconds(15),
         uploadIdleTimeout: Duration? = .seconds(30),
-        shutdownGracePeriod: Duration? = .seconds(10)
+        shutdownGracePeriod: Duration? = .seconds(10),
+        responseWriteTimeout: Duration? = .seconds(30),
+        responseObserverCapacity: Int = 64
     )
 
     public init(_ configuration: ServerConfiguration)
@@ -1735,6 +1743,7 @@ public struct NIOServerConfiguration: Sendable {
 
 ```swift
 public struct NIOHTTPServer: Sendable {
+    public var responseObserverSnapshot: ResponseTransferDeliverySnapshot? { get }
     public init(
         configuration: NIOServerConfiguration = NIOServerConfiguration(),
         responseObserver: (any ResponseTransferObserver)? = nil,
@@ -1757,7 +1766,7 @@ Rules:
 - The ServiceLifecycle SPI shutdown stream and default SIGINT/SIGTERM handling stop accepting new connections and queued pipelined requests, then drain active work until `shutdownGracePeriod` expires.
 - Cancelling the run task force-closes the listener and active connections, including an unlimited graceful drain.
 - Header deadlines start on an active idle connection and restart after successful response-end flush; upload deadlines pause under inbound backpressure. NIO configuration mirrors core deadline defaults and nil semantics.
-- Observer accounting and terminal arbitration stay on the event loop; immutable event delivery runs asynchronously outside it. Nil observers create no delivery tasks.
+- Body-byte accounting and terminal arbitration stay on the event loop. A synchronous shared gate admits bounded callback tasks; thread-safe delivery counters are updated by the gate and completing observer tasks. Excess newest events are dropped. Nil observers create no delivery tasks.
 - Signal handling stays in `DaylilyNIO` and does not leak NIO types into user APIs.
 
 Rules:
@@ -1889,3 +1898,22 @@ public extension Application {
 
 
 Schema validation covers supported explicit shapes and local references; unknown Swift type names retain the legacy object/x-swift-type fallback. Register a matching component name to emit a real reference. This is not full JSON Schema validation or runtime authentication.
+
+
+## Alpha.4 candidate additions (0026)
+
+`ServerConfiguration` and `NIOServerConfiguration` add `responseWriteTimeout: Duration? = .seconds(30)` and `responseObserverCapacity: Int = 64`. Write timeouts must be positive or nil; capacity must be positive. The write budget covers each pending head/body/end write, not handler execution or idle producer time. Deadline expiry records failed before cancellation/close.
+
+```swift
+public struct ResponseTransferDeliverySnapshot: Sendable, Equatable {
+    public let capacity: Int
+    public let inFlight: Int
+    public let completedEvents: UInt64
+    public let droppedEvents: UInt64
+    public init(capacity: Int, inFlight: Int, completedEvents: UInt64, droppedEvents: UInt64)
+}
+```
+
+The snapshot lives in `DaylilyCore`; `NIOHTTPServer.responseObserverSnapshot` returns it or nil without an observer. A synchronous server-wide admission gate starts at most capacity callback tasks and drops newest excess events immediately, without a queue. Completion frees a slot. Shutdown does not await observers; durable delivery/retention remain application-owned.
+
+`OpenAPISchema` adds `public func nullable() -> Self` and `public var isNullable: Bool { get }`. The builder emits OpenAPI 3.1 concrete-type-plus-null and adjusts a string enum to include null; presence remains the enclosing object's required list. The accessor respects type/enum intersection but does not expand references. Mark the referred component nullable itself; wrapping a reference is invalid. Arbitrary unions/compositions remain unsupported. See [the candidate guide](../../docs/alpha4-candidate.md) for generated-client limits.

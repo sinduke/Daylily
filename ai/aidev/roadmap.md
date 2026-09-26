@@ -523,3 +523,10 @@ Status: implemented
 Publish the completed 0024 operational increment as `0.1.0-alpha.3`, with explicit behavioral migration guidance and exact-version macOS/Linux consumer validation. Keep previous tags and trial records unchanged. See `ai/tasks/0025-001-publish-alpha3.md`.
 
 Alpha.3 is published at `cfa8357`. Preparation run 36216710327 passed 9/9 jobs; exact-tag run 36217281415 passed 11/11. Both platforms' five consumers each resolve the exact version/commit. Release notes and migration guidance are complete.
+
+
+## 0026 Real Business and Sustained Operation
+
+Status: in-progress
+
+The user authorized all five alpha.4 priorities with verification required before closure. See [the execution checklist](../epics/0026-real-business-and-sustained-operation.md). Persistent commerce, resource bounds and nullable contracts proceed in parallel; broader actual AI edits and a one-hour external Linux deployment complete the evidence. A 24-hour soak remains a Beta gate.

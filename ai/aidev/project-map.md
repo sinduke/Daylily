@@ -563,3 +563,15 @@ Daylily/
 - `scripts/deployment-trial.py`: loopback host ports, bounded operational checks, scoped Docker cleanup, and preserved evidence.
 - `scripts/openapi-compatibility-check.py` and `ai/evals/contracts`: supported-subset compatibility checks and fixtures.
 - `ai/evals/repeated-changes`: fixed application-edit fixtures, isolated agent runner, open-test acceptance checks, and retained run evidence; this is not a blinded test or general benchmark.
+
+## Alpha.4 candidate files (0026)
+
+- `Sources/DaylilyNIO/ResponseTransferDispatcher.swift`: synchronous server-wide observer admission/counters.
+- `Tests/DaylilyTests/ResourceBoundTests.swift`: saturation, recovery, pending writes and idle SSE.
+- `examples/commerce-api/persistent/`: separate PostgreSQL business application and app-owned pool/lifecycle.
+- `scripts/persistent-consumer-smoke-test.sh`: exact-source external package compilation/unit tests.
+- `scripts/persistent-commerce-smoke-test.py`: actual PostgreSQL/HTTP short acceptance.
+- `scripts/sustained-deployment-trial.py`: verified local-CA TLS, two replicas, faults and resource time series.
+- `ai/evals/contracts/nullable-*.json`: real generated-client nullable contracts.
+- `ai/evals/repeated-changes/run_extended.py`: opt-in withheld-acceptance edits against an immutable released source snapshot.
+- `docs/alpha4-candidate.md`: current unreleased API/consumer/validation contract.

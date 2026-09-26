@@ -2,6 +2,10 @@
 
 Daylily is experimental. The latest published prerelease is [0.1.0-alpha.3](https://github.com/sinduke/Daylily/releases/tag/0.1.0-alpha.3). Alpha.3 packages operation deadlines, graceful draining and transfer observation. Read the [alpha.3 migration guide](migration-alpha3.md) and [operational guide](operational-readiness.md).
 
+## Alpha.4 candidate in progress
+
+The current checkout adds per-write deadlines/bounded observation, explicit nullable contracts and an independent persistent commerce consumer. [Epic 0026](../ai/epics/0026-real-business-and-sustained-operation.md) tracks the required one-hour external Linux run, broader actual AI trials and complete exact-candidate CI. See [candidate semantics](alpha4-candidate.md). These changes are not yet a published tag.
+
 ## Published alpha.3
 
 Runtime candidate `3bad369331e05231a0c644f148cb59be5f7dc898` passed [all nine integration CI jobs](https://github.com/sinduke/Daylily/actions/runs/36212918755). Preparation added versioned release documentation and current-profile checks for the new public APIs; exact-release CI also runs the generated-client contract regression. Commit `cfa835792cca3cce614999ddc7adca290015a801` passed [all nine preparation jobs](https://github.com/sinduke/Daylily/actions/runs/36216710327) before the annotated alpha.3 tag and GitHub prerelease were published. [Exact-tag validation](https://github.com/sinduke/Daylily/actions/runs/36217281415) passed **all 11 jobs**: core/path/revision/legacy/release on macOS and Linux, plus Linux proxy deployment. Downloaded release artifacts confirm all ten Package.resolved files (five consumers per platform) resolve version `0.1.0-alpha.3` at `cfa835792cca3cce614999ddc7adca290015a801`. Both release consumers pass eight external tests including operational APIs/four HTTP server entry points, and both generated-client contract runs pass all four HTTP scenarios. See [task 0025-001](../ai/tasks/0025-001-publish-alpha3.md).
@@ -44,7 +48,7 @@ scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.1 --profile 
 scripts/template-smoke-test.sh --mode release --version 0.1.0-alpha.1
 ```
 
-All source-control consumers record the resolved revision. Release consumers use exact versions. `--profile current` selects current API coverage independently of dependency source; `legacy-alpha1` is only for the first release's older API surface. Simply changing `--version` must not suppress new capability checks. The current profile now requires alpha.3 operational APIs; to reproduce alpha.2 consumption, use the smoke scripts from the alpha.2 tag.
+All source-control consumers record the resolved revision. Release consumers use exact versions. `--profile current` selects current API coverage independently of dependency source; `legacy-alpha1` is only for the first release's older API surface. Simply changing `--version` must not suppress new capability checks. The current profile now requires alpha.4 candidate resource APIs; to reproduce alpha.2 or alpha.3 consumption, use the smoke scripts from the corresponding tag.
 
 The current consumer includes macro dependencies, middleware, optional query/header HTTP behavior, an expected compile failure for optional path inputs, SwiftLog, ServiceLifecycle, HTTP Types, and OpenAPI transport. It also exercises operational configuration, all three transfer observers, and actual HTTP observation through both Application.run overloads and both ServiceLifecycle entry points. The OpenAPI example runs actual generated client/server code over HTTP. The template and commerce example are separately compiled as external packages.
 

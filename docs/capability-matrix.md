@@ -56,6 +56,8 @@ This matrix tracks the current beta-facing capability surface. The operational w
 | Generated server/client round trip | Implemented | `examples/openapi-service` runs actual generated code over HTTP with ServiceGroup and SwiftLog. |
 | Response-transfer observation | Implemented (alpha.3) | Terminal outcome, flushed body bytes and transfer duration, separate from handler logs; optional console/in-memory/SwiftLog observers. |
 | Contract evolution regression | Implemented | Conservative OpenAPI subset diff plus actual old/new generated clients over HTTP. |
+| Explicit nullable schemas | Implemented (alpha.4 candidate) | Concrete type plus null; required presence remains separate. Generated-client limitations are documented. |
+| Response resource bounds | Implemented (alpha.4 candidate) | Pending-write deadline and server-wide observer capacity/drop counters. |
 | Deep Swift schema derivation | Planned | Explicit schema registration remains the supported path. |
 | Request ID middleware | MVP | Daylily-owned request ID plus external correlation ID behavior. |
 | Request logging middleware | MVP | Method, path, status, IDs, duration, and public error reason. |
@@ -69,7 +71,7 @@ This matrix tracks the current beta-facing capability surface. The operational w
 | Behavior check suite | Implemented | `swift run HelloDaylily --check`. |
 | Formal Swift Testing target | Implemented | `swift test` calls the shared behavior suite. |
 | AIDEV project handoff | Implemented | AI-readable architecture, registry, contracts, and playbooks. |
-| Repeated actual AI changes | Implemented | Three fixed edits × two isolated runs with immutable acceptance and recorded patches/timing/usage; opt-in. |
+| Repeated actual AI changes | Implemented | Original three open-test tasks plus three cross-file tasks with withheld acceptance; actual edits, patches/time/usage, and bounded repair reporting; opt-in. |
 | Machine-readable registry | Implemented | `ai/aidev/registry.yml`. |
 
 ## Ecosystem Work
@@ -83,8 +85,10 @@ This matrix tracks the current beta-facing capability surface. The operational w
 | Swift OpenAPI Generator transport | Implemented | Optional `DaylilyOpenAPITransport` server transport for generated handlers; whole-segment path parameters only. |
 | Lifecycle-managed services | Designed | `ApplicationService` direction is documented; runtime API is not implemented. |
 | Authentication | Future | Ecosystem direction, not current runtime. |
-| ORM/database module | Future | Explicitly out of current beta closure. |
+| ORM/database module | Future | Persistent commerce demonstrates an application-owned PostgreSQL driver/pool; the framework has no database module. |
 | Queue/background jobs | Future | Ecosystem direction. |
 | WebSocket/realtime | Future | Ecosystem direction. |
 | Container deployment trial | Implemented | Two Linux replicas behind Caddy, rolling shutdown, SSE/disconnect/slow-peer checks and bounded sustained traffic. Public cloud automation remains future work. |
 | Benchmarks | Planned | To publish after runtime and beta docs stabilize. |
+
+See [alpha.4 candidate](alpha4-candidate.md) for current validation state and the one-hour external Linux gate. Historical alpha.3 deployment results do not establish the new gate.

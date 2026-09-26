@@ -6,6 +6,19 @@ Daylily is currently experimental. Public APIs may change before beta or stable 
 
 ## Unreleased
 
+### Added
+
+- Bound concurrent response-observer delivery with explicit drop counters and per-response-write stall deadlines.
+- Support explicit nullable OpenAPI 3.1 schemas and directional null/presence compatibility with generated-client HTTP regression.
+- Add a separate persistent PostgreSQL commerce application, exact-source consumer checks and sustained private Linux/TLS deployment tooling.
+- Add cross-file business, durable-file integration and fault-repair AI exercises with withheld acceptance and separately recorded repairs.
+
+### Compatibility
+
+- Response writes now default to a 30-second pending-write deadline; `nil` disables it. This does not cap handler or idle SSE time.
+- Observation defaults to 64 simultaneous callbacks per server; new events are dropped under saturation. Durable export/retention remain application-owned.
+- See [the alpha.4 candidate guide](docs/alpha4-candidate.md); these changes are not yet a published version.
+
 ## 0.1.0-alpha.3 - 2026-09-26
 
 ### Added

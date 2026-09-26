@@ -48,3 +48,6 @@ Daylily provides default paths, not mandatory paths. Runtime APIs are first-clas
 - Example validation: commerce API, actual generated OpenAPI client/server, and fixed application-change exercises.
 - Transport: NIO-backed HTTP/1.1.
 - Status: experimental package-consumer work for the alpha.3 release.
+
+
+Current unreleased work: [alpha.4 candidate guide](alpha4-candidate.md), including persistent commerce, resource limits, nullable contracts and extended validation. Published alpha.3 guidance remains versioned.

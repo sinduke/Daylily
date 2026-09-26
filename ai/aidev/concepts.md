@@ -481,3 +481,7 @@ The runtime is the source of truth. Macros are a declaration layer on top.
 Inbound request deadlines bound waiting for a head or additional upload bytes. They do not bound handler execution or outgoing SSE duration. Graceful shutdown stops new work, drains active responses up to a configured deadline, then closes connections; forced task cancellation closes immediately. Cancellation is cooperative at the application boundary.
 
 Handler logs and response-transfer events describe different intervals. A stream-producing handler can finish before its body has been sent. Transfer events describe terminal transport outcome, flushed body bytes and duration; optional observers receive them outside the event loop without extending server shutdown. See `docs/operational-readiness.md` for defaults, limitations and deployment evidence.
+
+## Resource and business boundaries (0026)
+
+The server bounds active transfer-observer callbacks independently of request throughput. A terminal response may have its event dropped under saturation; delivery counters distinguish this from response outcome. Pending outbound writes have a deadline, but waiting to produce the next SSE event does not. Persistence remains an application composition concern: the separate commerce consumer demonstrates a real Postgres pool and its lifecycle without introducing a framework ORM. Nullable schema values and absent object properties are independent concepts; neither supplies automatic three-state Swift DTO semantics.
