@@ -76,4 +76,4 @@ Notes:
 
 - A stream's producer and its copies share one consumption token; buffered responses can still be inspected repeatedly.
 - Test helpers reject synchronous stream decoding rather than silently asserting against an empty compatibility view.
-- Shared AIDEV and local integration review are complete. Remote CI and release evidence are tracked separately by task 0023-007.
+- Shared AIDEV, local integration, and remote CI are complete. Task 0023-007 records all eight passing jobs at candidate `7d56798`.

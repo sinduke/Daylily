@@ -64,4 +64,4 @@ Notes:
 - Explicit transport cancellation is normal body termination; task cancellation uses CancellationError.
 - NIO asynchronous writes do not themselves respect task cancellation. Closing the channel on disconnect/failure unblocks outstanding write promises.
 - Cancellation propagates when the transport observes closure. Deliberate read backpressure on a peer with unread input can delay EOF observation; the API does not promise forced termination or instantaneous peer detection.
-- Shared AIDEV and local integration review are complete. Remote CI and release evidence are tracked separately by task 0023-007.
+- Shared AIDEV, local integration, and remote CI are complete. Task 0023-007 records all eight passing jobs at candidate `7d56798`.

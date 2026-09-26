@@ -55,7 +55,7 @@ Validation:
 Notes:
 
 - No commit or push in this delegated task.
-- Agent slice is implemented; task remains in-progress until parent root validation and shared AIDEV integration finish.
+- Agent slice, parent validation, and shared AIDEV integration are complete; see the final evidence in 0023-007.
 
 Implemented API for parent registry integration:
 
@@ -112,13 +112,13 @@ Validation results:
 
 - 2026-09-26: revalidated the complete external `scripts/openapi-smoke-test.sh --mode path` from a fresh scratch package on Swift 6.3.2 / Xcode 26.5. Generated server/client GET and POST requests passed over real HTTP; started, shutdown, and cleanup were each verified exactly once in order. The exported specification matches checked-in JSON byte for byte.
 - 2026-09-26: all six focused schema tests passed from an isolated package. Corrected non-OAuth security requirement validation: OpenAPI 3.1 permits role names, while 3.0 requires empty arrays. Reference: https://spec.openapis.org/oas/v3.1.0.html#security-requirement-object.
-- 2026-09-26: revision/release manifest generation passed `swift package dump-package`; the script now rejects resolved pins that differ from the requested SHA/version and supports candidate Git repositories with arbitrary directory names. `bash -n` and scoped `git diff --check` passed. Exact Git/release end-to-end checks remain part of parent release integration.
+- 2026-09-26: revision/release manifest generation passed `swift package dump-package`; the script now rejects resolved pins that differ from the requested SHA/version and supports candidate Git repositories with arbitrary directory names. `bash -n` and scoped `git diff --check` passed. Exact Git end-to-end checks passed in parent integration; testing a future release tag remains a post-publication step.
 - 2026-09-08: isolated consumer compiled the actual OpenAPIGenerator 1.13.1 plugin output; generated GET path and POST JSON requests passed through URLSessionTransport, DaylilyOpenAPITransport, NIO, and an application-owned ServiceGroup with SwiftLog request records and graceful shutdown.
 - 2026-09-08: all six OpenAPISchemaTests passed from an isolated scratch consumer using the current Daylily source dependency (Xcode 26.5 toolchain).
 - 2026-09-08: the complete `scripts/openapi-smoke-test.sh --mode path` passed from a fresh scratch package; checked-in OpenAPI JSON exactly matches the exporter output. `bash -n`, invalid revision argument rejection, and `git diff --check` passed.
 - Generated source is under scratch `.build/plugins/outputs/.../GeneratedSources`; checked-in `openapi.json` was produced by `ExportSchema`.
 - Generator 1.13.1 emits unused public-import warnings for empty generated component categories with this toolchain; generated code still compiles and runs.
-- Exact release/revision modes require a published commit/version containing these new APIs; this task does not create one.
+- Exact revision mode requires a Git commit containing these APIs; exact release mode requires a published version. Parent CI verifies the candidate Git revision without publishing a new tag.
 
 Smoke CLI for release/CI integration:
 
@@ -131,4 +131,4 @@ scripts/openapi-smoke-test.sh --mode release --version EXACT_VERSION --repo-url 
 
 All modes use identical capabilities. `--workdir` must be new/empty; `--keep` preserves generated artifacts. `OPENAPI_PORT` defaults to 18083, and `DEVELOPER_DIR` can select Xcode. The parent owns adding this command to shared AIDEV/CI/README indexes.
 
-Integration note: implementation, local review, and shared API documentation are complete. The remote exact-candidate release gate is tracked by 0023-007.
+Integration note: implementation, shared documentation, and exact-candidate validation are complete. Task 0023-007 records all eight passing macOS/Linux CI jobs at candidate `7d56798`.

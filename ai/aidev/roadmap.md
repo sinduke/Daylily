@@ -501,8 +501,8 @@ Design stance:
 
 ## 0023 Reliability and Streaming
 
-Status: in-progress
+Status: implemented
 
-The active delivery completes six task slices: exact package-consumer validation, transport cancellation, explicit OpenAPI/generator round trip, response streaming/SSE, lifecycle failure recovery, and optional inputs/application exercises. See `ai/epics/0023-reliability-and-streaming.md` and `docs/reliability-and-streaming.md`.
+The delivery completed six implementation slices plus integration: exact package-consumer validation, transport cancellation, explicit OpenAPI/generator round trip, response streaming/SSE, lifecycle failure recovery, and optional inputs/application exercises. See `ai/epics/0023-reliability-and-streaming.md` and `docs/reliability-and-streaming.md`.
 
-The next release gate is the complete macOS/Linux matrix on the integrated candidate revision. Keep ORM, deep schema reflection, managed ApplicationService runtime, and native TLS/HTTP2 separate from this delivery.
+Candidate `7d56798` passed the complete eight-job macOS/Linux matrix. No new release was published. Follow-up recommendations are operation deadlines and shutdown draining, deployment trials, then OpenAPI contract evolution; see `docs/vapor5-beta-review.md`. Keep ORM, deep schema reflection, managed ApplicationService runtime, and native TLS/HTTP2 separate from this delivery.

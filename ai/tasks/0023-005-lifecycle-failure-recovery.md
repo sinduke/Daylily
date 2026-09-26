@@ -40,6 +40,6 @@ Validation:
 
 - Focused lifecycle tests, full swift test, build, behavior checks, and consumer integration.
 
-Integration note: implementation, local review, and shared API documentation are complete. The remote exact-candidate release gate is tracked by 0023-007.
+Integration note: implementation, shared documentation, and exact-candidate validation are complete. Task 0023-007 records all eight passing macOS/Linux CI jobs at candidate `7d56798`.
 
 Validation: six lifecycle tests passed locally, including cancellation during configure, teardown failure aggregation, and both server entry points. Full suite and independent code review completed on 2026-09-26.

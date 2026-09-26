@@ -40,6 +40,6 @@ Validation:
 
 - swift test, external consumer smoke, negative macro compilation and exercise acceptance checks.
 
-Integration note: implementation, local review, and shared API documentation are complete. The remote exact-candidate release gate is tracked by 0023-007.
+Integration note: implementation, shared documentation, and exact-candidate validation are complete. Task 0023-007 records all eight passing macOS/Linux CI jobs at candidate `7d56798`.
 
 Validation: current external macro consumer passed with T?, Optional<T>, Swift.Optional<T>, missing/present/invalid HTTP inputs, and expected optional-path compilation failure. Six application exercise tests and runtime/schema optional semantics passed on 2026-09-26.

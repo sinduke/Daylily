@@ -79,6 +79,6 @@ Validation results (2026-09-26):
 - Legacy alpha.1 does not support the generated macro `--port` argument, so its explicit compatibility profile retains build/in-memory checks. Current capability checks always include the same real HTTP tests for path, revision, and release sources.
 - Stable script copies were used for the final legacy and revision runs to avoid concurrent source edits changing Bash's input offset. Retained workdirs and full logs are `/tmp/daylily-0023-{current-consumer,current-template,current-commerce,legacy-consumer-final,legacy-template-final,revision-template-final}` and corresponding `.log` files.
 - Task 0023-006 AI exercises script uses the shared helper and runs at the end of the CI path suite; its owner verified six tests across three exercise suites.
-- Final shared documentation updates and complete Linux/GitHub candidate validation remain parent integration responsibilities; no release tag was created here.
+- Final shared documentation and Linux/GitHub candidate validation were completed by parent integration; no release tag was created.
 
-Integration note: implementation, local review, and shared API documentation are complete. The remote exact-candidate release gate is tracked by 0023-007.
+Integration note: implementation, shared documentation, and exact-candidate validation are complete. Task 0023-007 records all eight passing macOS/Linux CI jobs at candidate `7d56798`.

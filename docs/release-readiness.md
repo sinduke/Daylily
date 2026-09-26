@@ -2,6 +2,12 @@
 
 Daylily is experimental. The published release is `0.1.0-alpha.1`; current-checkout capabilities are listed in [Reliability and streaming](reliability-and-streaming.md). A new alpha candidate must pass the complete CI matrix before tagging. A successful local test run is not a substitute for that gate.
 
+## Validated candidate
+
+On 2026-09-26, candidate `7d56798aa43620426409f4ebca50471137e04084` passed [all eight CI jobs](https://github.com/sinduke/Daylily/actions/runs/36209852394): core, path, exact revision, and legacy alpha.1 on macOS and Linux. Both core suites ran 49 tests. External suites passed consumer/template/commerce, actual generated OpenAPI client/server HTTP calls, and the path-only six-test application exercises. Resolver artifacts verify the candidate SHA; legacy jobs separately resolve the original alpha.1 tag.
+
+This is a validated source candidate. No new tag or release was created. See [task 0023-007](../ai/tasks/0023-007-integration-and-release-readiness.md) for evidence and the initial Linux container ownership fix.
+
 ## Supported validation environment
 
 - Swift tools minimum: 6.3; tested compiler: Swift 6.3.2.

@@ -5,7 +5,7 @@ project:
   license: MIT
   license_file: LICENSE
   swift_tools_version: "6.3"
-  current_phase: "reliability_and_streaming"
+  current_phase: "validated_release_candidate"
   authoritative_ai_entry:
     - AIDEV.md
     - ai/aidev/start-here.md
@@ -2854,7 +2854,7 @@ verification:
     cleanup: "stop the HelloDaylily process"
 
 roadmap:
-  current_task: "0023-007-integration-and-release-readiness"
+  current_task: null
   epics:
     completed:
       - "0001-runtime-foundation"
@@ -2872,10 +2872,11 @@ roadmap:
       - "0019-release-hygiene"
       - "0020-package-consumer-experience"
       - "0021-ecosystem-compatibility"
-    in_progress:
+      - "0022-macro-middleware-and-security"
       - "0023-reliability-and-streaming"
+    in_progress: []
     next_recommended:
-      - "openapi-schema-expansion"
+      - "server-operation-deadlines-and-deployment-trials"
   completed:
     - "0001-001-minimal-http-server"
     - "0002-001-aidev-project-contract"
@@ -2932,16 +2933,22 @@ roadmap:
     - "0023-004-response-streaming"
     - "0023-005-lifecycle-failure-recovery"
     - "0023-006-optional-inputs-and-ai-exercises"
-  in_progress:
     - "0023-007-integration-and-release-readiness"
+  in_progress: []
   next_recommended:
-    - "openapi-schema-expansion"
+    - "server-operation-deadlines-and-deployment-trials"
+    - "openapi-contract-evolution"
   later:
     - "0013-003-observability-hooks"
 
 reliability_delivery:
   epic: "0023-reliability-and-streaming"
-  status: in-progress
+  status: implemented
+  validated_revision: "7d56798aa43620426409f4ebca50471137e04084"
+  ci_run: "https://github.com/sinduke/Daylily/actions/runs/36209852394"
+  ci_result: "8/8 jobs passed; macOS and Linux each passed 49 core tests"
+  published_new_release: false
+  follow_up_review: docs/vapor5-beta-review.md
   guide: docs/reliability-and-streaming.md
   task_ids: ["0023-001", "0023-002", "0023-003", "0023-004", "0023-005", "0023-006", "0023-007"]
   source_files:

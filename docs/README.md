@@ -13,6 +13,7 @@ Daylily provides default paths, not mandatory paths. Runtime APIs are first-clas
 - [Quick Start](quickstart.md): install, build, test, run, and validate external package consumption.
 - [Capability Matrix](capability-matrix.md): current features, MVP surfaces, and planned work.
 - [Release Readiness](release-readiness.md): CI, changelog, tag strategy, and known release limits.
+- [Vapor 5 Beta Review](vapor5-beta-review.md): source-backed comparison and recommended follow-up priorities.
 - [Minimal App Template](../templates/minimal-app/README.md): recommended external project shape.
 
 ## Examples
@@ -39,8 +40,7 @@ Daylily provides default paths, not mandatory paths. Runtime APIs are first-clas
 - Swift tools version: Swift 6.3; validation toolchain: Swift 6.3.2.
 - Platform declared by the package today: macOS 14+.
 - CI validation: macOS and Linux.
-- External consumer validation: fresh SwiftPM package in path and release modes.
-- Template validation: minimal app template in path and release modes.
-- Example validation: commerce API example in current checkout path mode.
+- External consumer and template validation: fresh SwiftPM packages in path, exact revision, and exact release modes.
+- Example validation: commerce API, actual generated OpenAPI client/server, and fixed application-change exercises.
 - Transport: NIO-backed HTTP/1.1.
 - Status: experimental package-consumer work after the first alpha release.

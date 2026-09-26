@@ -1,6 +1,6 @@
 # 0023-007 Integration and Release Readiness
 
-Status: in-progress
+Status: implemented
 Epic: 0023-reliability-and-streaming
 
 Goal:
@@ -22,7 +22,7 @@ Steps:
 - [x] 0023-007.1 Review integrated runtime, examples, and consumer scripts.
 - [x] 0023-007.2 Complete local build/test/check, real HTTP and external smoke validation.
 - [x] 0023-007.3 Synchronize shared documentation and registry.
-- [ ] 0023-007.4 Commit complete task slices and pass remote candidate CI.
+- [x] 0023-007.4 Commit complete task slices and pass remote candidate CI.
 
 Architecture impact:
 
@@ -43,11 +43,15 @@ Validation:
 - CI core/path/revision/legacy on macOS and Linux, with preserved resolver/log artifacts.
 - 2026-09-26 local validation: Swift 6.3.2 build, all 49 package tests, and HelloDaylily checks passed. After the final channel-active guard, all 19 streaming tests passed again without stopped-event-loop scheduling warnings.
 - Default HelloDaylily real HTTP smoke passed `/hello`, `/json/health`, and POST `/json/echo`; the process was stopped afterward.
-- Current consumer (five tests plus macro compile-failure and HTTP checks), template, commerce, real generated OpenAPI client/server, and six application-change exercise tests passed. Legacy alpha.1 consumer/template passed separately; exact final candidate revision coverage is assigned to remote CI.
+- Current consumer (five tests plus macro compile-failure and HTTP checks), template, commerce, real generated OpenAPI client/server, and six application-change exercise tests passed. Legacy alpha.1 consumer/template passed separately; remote CI also validated the exact final candidate revision.
 - Independent review found and fixed configure cancellation before boot and confirmed the final connection scheduling gate has no missing continuation completion paths.
-- First remote candidate run `36209668332` exposed Git ownership checks in all Linux container jobs before compilation: checkout's temporary HOME trust did not reach later shell steps. CI now trusts only the exact checked-out workspace and uses the runtime artifact directory for container paths. Candidate validation continues on the corrected workflow.
+- First remote candidate run `36209668332` exposed Git ownership checks in all Linux container jobs before compilation: checkout's temporary HOME trust did not reach later shell steps. CI now trusts only the exact checked-out workspace and uses the runtime artifact directory for container paths. Superseded runs were canceled after pushing the corrected workflow.
+- Final candidate: `7d56798aa43620426409f4ebca50471137e04084`. [CI run 36209852394](https://github.com/sinduke/Daylily/actions/runs/36209852394) completed successfully on 2026-09-26: all eight macOS/Linux core/path/revision/legacy jobs passed.
+- Both core jobs ran 49 tests and HelloDaylily checks. Both path jobs passed consumer (5), template (1), commerce (4), generated client/server HTTP, and application exercises (6). Both revision jobs passed the current consumer/template/commerce/OpenAPI suite; both legacy jobs passed exact alpha.1 consumer/template.
+- Downloaded revision artifacts verify all four example/consumer `Package.resolved` files point to the candidate SHA. Consumer/template/commerce also include JSON dependency records; OpenAPI prints its checked resolver record into its log. Legacy resolver records point to `0.1.0-alpha.1` at `5e4537770f0eedd8f96eb3eea04aaccd235a5707`.
+- Final core/path/revision log review found no stopped-event-loop scheduling warnings. Remaining GitHub action Node runtime deprecation notices are infrastructure maintenance, not test failures.
 
 Notes:
 
 - 2026-09-26: Vapor 5 beta.1 (2026-09-15) and beta.2 (2026-09-16) confirm streaming/cancellation and packaging as immediate priorities. No dependency on Vapor is introduced.
-- Individual implementation tasks may be marked implemented after local review/docs; this integration task remains in-progress until remote CI confirms the candidate.
+- All implementation slices and integration are complete. Final evidence and comparison edits are documentation-only; no new alpha tag or release was published.

@@ -1,6 +1,6 @@
 # 0023 Reliability and Streaming
 
-Status: in-progress
+Status: implemented
 
 Goal:
 
@@ -22,6 +22,7 @@ Delivery:
 - Independent implementation slices run concurrently with explicit file ownership.
 - Shared documentation and validation are integrated before task-level commits.
 - Publish a new alpha only after the candidate revision passes both platform jobs and external consumer checks.
+- Candidate `7d56798` passed all eight jobs in [CI run 36209852394](https://github.com/sinduke/Daylily/actions/runs/36209852394) on 2026-09-26. Release tagging remains a separate action; this delivery does not publish a new version.
 
 Non-goals:
 
