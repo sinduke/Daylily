@@ -237,6 +237,7 @@ private struct BodyConsumer: Sendable {
 
     mutating func next() async throws -> ByteChunk? {
         if let buffered {
+            try Task.checkCancellation()
             guard bufferedIndex < buffered.count else {
                 return nil
             }
@@ -257,6 +258,7 @@ private actor BodyStreamStorage {
     private var isFinished = false
     private var isFailed = false
     private var isCancelled = false
+    private var isTaskCancelled = false
     private var consumerContinuation: CheckedContinuation<ByteChunk?, Error>?
     private var producerContinuations: [CheckedContinuation<Bool, Never>] = []
 
@@ -265,6 +267,18 @@ private actor BodyStreamStorage {
     }
 
     func write(_ chunk: ByteChunk) async -> Bool {
+        await withTaskCancellationHandler {
+            if Task.isCancelled {
+                cancelForTask()
+                return false
+            }
+            return await writeUnlessCancelled(chunk)
+        } onCancel: {
+            Task { await self.cancelForTask() }
+        }
+    }
+
+    private func writeUnlessCancelled(_ chunk: ByteChunk) async -> Bool {
         guard !isTerminal else {
             return false
         }
@@ -337,7 +351,33 @@ private actor BodyStreamStorage {
         }
     }
 
+    private func cancelForTask() {
+        guard !isTaskCancelled else { return }
+        isTaskCancelled = true
+        isCancelled = true
+        buffer.removeAll(keepingCapacity: false)
+        bufferedBytes = 0
+        resumeWaitingProducers(shouldContinue: false)
+        if let consumerContinuation {
+            self.consumerContinuation = nil
+            consumerContinuation.resume(throwing: CancellationError())
+        }
+    }
+
     func next() async throws -> ByteChunk? {
+        try await withTaskCancellationHandler {
+            if Task.isCancelled {
+                cancelForTask()
+                throw CancellationError()
+            }
+            return try await nextUnlessCancelled()
+        } onCancel: {
+            Task { await self.cancelForTask() }
+        }
+    }
+
+    private func nextUnlessCancelled() async throws -> ByteChunk? {
+        if isTaskCancelled { throw CancellationError() }
         if !buffer.isEmpty {
             let chunk = buffer.removeFirst()
             bufferedBytes -= chunk.count

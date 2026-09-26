@@ -1,7 +1,14 @@
 public struct Response: Sendable {
     public var status: Status
     public var headers: Headers
-    public var body: [UInt8]
+    public var responseBody: ResponseBody
+
+    /// Buffered compatibility view. Streaming bodies must be collected explicitly.
+    /// Assigning bytes replaces any existing stream.
+    public var body: [UInt8] {
+        get { responseBody.bufferedBytes ?? [] }
+        set { responseBody = .bytes(newValue) }
+    }
 
     public init(
         status: Status = .ok,
@@ -10,7 +17,24 @@ public struct Response: Sendable {
     ) {
         self.status = status
         self.headers = headers
-        self.body = body
+        self.responseBody = .bytes(body)
+    }
+
+    public init(status: Status = .ok, headers: Headers = [:], body: ResponseBody) {
+        self.status = status
+        self.headers = headers
+        self.responseBody = body
+    }
+
+    public static func eventStream(
+        status: Status = .ok,
+        headers: Headers = [:],
+        _ producer: @escaping ResponseBody.Producer
+    ) -> Response {
+        var headers = headers
+        headers["content-type"] = "text/event-stream; charset=utf-8"
+        headers["cache-control"] = headers["cache-control"] ?? "no-cache"
+        return Response(status: status, headers: headers, body: .stream(producer))
     }
 
     public static func text(

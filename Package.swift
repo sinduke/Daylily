@@ -1,4 +1,4 @@
-// swift-tools-version: 6.0
+// swift-tools-version: 6.3
 
 import PackageDescription
 import CompilerPluginSupport
@@ -28,7 +28,7 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-log.git", from: "1.13.0"),
         .package(url: "https://github.com/apple/swift-openapi-runtime.git", from: "1.12.0"),
         .package(url: "https://github.com/swift-server/swift-service-lifecycle.git", from: "2.11.0"),
-        .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "603.0.0-latest"),
+        .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "603.0.1"),
     ],
     targets: [
         .target(name: "DaylilyCore"),
@@ -97,6 +97,7 @@ let package = Package(
             dependencies: [
                 "DaylilyCore",
                 .product(name: "NIOCore", package: "swift-nio"),
+                .product(name: "NIOConcurrencyHelpers", package: "swift-nio"),
                 .product(name: "NIOHTTP1", package: "swift-nio"),
                 .product(name: "NIOPosix", package: "swift-nio"),
             ]

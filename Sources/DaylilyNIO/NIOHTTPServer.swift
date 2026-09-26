@@ -5,6 +5,7 @@ import Darwin
 import Glibc
 #endif
 import Dispatch
+import NIOConcurrencyHelpers
 import NIOCore
 import NIOHTTP1
 import NIOPosix
@@ -77,19 +78,31 @@ public struct NIOHTTPServer: Sendable {
             .serverChannelOption(ChannelOptions.backlog, value: Int32(configuration.backlog))
             .serverChannelOption(ChannelOptions.socketOption(.so_reuseaddr), value: configuration.reuseAddress ? 1 : 0)
             .childChannelInitializer { channel in
-                channel.pipeline.configureHTTPServerPipeline().flatMap {
-                    channel.pipeline.addHandler(DaylilyHTTPHandler(responder: responder))
+                var encoderConfiguration = HTTPResponseEncoder.Configuration()
+                encoderConfiguration.automaticallySetFramingHeaders = false
+                return channel.pipeline.configureHTTPServerPipeline(withEncoderConfiguration: encoderConfiguration).flatMap {
+                    channel.pipeline.addHandler(DaylilyHTTPHandler(
+                        responder: responder,
+                        taskGate: ChannelTaskGate(eventLoop: channel.eventLoop)
+                    ))
                 }
             }
             .childChannelOption(ChannelOptions.socketOption(.so_reuseaddr), value: configuration.reuseAddress ? 1 : 0)
             .childChannelOption(ChannelOptions.maxMessagesPerRead, value: UInt(configuration.maxMessagesPerRead))
             .childChannelOption(ChannelOptions.recvAllocator, value: AdaptiveRecvByteBufferAllocator())
 
-        let channel = try await bootstrap.bind(host: configuration.host, port: configuration.port).get()
+        let channel: any Channel
+        do {
+            channel = try await bootstrap.bind(host: configuration.host, port: configuration.port).get()
+        } catch {
+            try? await group.shutdownGracefully()
+            throw error
+        }
         print("Daylily listening on http://\(configuration.host):\(configuration.port)")
 
+        let closer = ChannelCloser(channel)
         let signalSources = configuration.gracefulShutdownSignals
-            ? Self.installGracefulShutdownSignals(on: channel)
+            ? Self.installGracefulShutdownSignals(closer: closer)
             : []
         defer {
             for source in signalSources {
@@ -97,7 +110,6 @@ public struct NIOHTTPServer: Sendable {
             }
         }
 
-        let closer = ChannelCloser(channel)
         let shutdownRequestTask = Task {
             for await _ in shutdownRequests {
                 closer.close()
@@ -115,16 +127,17 @@ public struct NIOHTTPServer: Sendable {
             } onCancel: {
                 closer.close()
             }
+            closer.stopScheduling()
             try await group.shutdownGracefully()
         } catch {
             closer.close()
+            closer.stopScheduling()
             try? await group.shutdownGracefully()
             throw error
         }
     }
 
-    private static func installGracefulShutdownSignals(on channel: any Channel) -> [DispatchSourceSignal] {
-        let eventLoop = channel.eventLoop
+    private static func installGracefulShutdownSignals(closer: ChannelCloser) -> [DispatchSourceSignal] {
         let signals: [Int32] = [SIGINT, SIGTERM]
 
         return signals.map { signalNumber in
@@ -132,9 +145,7 @@ public struct NIOHTTPServer: Sendable {
 
             let source = DispatchSource.makeSignalSource(signal: signalNumber, queue: .global())
             source.setEventHandler {
-                eventLoop.execute {
-                    channel.close(promise: nil)
-                }
+                closer.close()
             }
             source.resume()
             return source
@@ -143,17 +154,50 @@ public struct NIOHTTPServer: Sendable {
 }
 
 private final class ChannelCloser: @unchecked Sendable {
-    private let eventLoop: any EventLoop
+    private let taskGate: ChannelTaskGate
     private let channel: any Channel
 
     init(_ channel: any Channel) {
-        self.eventLoop = channel.eventLoop
+        self.taskGate = ChannelTaskGate(eventLoop: channel.eventLoop)
         self.channel = channel
     }
 
     func close() {
-        eventLoop.execute {
+        taskGate.execute {
             self.channel.close(promise: nil as EventLoopPromise<Void>?)
+        }
+    }
+
+    func stopScheduling() { taskGate.close() }
+}
+
+/// Task continuations can outlive channelInactive. Serialize the admission of new
+/// event-loop work with channel teardown so they never touch a stopped event loop.
+private final class ChannelTaskGate: Sendable {
+    private let isOpen = NIOLockedValueBox(true)
+    private let eventLoop: any EventLoop
+
+    init(eventLoop: any EventLoop) { self.eventLoop = eventLoop }
+
+    @discardableResult
+    func execute(_ operation: @escaping @Sendable () -> Void) -> Bool {
+        isOpen.withLockedValue { isOpen in
+            guard isOpen else { return false }
+            eventLoop.execute(operation)
+            return true
+        }
+    }
+
+    func close() { isOpen.withLockedValue { $0 = false } }
+
+    func perform(
+        _ operation: @escaping @Sendable (CheckedContinuation<Void, any Error>) -> Void
+    ) async throws {
+        try await withCheckedThrowingContinuation { continuation in
+            guard execute({ operation(continuation) }) else {
+                continuation.resume(throwing: CancellationError())
+                return
+            }
         }
     }
 }
@@ -163,10 +207,14 @@ private final class DaylilyHTTPHandler: ChannelInboundHandler, @unchecked Sendab
     typealias OutboundOut = HTTPServerResponsePart
 
     private let responder: @Sendable (Request) async -> Response
+    private let taskGate: ChannelTaskGate
     private var currentRequest: CurrentRequest?
+    private var nextRequestID = 0
+    private var responseTask: Task<Void, Never>?
 
-    init(responder: @escaping @Sendable (Request) async -> Response) {
+    init(responder: @escaping @Sendable (Request) async -> Response, taskGate: ChannelTaskGate) {
         self.responder = responder
+        self.taskGate = taskGate
     }
 
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
@@ -185,17 +233,29 @@ private final class DaylilyHTTPHandler: ChannelInboundHandler, @unchecked Sendab
     }
 
     func errorCaught(context: ChannelHandlerContext, error: any Error) {
+        currentRequest?.handlerTask?.cancel()
+        responseTask?.cancel()
         failBodyStream()
         context.close(promise: nil)
     }
 
     func channelInactive(context: ChannelHandlerContext) {
+        taskGate.close()
+        currentRequest?.handlerTask?.cancel()
+        responseTask?.cancel()
+        responseTask = nil
         failBodyStream()
         currentRequest = nil
     }
 
+    func handlerRemoved(context: ChannelHandlerContext) {
+        taskGate.close()
+    }
+
     private func startRequest(head: HTTPRequestHead, context: ChannelHandlerContext) {
         guard currentRequest == nil else {
+            currentRequest?.handlerTask?.cancel()
+            currentRequest?.responseWritten = true
             failBodyStream()
             writeResponse(.text("Bad Request", status: .badRequest), context: context, keepAlive: false)
             return
@@ -208,29 +268,25 @@ private final class DaylilyHTTPHandler: ChannelInboundHandler, @unchecked Sendab
 
         let stream = RequestBody.stream()
         let request = makeRequest(head: head, method: method, body: stream.body)
-        let current = CurrentRequest(head: head, writer: stream.writer)
+        nextRequestID &+= 1
+        let requestID = nextRequestID
+        let current = CurrentRequest(id: requestID, head: head, writer: stream.writer)
         currentRequest = current
 
         let responder = responder
         let loopBoundContext = context.loopBound
+        let taskGate = taskGate
 
-        context.eventLoop.makeFutureWithTask {
-            await responder(request)
-        }.whenComplete { [weak self] result in
-            guard let self else {
-                loopBoundContext.value.close(promise: nil)
-                return
+        current.handlerTask = Task {
+            guard !Task.isCancelled else { return }
+            let response = await responder(request)
+            guard !Task.isCancelled else { return }
+            taskGate.execute { [weak self] in
+                guard let self else { return }
+                guard self.currentRequest?.id == requestID, loopBoundContext.value.channel.isActive else { return }
+                self.currentRequest?.handlerTask = nil
+                self.responderFinished(response, context: loopBoundContext.value)
             }
-
-            let response: Response
-            switch result {
-            case .success(let value):
-                response = value
-            case .failure:
-                response = .text("Internal Server Error", status: .internalServerError)
-            }
-
-            self.responderFinished(response, context: loopBoundContext.value)
         }
     }
 
@@ -252,6 +308,16 @@ private final class DaylilyHTTPHandler: ChannelInboundHandler, @unchecked Sendab
         current.didReceiveEnd = true
         finishBodyWriterIfReady(context: context)
         writeReadyResponseIfPossible(context: context)
+
+        // HTTPServerPipelineHandler suppresses reads while a response is pending.
+        // On Darwin, NIO cannot observe EOF without a read registered, so an idle
+        // disconnected client would otherwise leave a suspended handler running.
+        // Request one read upstream of the pipelining handler. It still buffers
+        // pipelined requests in order, and this does not enable unlimited prefetch.
+        context.pipeline.context(handlerType: HTTPServerPipelineHandler.self).whenSuccess { pipelineContext in
+            guard pipelineContext.channel.isActive else { return }
+            pipelineContext.read()
+        }
     }
 
     private func pumpBodyWrites(context: ChannelHandlerContext) {
@@ -269,17 +335,17 @@ private final class DaylilyHTTPHandler: ChannelInboundHandler, @unchecked Sendab
         pauseReads(context: context)
 
         let writer = current.writer
+        let requestID = current.id
         let loopBoundContext = context.loopBound
+        let taskGate = taskGate
 
-        context.eventLoop.makeFutureWithTask {
-            await writer.write(chunk)
-        }.whenComplete { [weak self] result in
-            guard let self else {
-                loopBoundContext.value.close(promise: nil)
-                return
+        Task {
+            let accepted = await writer.write(chunk)
+            taskGate.execute { [weak self] in
+                guard let self else { return }
+                guard self.currentRequest?.id == requestID else { return }
+                self.bodyWriteFinished(result: .success(accepted), context: loopBoundContext.value)
             }
-
-            self.bodyWriteFinished(result: result, context: loopBoundContext.value)
         }
     }
 
@@ -320,9 +386,9 @@ private final class DaylilyHTTPHandler: ChannelInboundHandler, @unchecked Sendab
         current.didFinishWriter = true
         let writer = current.writer
 
-        context.eventLoop.makeFutureWithTask {
+        Task {
             await writer.finish()
-        }.whenComplete { _ in }
+        }
     }
 
     private func responderFinished(_ response: Response, context: ChannelHandlerContext) {
@@ -352,25 +418,27 @@ private final class DaylilyHTTPHandler: ChannelInboundHandler, @unchecked Sendab
 
         if !current.didReceiveEnd {
             let writer = current.writer
-            context.eventLoop.makeFutureWithTask {
+            Task {
                 await writer.cancel()
-            }.whenComplete { _ in }
+            }
         } else if !current.didFinishWriter {
             current.pendingChunks.removeAll(keepingCapacity: false)
             current.didFinishWriter = true
 
             let writer = current.writer
-            context.eventLoop.makeFutureWithTask {
+            Task {
                 await writer.cancel()
-            }.whenComplete { _ in }
+            }
         }
 
-        let keepAlive = current.keepAlive && current.didReceiveEnd
+        let asksToClose = response.headers.values(for: "connection").contains { value in
+            value.split(separator: ",").contains { token in
+                let parts = token.split(whereSeparator: { $0 == " " || $0 == "\t" })
+                return parts.count == 1 && parts[0].lowercased() == "close"
+            }
+        }
+        let keepAlive = current.keepAlive && current.didReceiveEnd && !asksToClose
         writeResponse(response, context: context, keepAlive: keepAlive)
-
-        if keepAlive {
-            currentRequest = nil
-        }
     }
 
     private func failBodyStream() {
@@ -425,17 +493,47 @@ private final class DaylilyHTTPHandler: ChannelInboundHandler, @unchecked Sendab
     }
 
     private func writeResponse(_ response: Response, context: ChannelHandlerContext, keepAlive: Bool) {
+        guard context.channel.isActive else { return }
+        // A protocol failure can arrive while a response producer is suspended.
+        // Never replace its task or write a second response into the active body.
+        guard responseTask == nil else {
+            currentRequest?.handlerTask?.cancel()
+            responseTask?.cancel()
+            failBodyStream()
+            context.close(promise: nil)
+            return
+        }
         let loopBoundContext = context.loopBound
+        let channel = context.channel
+        let taskGate = taskGate
+        let requestID = currentRequest?.id
+        let isHead = currentRequest?.method == .HEAD
+        let status = response.status.code
+        let forbidsBody = (100..<200).contains(status) || status == 204 || status == 304
+        let suppressBody = isHead || forbidsBody
         var headers = HTTPHeaders()
         for (name, value) in response.headers.all {
             headers.add(name: name, value: value)
         }
-        if !headers.contains(name: "content-length") {
-            headers.add(name: "content-length", value: "\(response.body.count)")
+        // Framing is owned by the transport. Never emit conflicting transfer encodings.
+        headers.remove(name: "transfer-encoding")
+        if (100..<200).contains(status) || status == 204 {
+            headers.remove(name: "content-length")
+        } else if status == 304 {
+            // An explicitly supplied 304 length describes the selected representation.
+        } else if isHead {
+            // HEAD may describe a representation without constructing its body.
+            // Preserve an explicit length, otherwise infer it without starting a stream.
+            if !headers.contains(name: "content-length"), let length = response.responseBody.length {
+                headers.add(name: "content-length", value: "\(length)")
+            }
+        } else if let length = response.responseBody.length {
+            headers.replaceOrAdd(name: "content-length", value: "\(length)")
+        } else {
+            headers.remove(name: "content-length")
+            headers.add(name: "transfer-encoding", value: "chunked")
         }
-        if keepAlive {
-            headers.add(name: "connection", value: "keep-alive")
-        }
+        headers.replaceOrAdd(name: "connection", value: keepAlive ? "keep-alive" : "close")
 
         let head = HTTPResponseHead(
             version: .http1_1,
@@ -443,17 +541,60 @@ private final class DaylilyHTTPHandler: ChannelInboundHandler, @unchecked Sendab
             headers: headers
         )
 
-        context.write(wrapOutboundOut(.head(head)), promise: nil)
-
-        if !response.body.isEmpty {
-            var buffer = context.channel.allocator.buffer(capacity: response.body.count)
-            buffer.writeBytes(response.body)
-            context.write(wrapOutboundOut(.body(.byteBuffer(buffer))), promise: nil)
-        }
-
-        context.writeAndFlush(wrapOutboundOut(.end(nil))).whenComplete { _ in
-            if !keepAlive {
-                loopBoundContext.value.close(promise: nil)
+        responseTask = Task {
+            do {
+                try Task.checkCancellation()
+                try await taskGate.perform { continuation in
+                    channel.writeAndFlush(HTTPServerResponsePart.head(head)).whenComplete {
+                        continuation.resume(with: $0)
+                    }
+                }
+                if !suppressBody {
+                    try await response.responseBody.write { chunk in
+                        try Task.checkCancellation()
+                        var buffer = channel.allocator.buffer(capacity: chunk.count)
+                        buffer.writeBytes(chunk.bytes)
+                        // A completed write promise means this chunk has left NIO's pending
+                        // write queue. Await it before pulling more bytes from the producer.
+                        let chunkBuffer = buffer
+                        try await taskGate.perform { continuation in
+                            channel.writeAndFlush(HTTPServerResponsePart.body(.byteBuffer(chunkBuffer))).whenComplete {
+                                continuation.resume(with: $0)
+                            }
+                        }
+                        try Task.checkCancellation()
+                    }
+                }
+                try Task.checkCancellation()
+                try await taskGate.perform { [weak self] continuation in
+                    // Work admitted before channelInactive may still be queued.
+                    // Do not write through a context whose pipeline is now removed.
+                    guard let self, channel.isActive else {
+                        continuation.resume(throwing: ChannelError.ioOnClosedChannel)
+                        return
+                    }
+                    let context = loopBoundContext.value
+                    // Clear the completed request before .end releases the next pipelined
+                    // request from NIO's HTTPServerPipelineHandler.
+                    if let requestID, self.currentRequest?.id == requestID {
+                        let readsPaused = self.currentRequest?.readsPaused == true
+                        self.currentRequest = nil
+                        self.responseTask = nil
+                        if keepAlive && readsPaused {
+                            context.channel.setOption(ChannelOptions.autoRead, value: true).whenFailure { _ in
+                                loopBoundContext.value.close(promise: nil)
+                            }
+                        }
+                    }
+                    context.writeAndFlush(self.wrapOutboundOut(.end(nil))).whenComplete {
+                        continuation.resume(with: $0)
+                    }
+                }
+                if !keepAlive { taskGate.execute { channel.close(promise: nil) } }
+            } catch {
+                // Headers may already have reached the peer. A second HTTP error response
+                // would corrupt framing; closing also unblocks a pending socket write.
+                taskGate.execute { channel.close(promise: nil) }
             }
         }
     }
@@ -464,8 +605,11 @@ private final class DaylilyHTTPHandler: ChannelInboundHandler, @unchecked Sendab
 }
 
 private final class CurrentRequest {
+    let id: Int
     let writer: BodyStreamWriter
     let keepAlive: Bool
+    let method: NIOHTTP1.HTTPMethod
+    var handlerTask: Task<Void, Never>?
     var pendingChunks: [ByteChunk] = []
     var isWritingBody = false
     var didReceiveEnd = false
@@ -475,9 +619,11 @@ private final class CurrentRequest {
     var readyResponse: Response?
     let mayHaveBody: Bool
 
-    init(head: HTTPRequestHead, writer: BodyStreamWriter) {
+    init(id: Int, head: HTTPRequestHead, writer: BodyStreamWriter) {
+        self.id = id
         self.writer = writer
         self.keepAlive = head.isKeepAlive
+        self.method = head.method
         self.mayHaveBody = Self.requestMayHaveBody(head)
     }
 
