@@ -534,6 +534,8 @@ The user authorized all five alpha.4 priorities with verification required befor
 
 ## 0027 Alpha.4 Release
 
-Status: in-progress
+Status: implemented
 
 Publish the completed 0026 capabilities as `0.1.0-alpha.4`, with explicit default-change migration, versioned package installation and exact-tag macOS/Linux validation. See [task 0027-001](../tasks/0027-001-publish-alpha4.md). Previous tags and the original one-hour/AI evidence remain unchanged.
+
+Alpha.4 was published at `7fc09c4289052355578f007f4ebfb97c9b686430` after 12/12 preparation jobs. Exact-tag run 36250605916 passed 14/14 jobs; 12 release resolver records across both platforms match version alpha.4 and the published commit.

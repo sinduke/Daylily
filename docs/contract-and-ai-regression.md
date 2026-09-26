@@ -66,7 +66,7 @@ selectors as other smoke scripts and records the resolved Daylily dependency.
 `--keep` preserves generated code, schema diffs and resolver records.
 
 The isolated SwiftPM consumer uses Swift OpenAPI Generator 1.13.1 to generate
-six real modules from checked-in old, compatible-new and breaking-new schemas, including a separate nullable trio in the alpha.4 candidate.
+six real modules from checked-in old, compatible-new and breaking-new schemas, including a separate nullable trio in alpha.4.
 The old schema is derived from `examples/openapi-service`; that example remains
 unchanged. Real localhost HTTP checks cover:
 

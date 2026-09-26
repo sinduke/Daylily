@@ -1,10 +1,12 @@
 # Release Readiness
 
-Daylily is experimental. The latest published prerelease is [0.1.0-alpha.3](https://github.com/sinduke/Daylily/releases/tag/0.1.0-alpha.3). Alpha.3 packages operation deadlines, graceful draining and transfer observation. Read the [alpha.3 migration guide](migration-alpha3.md) and [operational guide](operational-readiness.md).
+Daylily is experimental. The latest published prerelease is [0.1.0-alpha.4](https://github.com/sinduke/Daylily/releases/tag/0.1.0-alpha.4). It adds per-write deadlines, bounded observer delivery, nullable contracts and an independent persistent commerce consumer. Read the [alpha.4 migration guide](migration-alpha4.md), [capability guide](alpha4-candidate.md) and [original acceptance results](alpha4-acceptance-results.md).
 
-## Alpha.4 release preparation
+## Published alpha.4
 
-The current checkout adds per-write deadlines/bounded observation, explicit nullable contracts and an independent persistent commerce consumer. [Epic 0026](../ai/epics/0026-real-business-and-sustained-operation.md) is complete: candidate `1f8e0ea5f149b09cc398d302bf37c5cd63258452` passed all 12 CI jobs and a measured one-hour external Linux run, with resolver and raw evidence audit. See [candidate semantics](alpha4-candidate.md) and [acceptance results](alpha4-acceptance-results.md). Publication of `0.1.0-alpha.4` is now authorized and tracked in [task 0027-001](../ai/tasks/0027-001-publish-alpha4.md). The preparation commit must pass the full matrix before tagging; exact-tag validation then adds release consumers for 14 jobs. Runtime, tests, harness and dependency locks remain those of the validated candidate. See [alpha.4 migration](migration-alpha4.md).
+The current checkout adds per-write deadlines/bounded observation, explicit nullable contracts and an independent persistent commerce consumer. [Epic 0026](../ai/epics/0026-real-business-and-sustained-operation.md) is complete: candidate `1f8e0ea5f149b09cc398d302bf37c5cd63258452` passed all 12 CI jobs and a measured one-hour external Linux run, with resolver and raw evidence audit. See [candidate semantics](alpha4-candidate.md) and [acceptance results](alpha4-acceptance-results.md). Preparation `7fc09c4289052355578f007f4ebfb97c9b686430` passed [all 12 preparation jobs](https://github.com/sinduke/Daylily/actions/runs/36249744913) before the annotated alpha.4 tag and GitHub prerelease were published. [Exact-tag verification](https://github.com/sinduke/Daylily/actions/runs/36250605916) passed **all 14 jobs**. Downloaded macOS/Linux release artifacts confirm all 12 release resolver files (consumer/template/commerce/OpenAPI/contract/persistent per platform) resolve exact version alpha.4 at that commit. Runtime, tests, harness and dependency locks remain those of the original validated candidate; the earlier one-hour evidence retains its original SHA and is not a new release-time soak. See [task 0027-001](../ai/tasks/0027-001-publish-alpha4.md) and [alpha.4 migration](migration-alpha4.md).
+
+See the [publication verification record](alpha4-release-verification.md) for resolver pins and audit provenance.
 
 ## Published alpha.3
 
@@ -49,7 +51,7 @@ scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.1 --profile 
 scripts/template-smoke-test.sh --mode release --version 0.1.0-alpha.1
 ```
 
-All source-control consumers record the resolved revision. Release consumers use exact versions. `--profile current` selects current API coverage independently of dependency source; `legacy-alpha1` is only for the first release's older API surface. Simply changing `--version` must not suppress new capability checks. The current profile now requires alpha.4 candidate resource APIs; to reproduce alpha.2 or alpha.3 consumption, use the smoke scripts from the corresponding tag.
+All source-control consumers record the resolved revision. Release consumers use exact versions. `--profile current` selects current API coverage independently of dependency source; `legacy-alpha1` is only for the first release's older API surface. Simply changing `--version` must not suppress new capability checks. The current profile now requires alpha.4 resource APIs; to reproduce alpha.2 or alpha.3 consumption, use the smoke scripts from the corresponding tag.
 
 The current consumer includes macro dependencies, middleware, optional query/header HTTP behavior, an expected compile failure for optional path inputs, SwiftLog, ServiceLifecycle, HTTP Types, and OpenAPI transport. It also exercises operational configuration, all three transfer observers, and actual HTTP observation through both Application.run overloads and both ServiceLifecycle entry points. The OpenAPI example runs actual generated client/server code over HTTP. The template and commerce example are separately compiled as external packages.
 

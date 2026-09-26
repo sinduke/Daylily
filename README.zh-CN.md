@@ -196,7 +196,7 @@ Daylily 不是只想成为 routing library，而是在探索 Swift cloud develop
 .package(url: "https://github.com/sinduke/Daylily.git", from: "0.1.0-alpha.4")
 ```
 
-Alpha.4 新增响应写入期限、有界观测回调、可空契约及持久化业务示例。升级请阅读 [alpha.4 迁移指南](docs/migration-alpha4.md)，发布及精确版本验证状态见[发布说明](docs/release-readiness.md)；`main` 后续可能包含更新的 API。
+最新发布的预发布版本为 [0.1.0-alpha.4](https://github.com/sinduke/Daylily/releases/tag/0.1.0-alpha.4)。Alpha.4 新增响应写入期限、有界观测回调、可空契约及持久化业务示例。升级请阅读 [alpha.4 迁移指南](docs/migration-alpha4.md)，发布及精确版本验证状态见[发布说明](docs/release-readiness.md)；`main` 后续可能包含更新的 API。
 
 把 product 加到 target 里：
 

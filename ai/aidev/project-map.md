@@ -554,7 +554,7 @@ Daylily/
 - `scripts/openapi-smoke-test.sh` / `scripts/ai-exercises-smoke-test.sh`: external generation and application exercise validation.
 - `docs/reliability-and-streaming.md`: current-checkout behavior and migration guide.
 
-## Operational Readiness (0024, in progress)
+## Operational Readiness (0024, implemented)
 
 - `ai/epics/0024-release-and-operational-readiness.md` and tasks `0024-001` through `0024-006` track release, deadlines/drain, transfer observation, deployment, contract/AI regression, and final closure. Implementation does not imply that every acceptance gate has completed.
 - `Tests/DaylilyTests/ServerOperationTests.swift`: real-socket deadline, backpressure, drain, terminal-event, and observer-isolation regressions.
@@ -564,7 +564,7 @@ Daylily/
 - `scripts/openapi-compatibility-check.py` and `ai/evals/contracts`: supported-subset compatibility checks and fixtures.
 - `ai/evals/repeated-changes`: fixed application-edit fixtures, isolated agent runner, open-test acceptance checks, and retained run evidence; this is not a blinded test or general benchmark.
 
-## Alpha.4 candidate files (0026)
+## Alpha.4 capability files (0026)
 
 - `Sources/DaylilyNIO/ResponseTransferDispatcher.swift`: synchronous server-wide observer admission/counters.
 - `Tests/DaylilyTests/ResourceBoundTests.swift`: saturation, recovery, pending writes and idle SSE.
@@ -582,3 +582,5 @@ Daylily/
 
 - `docs/migration-alpha4.md`: migration from alpha.3, write/observer defaults, nullability boundaries and application-owned persistence.
 - `ai/epics/0027-alpha4-release.md` and `ai/tasks/0027-001-publish-alpha4.md`: preparation, publication and exact-version acceptance.
+
+- `docs/alpha4-release-verification.md`: completed preparation and exact-tag CI, resolver audit and artifact provenance.

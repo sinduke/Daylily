@@ -1,6 +1,6 @@
 # Alpha.4: real business and sustained operation
 
-This guide describes the alpha.4 capabilities validated in [epic 0026](../ai/epics/0026-real-business-and-sustained-operation.md). Read [alpha.4 migration](migration-alpha4.md) when upgrading, and [release status](release-readiness.md) for publication and exact-tag verification. These added APIs require alpha.4 and are unavailable in alpha.3.
+These capabilities are published in [0.1.0-alpha.4](https://github.com/sinduke/Daylily/releases/tag/0.1.0-alpha.4). This guide describes the alpha.4 capabilities validated in [epic 0026](../ai/epics/0026-real-business-and-sustained-operation.md). Read [alpha.4 migration](migration-alpha4.md) when upgrading, and [release status](release-readiness.md) for publication and exact-tag verification. These added APIs require alpha.4 and are unavailable in alpha.3.
 
 ## Bounded transport resources
 
@@ -62,4 +62,4 @@ The dependency is an immutable archive of the published alpha.3 commit. Read res
 
 ## Validation state
 
-All five priorities and integration are complete at candidate `1f8e0ea5f149b09cc398d302bf37c5cd63258452`: full CI passed 12/12 jobs and the external Linux run sustained traffic for 3600.175 seconds with zero unexpected failures. See [acceptance results](alpha4-acceptance-results.md) and the completed execution checklist. Publication and exact-version verification are tracked separately in [task 0027-001](../ai/tasks/0027-001-publish-alpha4.md).
+All five priorities and integration are complete at candidate `1f8e0ea5f149b09cc398d302bf37c5cd63258452`: full CI passed 12/12 jobs and the external Linux run sustained traffic for 3600.175 seconds with zero unexpected failures. See [acceptance results](alpha4-acceptance-results.md) and the completed execution checklist. Publication and exact-version verification are complete: [14/14 exact-tag jobs](https://github.com/sinduke/Daylily/actions/runs/36250605916) and 12 audited release pins. Details are tracked in [task 0027-001](../ai/tasks/0027-001-publish-alpha4.md).

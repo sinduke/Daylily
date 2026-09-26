@@ -196,7 +196,7 @@ Use Daylily as a SwiftPM package:
 .package(url: "https://github.com/sinduke/Daylily.git", from: "0.1.0-alpha.4")
 ```
 
-Alpha.4 adds per-write deadlines, bounded observer delivery, nullable contracts and a persistent commerce example. Read the [alpha.4 migration guide](docs/migration-alpha4.md) and [release readiness](docs/release-readiness.md) for publication and exact-version validation status. The `main` README may later describe newer APIs.
+The latest published prerelease is [0.1.0-alpha.4](https://github.com/sinduke/Daylily/releases/tag/0.1.0-alpha.4). Alpha.4 adds per-write deadlines, bounded observer delivery, nullable contracts and a persistent commerce example. Read the [alpha.4 migration guide](docs/migration-alpha4.md) and [release readiness](docs/release-readiness.md) for publication and exact-version validation status. The `main` README may later describe newer APIs.
 
 Add the product to your target:
 

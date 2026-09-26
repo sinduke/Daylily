@@ -1,6 +1,6 @@
 # Alpha.4 candidate acceptance — 2026-09-26
 
-All six tasks in [epic 0026](../ai/epics/0026-real-business-and-sustained-operation.md), covering priorities P1–P5 and integration, are implemented and verified. Tested source: `1f8e0ea5f149b09cc398d302bf37c5cd63258452`. The later closure commit changes documentation/evidence only. The candidate remains unreleased; the latest published tag is alpha.3.
+All six tasks in [epic 0026](../ai/epics/0026-real-business-and-sustained-operation.md), covering priorities P1–P5 and integration, are implemented and verified. Tested source: `1f8e0ea5f149b09cc398d302bf37c5cd63258452`. The later closure commit changes documentation/evidence only. This records the original pre-release acceptance. The same runtime was subsequently published in [alpha.4](https://github.com/sinduke/Daylily/releases/tag/0.1.0-alpha.4) at `7fc09c4289052355578f007f4ebfb97c9b686430`; [exact-tag validation](https://github.com/sinduke/Daylily/actions/runs/36250605916) passed all 14 jobs. Original source hashes, timings and measurements below remain unchanged.
 
 ## Implemented scope
 

@@ -2990,8 +2990,8 @@ roadmap:
       - "0024-release-and-operational-readiness"
       - "0025-alpha3-release"
       - "0026-real-business-and-sustained-operation"
-    in_progress:
       - "0027-alpha4-release"
+    in_progress: []
     next_recommended:
       - "24-hour-soak-before-beta"
   completed:
@@ -3064,8 +3064,8 @@ roadmap:
     - "0026-002-runtime-resource-bounds"
     - "0026-003-sustained-linux-deployment"
     - "0026-006-integration-and-verification"
-  in_progress:
     - "0027-001-publish-alpha4"
+  in_progress: []
   next_recommended: []
   later:
     - "0013-003-observability-hooks"
@@ -3184,7 +3184,9 @@ real_business_delivery:
   acceptance_report: docs/alpha4-acceptance-results.md
   guide: docs/alpha4-candidate.md
   tasks: ["0026-001", "0026-002", "0026-003", "0026-004", "0026-005", "0026-006"]
-  candidate_version: "0.1.0-alpha.4 (unreleased)"
+  candidate_version: "0.1.0-alpha.4"
+  published_release: "0.1.0-alpha.4"
+  release_revision: "7fc09c4289052355578f007f4ebfb97c9b686430"
   scope:
     - "Application-owned PostgreSQL commerce pool/transactions/readiness and lifecycle"
     - "Server-wide bounded observer callbacks and per-write stall deadline"
@@ -3201,7 +3203,8 @@ real_business_delivery:
   beta_gate: "A separate 24-hour soak; one-hour evidence does not prove leak freedom or production capacity"
 
 alpha4_release:
-  status: in-progress
+  status: implemented
+  verification_record: docs/alpha4-release-verification.md
   epic: "0027-alpha4-release"
   task: "0027-001-publish-alpha4"
   version: "0.1.0-alpha.4"
@@ -3209,5 +3212,12 @@ alpha4_release:
   prior_validated_revision: "1f8e0ea5f149b09cc398d302bf37c5cd63258452"
   prior_ci: "https://github.com/sinduke/Daylily/actions/runs/36244501153"
   prior_sustained_run: "https://github.com/sinduke/Daylily/actions/runs/36244505313"
-  published: false
+  published: true
+  release_url: "https://github.com/sinduke/Daylily/releases/tag/0.1.0-alpha.4"
+  release_revision: "7fc09c4289052355578f007f4ebfb97c9b686430"
+  preparation_ci: "https://github.com/sinduke/Daylily/actions/runs/36249744913"
+  preparation_ci_result: "12/12 jobs passed"
+  exact_tag_ci: "https://github.com/sinduke/Daylily/actions/runs/36250605916"
+  exact_tag_ci_result: "14/14 jobs passed"
+  resolver_evidence: "12 release pins verified on macOS/Linux; exact alpha.4 version and tag revision"
   boundaries: "Publish validated capabilities; runtime, tests, scripts, locks and historical evidence remain unchanged."

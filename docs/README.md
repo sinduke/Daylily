@@ -12,6 +12,8 @@ Daylily provides default paths, not mandatory paths. Runtime APIs are first-clas
 
 - [Quick Start](quickstart.md): install, build, test, run, and validate external package consumption.
 - [Capability Matrix](capability-matrix.md): current features, MVP surfaces, and planned work.
+- [Alpha.4 migration](migration-alpha4.md): response-write deadlines, bounded observation, nullable contracts and independent persistence.
+- [Alpha.4 publication verification](alpha4-release-verification.md): exact-tag CI and resolver evidence.
 - [Alpha.3 migration](migration-alpha3.md): default request deadlines, bounded shutdown and optional transfer observation.
 - [Alpha.2 migration](migration-alpha2.md): toolchain, response bodies, lifecycle, and optional inputs.
 - [Release Readiness](release-readiness.md): CI, changelog, tag strategy, and known release limits.
@@ -47,7 +49,7 @@ Daylily provides default paths, not mandatory paths. Runtime APIs are first-clas
 - External consumer and template validation: fresh SwiftPM packages in path, exact revision, and exact release modes.
 - Example validation: commerce API, actual generated OpenAPI client/server, and fixed application-change exercises.
 - Transport: NIO-backed HTTP/1.1.
-- Status: experimental package-consumer work for this experimental prerelease; see [release status](release-readiness.md).
+- Status: experimental alpha.4 prerelease; see [release status](release-readiness.md).
 
 
 Alpha.4: [capability guide](alpha4-candidate.md), [migration](migration-alpha4.md), and [acceptance results](alpha4-acceptance-results.md), including persistent commerce, resource limits, nullable contracts and extended validation. See [release status](release-readiness.md) for publication and exact-tag verification; alpha.3 guidance remains versioned.

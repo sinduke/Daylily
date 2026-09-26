@@ -56,8 +56,8 @@ This matrix tracks the current beta-facing capability surface. The operational w
 | Generated server/client round trip | Implemented | `examples/openapi-service` runs actual generated code over HTTP with ServiceGroup and SwiftLog. |
 | Response-transfer observation | Implemented (alpha.3) | Terminal outcome, flushed body bytes and transfer duration, separate from handler logs; optional console/in-memory/SwiftLog observers. |
 | Contract evolution regression | Implemented | Conservative OpenAPI subset diff plus actual old/new generated clients over HTTP. |
-| Explicit nullable schemas | Implemented (alpha.4 candidate) | Concrete type plus null; required presence remains separate. Generated-client limitations are documented. |
-| Response resource bounds | Implemented (alpha.4 candidate) | Pending-write deadline and server-wide observer capacity/drop counters. |
+| Explicit nullable schemas | Implemented (alpha.4) | Concrete type plus null; required presence remains separate. Generated-client limitations are documented. |
+| Response resource bounds | Implemented (alpha.4) | Pending-write deadline and server-wide observer capacity/drop counters. |
 | Deep Swift schema derivation | Planned | Explicit schema registration remains the supported path. |
 | Request ID middleware | MVP | Daylily-owned request ID plus external correlation ID behavior. |
 | Request logging middleware | MVP | Method, path, status, IDs, duration, and public error reason. |
@@ -91,4 +91,4 @@ This matrix tracks the current beta-facing capability surface. The operational w
 | Container deployment trial | Implemented | Two Linux replicas behind Caddy, rolling shutdown, SSE/disconnect/slow-peer checks and bounded sustained traffic. Public cloud automation remains future work. |
 | Benchmarks | Planned | To publish after runtime and beta docs stabilize. |
 
-See [alpha.4 candidate](alpha4-candidate.md) for current validation state and the one-hour external Linux gate. Historical alpha.3 deployment results do not establish the new gate.
+See [alpha.4](alpha4-candidate.md) for current validation state and the one-hour external Linux gate. Historical alpha.3 deployment results do not establish the new gate.
