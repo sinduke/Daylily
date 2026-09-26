@@ -514,10 +514,12 @@ Status: implemented
 
 Publish alpha.2 first, then deliver operation deadlines/draining, transfer observation, a reproducible reverse-proxy API/SSE deployment trial, and contract/repeated AI change regressions. Independent implementation uses explicit ownership; integration gates run in user-approved order. See `ai/epics/0024-release-and-operational-readiness.md`.
 
-Priorities 1–5 are implemented and locally validated: published alpha.2 passed ten exact-tag jobs; new runtime passed 65 local tests; the 300-second Docker/Caddy trial passed 31,382 requests; 29 contract checks and six actual AI edits passed. Final candidate `3bad369` passed all nine jobs in run 36212918755; 0024-006 is complete. Subsequent runtime APIs remain unreleased.
+Priorities 1–5 are implemented and locally validated: published alpha.2 passed ten exact-tag jobs; new runtime passed 65 local tests; the 300-second Docker/Caddy trial passed 31,382 requests; 29 contract checks and six actual AI edits passed. Final candidate `3bad369` passed all nine jobs in run 36212918755; 0024-006 is complete. The subsequent runtime APIs were unreleased at 0024 closure and were published as alpha.3 in 0025.
 
 ## 0025 Alpha.3 Release
 
-Status: in-progress
+Status: implemented
 
 Publish the completed 0024 operational increment as `0.1.0-alpha.3`, with explicit behavioral migration guidance and exact-version macOS/Linux consumer validation. Keep previous tags and trial records unchanged. See `ai/tasks/0025-001-publish-alpha3.md`.
+
+Alpha.3 is published at `cfa8357`. Preparation run 36216710327 passed 9/9 jobs; exact-tag run 36217281415 passed 11/11. Both platforms' five consumers each resolve the exact version/commit. Release notes and migration guidance are complete.

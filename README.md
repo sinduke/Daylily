@@ -196,7 +196,7 @@ Use Daylily as a SwiftPM package:
 .package(url: "https://github.com/sinduke/Daylily.git", from: "0.1.0-alpha.3")
 ```
 
-The installation target for this release is `0.1.0-alpha.3`, including operation deadlines, bounded draining and response-transfer observation. See [release readiness](docs/release-readiness.md) for publication and validation status. The `main` README may later describe newer APIs.
+The latest published prerelease is `0.1.0-alpha.3`, including operation deadlines, bounded draining and response-transfer observation. See [release readiness](docs/release-readiness.md) for publication and validation status. The `main` README may later describe newer APIs.
 
 Add the product to your target:
 

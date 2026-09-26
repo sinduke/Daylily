@@ -2,7 +2,7 @@
 
 ## Release
 
-[Alpha.2](https://github.com/sinduke/Daylily/releases/tag/0.1.0-alpha.2) was published at `f0d53421981e42e423e0b53b4f6a5dc3460bec81` after its eight-job preparation gate. [Exact-tag validation](https://github.com/sinduke/Daylily/actions/runs/36212096436) passed all ten macOS/Linux jobs; downloaded package records confirm the version and revision. The operational runtime below is a subsequent, unreleased increment.
+[Alpha.2](https://github.com/sinduke/Daylily/releases/tag/0.1.0-alpha.2) was published at `f0d53421981e42e423e0b53b4f6a5dc3460bec81` after its eight-job preparation gate. [Exact-tag validation](https://github.com/sinduke/Daylily/actions/runs/36212096436) passed all ten macOS/Linux jobs; downloaded package records confirm the version and revision. The operational runtime below was an unreleased increment at the time of these trials. It was subsequently published in [alpha.3](https://github.com/sinduke/Daylily/releases/tag/0.1.0-alpha.3); the original trial source hashes and dates below remain unchanged.
 
 ## Local runtime
 

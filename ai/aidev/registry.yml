@@ -2970,11 +2970,10 @@ roadmap:
       - "0022-macro-middleware-and-security"
       - "0023-reliability-and-streaming"
       - "0024-release-and-operational-readiness"
-    in_progress:
       - "0025-alpha3-release"
+    in_progress: []
     next_recommended:
       - "select-external-deployment-and-longer-trial"
-      - "prepare-next-operational-prerelease"
   completed:
     - "0001-001-minimal-http-server"
     - "0002-001-aidev-project-contract"
@@ -3038,11 +3037,10 @@ roadmap:
     - "0024-004-deployment-trial"
     - "0024-005-contract-and-ai-regression"
     - "0024-006-operational-readiness-closure"
-  in_progress:
     - "0025-001-publish-alpha3"
+  in_progress: []
   next_recommended:
     - "select-external-deployment-and-longer-trial"
-    - "prepare-next-operational-prerelease"
   later:
     - "0013-003-observability-hooks"
 
@@ -3088,11 +3086,11 @@ operational_readiness:
   ci_run: "https://github.com/sinduke/Daylily/actions/runs/36212918755"
   ci_result: "9/9 jobs passed; macOS/Linux each passed 65 Swift tests and 29 compatibility checks"
   ci_deployment: "Clean Linux amd64; 30.023 seconds, 3940 successes, 0 failures and clean teardown"
-  published_release: "0.1.0-alpha.2"
-  release_revision: "f0d53421981e42e423e0b53b4f6a5dc3460bec81"
-  release_ci: "https://github.com/sinduke/Daylily/actions/runs/36212096436"
-  release_ci_result: "10/10 jobs passed"
-  runtime_release_status: "alpha.3 preparation; see alpha3_release for current publication status"
+  published_release: "0.1.0-alpha.3"
+  release_revision: "cfa835792cca3cce614999ddc7adca290015a801"
+  release_ci: "https://github.com/sinduke/Daylily/actions/runs/36217281415"
+  release_ci_result: "11/11 jobs passed"
+  runtime_release_status: "published in alpha.3; exact-tag validation passed"
   guide: docs/operational-readiness.md
   evidence: docs/operational-trial-results.md
   local_tests: "65 Swift tests, 29 contract checks, build/check/default HTTP run"
@@ -3130,7 +3128,7 @@ operational_readiness:
     - "Repeated application changes use fixed open-test fixtures and retained acceptance evidence; results are not a blinded test or general AI benchmark."
 
 alpha3_release:
-  status: in_progress
+  status: implemented
   epic: "0025-alpha3-release"
   task: "0025-001-publish-alpha3"
   version: "0.1.0-alpha.3"
@@ -3138,3 +3136,12 @@ alpha3_release:
   prior_validated_revision: "3bad369331e05231a0c644f148cb59be5f7dc898"
   prior_ci: "https://github.com/sinduke/Daylily/actions/runs/36212918755"
   boundaries: "Release the existing operational runtime; previous tags and evidence remain unchanged."
+  published: true
+  release_url: "https://github.com/sinduke/Daylily/releases/tag/0.1.0-alpha.3"
+  release_revision: "cfa835792cca3cce614999ddc7adca290015a801"
+  preparation_ci: "https://github.com/sinduke/Daylily/actions/runs/36216710327"
+  preparation_ci_result: "9/9 jobs passed"
+  exact_tag_ci: "https://github.com/sinduke/Daylily/actions/runs/36217281415"
+  exact_tag_ci_result: "11/11 jobs passed"
+  resolver_evidence: "Ten Package.resolved files across both release platforms pin alpha.3 to cfa835792cca3cce614999ddc7adca290015a801"
+  release_consumers: "Each platform passed 8 consumer tests and all 4 actual generated-client HTTP scenarios"

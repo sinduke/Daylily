@@ -20,7 +20,7 @@ Daylily is currently experimental. Public APIs may change before beta or stable 
 
 - Swift tools minimum remains 6.3; validated with Swift 6.3.2 on macOS and Linux.
 - New defaults are 15-second complete-header timeout, 30-second upload-idle timeout, and 10-second graceful drain. Header/upload durations accept positive values or `nil`; grace accepts nonnegative values or `nil` for unlimited drain.
-- Inbound deadlines pause during framework upload backpressure and do not cap handler or outgoing SSE lifetime. Task cancellation forces transport closure independently of graceful drain.
+- The upload-idle deadline pauses during framework upload backpressure. Inbound deadlines do not cap handler or outgoing SSE lifetime. Task cancellation forces transport closure independently of graceful drain.
 - Observers are optional and delivered asynchronously; terminal outcome and flushed body bytes do not imply durable delivery or client consumption.
 - See [alpha.3 migration](docs/migration-alpha3.md) for behavioral defaults and deployment/exporter ownership.
 

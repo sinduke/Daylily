@@ -196,7 +196,7 @@ Daylily 不是只想成为 routing library，而是在探索 Swift cloud develop
 .package(url: "https://github.com/sinduke/Daylily.git", from: "0.1.0-alpha.3")
 ```
 
-本次安装目标为 `0.1.0-alpha.3`，包含请求期限、有界停机排空和传输观测。发布及验证状态见[发布说明](docs/release-readiness.md)；`main` 后续可能包含更新的 API。
+最新发布的预发布版本为 `0.1.0-alpha.3`，包含请求期限、有界停机排空和传输观测。发布及验证状态见[发布说明](docs/release-readiness.md)；`main` 后续可能包含更新的 API。
 
 把 product 加到 target 里：
 

@@ -1,10 +1,10 @@
 # Release Readiness
 
-Daylily is experimental. `0.1.0-alpha.3` release preparation is in progress; the last published prerelease is [0.1.0-alpha.2](https://github.com/sinduke/Daylily/releases/tag/0.1.0-alpha.2). Alpha.3 packages operation deadlines, graceful draining and transfer observation. Read the [alpha.3 migration guide](migration-alpha3.md) and [operational guide](operational-readiness.md).
+Daylily is experimental. The latest published prerelease is [0.1.0-alpha.3](https://github.com/sinduke/Daylily/releases/tag/0.1.0-alpha.3). Alpha.3 packages operation deadlines, graceful draining and transfer observation. Read the [alpha.3 migration guide](migration-alpha3.md) and [operational guide](operational-readiness.md).
 
-## Alpha.3 release gate
+## Published alpha.3
 
-Runtime candidate `3bad369331e05231a0c644f148cb59be5f7dc898` passed [all nine integration CI jobs](https://github.com/sinduke/Daylily/actions/runs/36212918755). Preparation adds versioned release documentation and current-profile checks for the new public APIs; exact-release CI also runs the generated-client contract regression. The preparation commit must pass the complete matrix before tagging. Exact-tag installation is verified after publication; see [task 0025-001](../ai/tasks/0025-001-publish-alpha3.md).
+Runtime candidate `3bad369331e05231a0c644f148cb59be5f7dc898` passed [all nine integration CI jobs](https://github.com/sinduke/Daylily/actions/runs/36212918755). Preparation added versioned release documentation and current-profile checks for the new public APIs; exact-release CI also runs the generated-client contract regression. Commit `cfa835792cca3cce614999ddc7adca290015a801` passed [all nine preparation jobs](https://github.com/sinduke/Daylily/actions/runs/36216710327) before the annotated alpha.3 tag and GitHub prerelease were published. [Exact-tag validation](https://github.com/sinduke/Daylily/actions/runs/36217281415) passed **all 11 jobs**: core/path/revision/legacy/release on macOS and Linux, plus Linux proxy deployment. Downloaded release artifacts confirm all ten Package.resolved files (five consumers per platform) resolve version `0.1.0-alpha.3` at `cfa835792cca3cce614999ddc7adca290015a801`. Both release consumers pass eight external tests including operational APIs/four HTTP server entry points, and both generated-client contract runs pass all four HTTP scenarios. See [task 0025-001](../ai/tasks/0025-001-publish-alpha3.md).
 
 ## Published alpha.2
 
