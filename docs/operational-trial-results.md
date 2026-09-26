@@ -39,4 +39,6 @@ The conservative compatibility checker passes 29 tests, including response-defau
 
 ## Final candidate CI
 
-The integration commit is submitted to macOS/Linux core/path/revision/legacy jobs plus a separate Linux Docker deployment job. Final status and exact candidate revision are recorded here once the gate completes.
+Candidate `3bad369331e05231a0c644f148cb59be5f7dc898` passed [final CI validation](https://github.com/sinduke/Daylily/actions/runs/36212918755): macOS/Linux core/path/revision/legacy jobs plus a separate Linux Docker deployment job. **All nine jobs passed.** Downloaded revision artifacts on both platforms verify that all five external consumers (consumer, template, commerce, OpenAPI and contract regression) resolved this exact commit. Both contract logs confirm all four real HTTP scenarios passed. Final follow-up commits update documentation only; the validated runtime and CI configuration remain unchanged.
+
+Completed core logs on both platforms confirm 65 Swift tests, 29 compatibility tests and behavior checks. The clean-checkout Linux amd64 Docker job passed 30.023 seconds of sustained traffic: 3,940 successes, zero failures, 2.100-second rolling drain, zero active streams afterward and no cleanup errors. Its artifact records the exact candidate SHA and `working_tree_dirty: false`; this independently verifies the later explicit base-image pull on a fresh CI host.

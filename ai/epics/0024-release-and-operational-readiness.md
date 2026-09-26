@@ -1,6 +1,6 @@
 # 0024 Release and Operational Readiness
 
-Status: in-progress
+Status: implemented
 
 Goal:
 
@@ -24,3 +24,11 @@ Delivery:
 Non-goals:
 
 - Native TLS/HTTP2, ORM, a managed authentication stack, or paid infrastructure provisioning.
+
+Validation:
+
+- Published alpha.2 at f0d5342 passed ten exact-tag macOS/Linux jobs in run 36212096436.
+- Operational candidate 3bad369 passed all nine jobs in run 36212918755; both platforms ran 65 Swift tests and 29 compatibility checks, plus external consumers and actual generated-client HTTP regressions.
+- Local Linux/Caddy trial: 300.073 seconds, 31,382 requests, zero failures and clean scoped teardown. Clean Linux amd64 CI trial: 30.023 seconds, 3,940 requests, zero failures.
+- Six actual AI edits across three fixed tasks passed immutable acceptance; incomplete baselines fail. These narrow open-test trials are not a general benchmark.
+- Operational APIs remain unreleased after alpha.2. See `docs/operational-trial-results.md` for source boundaries and evidence.

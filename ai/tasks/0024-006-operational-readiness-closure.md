@@ -1,6 +1,6 @@
 # 0024-006 Operational Readiness Closure
 
-Status: in-progress
+Status: implemented
 Epic: 0024-release-and-operational-readiness
 
 Goal:
@@ -20,8 +20,8 @@ Steps:
 - [x] 0024-006.1 Review concurrent changes and resolve timer/contract boundary findings.
 - [x] 0024-006.2 Run local full build, 65 tests and behavior checks.
 - [x] 0024-006.3 Complete shared API/runtime documentation and reproducible trial records.
-- [ ] 0024-006.4 Commit tasks and pass the complete exact-candidate macOS/Linux and container CI.
-- [ ] 0024-006.5 Record release and integration evidence with a clean working tree.
+- [x] 0024-006.4 Commit tasks and pass the complete exact-candidate macOS/Linux and container CI.
+- [x] 0024-006.5 Record release and integration evidence with a clean working tree.
 
 Architecture impact:
 
@@ -50,3 +50,16 @@ Local integration notes:
 - Default server routes and SIGTERM passed. The initial ad hoc echo probe expected the wrong JSON key; the source returns `echo`, and the corrected probe passed without changing application code.
 - 29 compatibility tests pass after review fixes for default-response fallback and unsupported range statuses.
 - Final deployment harness explicitly pulls the Swift image for clean BuildKit hosts; the 300-second app/runtime trial itself passed before this bootstrap correction.
+
+Final candidate evidence:
+
+- Candidate `3bad369331e05231a0c644f148cb59be5f7dc898`: [run 36212918755](https://github.com/sinduke/Daylily/actions/runs/36212918755).
+- Both completed core logs confirm 65 Swift tests and 29 contract tests. Clean Linux amd64 deployment passed 30.023 seconds, 3,940 requests, zero failures and no cleanup errors.
+- Eight downloaded alpha.2 Package.resolved files (including generated OpenAPI) all resolve f0d5342/version alpha.2. Six recorded AI initial-source fingerprints match the committed fixtures.
+
+Final gate:
+
+- All nine jobs in run 36212918755 passed on exact candidate `3bad369331e05231a0c644f148cb59be5f7dc898`.
+- Each platform passed core/path/revision/legacy suites; the additional Linux Docker deployment passed. Downloaded exact-revision artifacts independently confirm all five consumers resolved the candidate on each platform and all four actual generated-client HTTP scenarios passed.
+- The final follow-up commit contains only Markdown and the AIDEV registry; runtime/tests/scripts/workflow remain identical to the validated candidate. No new runtime tag was created after alpha.2.
+- Shared task/epic/roadmap states are complete; evidence and known trial limits are preserved in the user-facing operational results guide.

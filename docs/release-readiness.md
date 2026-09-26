@@ -8,7 +8,7 @@ The completed reliability candidate `7d56798` passed [eight CI jobs](https://git
 
 [Exact-tag validation](https://github.com/sinduke/Daylily/actions/runs/36212096436) passed all **ten** jobs: core/path/revision/legacy/release on macOS and Linux. Alpha.2 core has 49 tests. Release jobs build consumer, template, commerce and generated OpenAPI HTTP examples. Downloaded consumer/template/commerce resolver records on both platforms confirm version `0.1.0-alpha.2` at `f0d53421981e42e423e0b53b4f6a5dc3460bec81`; legacy alpha.1 remains independently covered.
 
-The later operational changes do not modify this tag. Their local tests and deployment evidence are recorded in [operational trial results](operational-trial-results.md), with exact-candidate CI recorded when completed.
+The later operational changes do not modify this tag. Their local tests and deployment evidence are recorded in [operational trial results](operational-trial-results.md), and candidate `3bad369331e05231a0c644f148cb59be5f7dc898` passed [all nine integration CI jobs](https://github.com/sinduke/Daylily/actions/runs/36212918755). Both platforms passed 65 Swift tests and 29 contract checks; both exact-revision suites verified five external packages. The separate clean Linux deployment job passed all functional scenarios and 30 seconds of sustained traffic.
 
 ## Supported validation environment
 

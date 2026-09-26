@@ -69,14 +69,19 @@ Validation results — 2026-09-26:
 
 Parent integration:
 
-- Add `python3 ai/evals/contracts/test_compatibility.py` to deterministic core checks and `scripts/contract-regression-test.sh` to path/revision candidate smoke as appropriate.
-- Preserve `compatible-diff.json` and `breaking-diff.json` in CI evidence alongside dependency-record/Package.resolved and command logs.
+- CI runs `python3 ai/evals/contracts/test_compatibility.py` in core checks and `scripts/contract-regression-test.sh` in path/revision candidate smoke.
+- CI preserves `compatible-diff.json` and `breaking-diff.json` alongside dependency-record/Package.resolved and command logs.
 - Real AI CLI trials intentionally do not run in automatic CI: reruns consume the signed-in account's quota and are an explicit evaluation action.
 - New documentation: `docs/contract-and-ai-regression.md`; developer runner guide: `ai/evals/repeated-changes/README.md`.
-- Code and delegated checks complete; task remains in-progress until parent shared AIDEV/CI integration and repository-wide checks finish.
+- Code, local checks, shared documentation and CI wiring are integrated; final exact-candidate CI is tracked by 0024-006.
 
 Integration evidence:
 
 - Shared AIDEV API/runtime/map/registry and user guides are synchronized. Local full build, 65 tests and behavior checks passed; default server HTTP/SIGTERM passed.
 - The 300-second Linux/Caddy deployment passed 31,382 requests with no failures and clean teardown. See `docs/operational-trial-results.md`.
 - Exact-candidate cross-platform CI is tracked separately by 0024-006; this task status records implemented and locally validated scope.
+
+Evidence formatting:
+
+- Integration removed extra EOF blank lines from two fixture acceptance files without changing their checks. Historical per-run protected-input results remain unchanged; recorded fixture fingerprints cover App.swift and still match.
+- Recorded unified diffs retain whitespace-only context lines verbatim; a narrowly scoped `.gitattributes` rule excludes those evidence patches from whitespace lint.

@@ -2967,10 +2967,11 @@ roadmap:
       - "0021-ecosystem-compatibility"
       - "0022-macro-middleware-and-security"
       - "0023-reliability-and-streaming"
-    in_progress:
       - "0024-release-and-operational-readiness"
+    in_progress: []
     next_recommended:
-      - "complete-operational-readiness-validation"
+      - "select-external-deployment-and-longer-trial"
+      - "prepare-next-operational-prerelease"
   completed:
     - "0001-001-minimal-http-server"
     - "0002-001-aidev-project-contract"
@@ -3028,10 +3029,16 @@ roadmap:
     - "0023-005-lifecycle-failure-recovery"
     - "0023-006-optional-inputs-and-ai-exercises"
     - "0023-007-integration-and-release-readiness"
+    - "0024-001-publish-alpha2"
+    - "0024-002-request-deadlines-and-shutdown-drain"
+    - "0024-003-response-transfer-observability"
+    - "0024-004-deployment-trial"
+    - "0024-005-contract-and-ai-regression"
+    - "0024-006-operational-readiness-closure"
   in_progress: []
   next_recommended:
-    - "server-operation-deadlines-and-deployment-trials"
-    - "openapi-contract-evolution"
+    - "select-external-deployment-and-longer-trial"
+    - "prepare-next-operational-prerelease"
   later:
     - "0013-003-observability-hooks"
 
@@ -3041,7 +3048,8 @@ reliability_delivery:
   validated_revision: "7d56798aa43620426409f4ebca50471137e04084"
   ci_run: "https://github.com/sinduke/Daylily/actions/runs/36209852394"
   ci_result: "8/8 jobs passed; macOS and Linux each passed 49 core tests"
-  published_new_release: false
+  published_new_release: true
+  published_as: "0.1.0-alpha.2 in epic 0024; earlier 0023 CI remains historical evidence"
   follow_up_review: docs/vapor5-beta-review.md
   guide: docs/reliability-and-streaming.md
   task_ids: ["0023-001", "0023-002", "0023-003", "0023-004", "0023-005", "0023-006", "0023-007"]
@@ -3067,11 +3075,15 @@ reliability_delivery:
     - "External revision/release profiles validate exact resolver pins and identical current capabilities."
 
 operational_readiness:
-  status: in_progress
+  status: implemented
   epic: "0024-release-and-operational-readiness"
   current_task: "0024-006-operational-readiness-closure"
   task_ids: ["0024-001", "0024-002", "0024-003", "0024-004", "0024-005", "0024-006"]
-  acceptance: "Five implementation priorities passed their local/release gates; exact integration candidate CI is tracked in 0024-006."
+  acceptance: "All five priorities and integration gates completed; deployment/AI claims retain their documented limits."
+  validated_revision: "3bad369331e05231a0c644f148cb59be5f7dc898"
+  ci_run: "https://github.com/sinduke/Daylily/actions/runs/36212918755"
+  ci_result: "9/9 jobs passed; macOS/Linux each passed 65 Swift tests and 29 compatibility checks"
+  ci_deployment: "Clean Linux amd64; 30.023 seconds, 3940 successes, 0 failures and clean teardown"
   published_release: "0.1.0-alpha.2"
   release_revision: "f0d53421981e42e423e0b53b4f6a5dc3460bec81"
   release_ci: "https://github.com/sinduke/Daylily/actions/runs/36212096436"

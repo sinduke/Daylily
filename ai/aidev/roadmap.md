@@ -510,8 +510,8 @@ Candidate `7d56798` passed the complete eight-job macOS/Linux matrix. Its releas
 
 ## 0024 Release and Operational Readiness
 
-Status: in-progress
+Status: implemented
 
 Publish alpha.2 first, then deliver operation deadlines/draining, transfer observation, a reproducible reverse-proxy API/SSE deployment trial, and contract/repeated AI change regressions. Independent implementation uses explicit ownership; integration gates run in user-approved order. See `ai/epics/0024-release-and-operational-readiness.md`.
 
-Priorities 1–5 are implemented and locally validated: published alpha.2 passed ten exact-tag jobs; new runtime passed 65 local tests; the 300-second Docker/Caddy trial passed 31,382 requests; 29 contract checks and six actual AI edits passed. Final candidate CI remains tracked in 0024-006. Subsequent runtime APIs remain unreleased.
+Priorities 1–5 are implemented and locally validated: published alpha.2 passed ten exact-tag jobs; new runtime passed 65 local tests; the 300-second Docker/Caddy trial passed 31,382 requests; 29 contract checks and six actual AI edits passed. Final candidate `3bad369` passed all nine jobs in run 36212918755; 0024-006 is complete. Subsequent runtime APIs remain unreleased.
