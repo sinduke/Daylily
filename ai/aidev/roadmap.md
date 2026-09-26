@@ -505,7 +505,7 @@ Status: implemented
 
 The delivery completed six implementation slices plus integration: exact package-consumer validation, transport cancellation, explicit OpenAPI/generator round trip, response streaming/SSE, lifecycle failure recovery, and optional inputs/application exercises. See `ai/epics/0023-reliability-and-streaming.md` and `docs/reliability-and-streaming.md`.
 
-Candidate `7d56798` passed the complete eight-job macOS/Linux matrix. No new release was published. Follow-up recommendations are operation deadlines and shutdown draining, deployment trials, then OpenAPI contract evolution; see `docs/vapor5-beta-review.md`. Keep ORM, deep schema reflection, managed ApplicationService runtime, and native TLS/HTTP2 separate from this delivery.
+Candidate `7d56798` passed the complete eight-job macOS/Linux matrix. Its release preparation was later published as alpha.2 in 0024. The follow-up operational work is tracked below; see `docs/vapor5-beta-review.md`. Keep ORM, deep schema reflection, managed ApplicationService runtime, and native TLS/HTTP2 separate from this delivery.
 
 
 ## 0024 Release and Operational Readiness
@@ -513,3 +513,5 @@ Candidate `7d56798` passed the complete eight-job macOS/Linux matrix. No new rel
 Status: in-progress
 
 Publish alpha.2 first, then deliver operation deadlines/draining, transfer observation, a reproducible reverse-proxy API/SSE deployment trial, and contract/repeated AI change regressions. Independent implementation uses explicit ownership; integration gates run in user-approved order. See `ai/epics/0024-release-and-operational-readiness.md`.
+
+Priorities 1–5 are implemented and locally validated: published alpha.2 passed ten exact-tag jobs; new runtime passed 65 local tests; the 300-second Docker/Caddy trial passed 31,382 requests; 29 contract checks and six actual AI edits passed. Final candidate CI remains tracked in 0024-006. Subsequent runtime APIs remain unreleased.

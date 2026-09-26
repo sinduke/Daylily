@@ -463,3 +463,9 @@ Steps:
 Future:
 
 - Broaden Swift Testing coverage beyond the shared behavior suite.
+
+## Change operational transport behavior
+
+Keep public configuration/observations NIO-free and transport state on its owning event loop. Cover idle and partial heads, stalled input, paused reads, early responses, long SSE, pipelined shutdown, force cancellation and slow/throwing producers. Verify one terminal response event independent of HTTP status and handler timing. A blocked observer must not block a channel or server shutdown. Update the operational guide and run the real reverse-proxy trial after meaningful transport changes.
+
+For an OpenAPI compatibility change, add a directional old-client/new-server regression and reject unsupported schema semantics explicitly. Run the actual generated clients, not only a schema comparison. Repeated AI trials must begin from incomplete sources, preserve immutable acceptance, and record actual model edits and usage; reference implementations alone are not model-edit evidence.

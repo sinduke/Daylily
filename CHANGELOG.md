@@ -6,6 +6,12 @@ Daylily is currently experimental. Public APIs may change before beta or stable 
 
 ## Unreleased
 
+- Add configurable complete-header and upload-idle deadlines, with backpressure-aware timing.
+- Drain active responses on graceful shutdown within a configurable period; task cancellation forces closure.
+- Add optional response-transfer observations with terminal outcome, flushed body bytes and transfer duration; provide console, in-memory and SwiftLog adapters.
+- Add a reproducible two-replica Linux/Caddy API/SSE deployment trial and CI coverage.
+- Add directional OpenAPI compatibility checks, real old/new generated-client HTTP regression, and repeated actual AI-edit evidence.
+
 ## 0.1.0-alpha.2 - 2026-09-26
 
 ### Added

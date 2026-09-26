@@ -132,6 +132,7 @@ products:
       - lifecycle_runtime
       - dependencies_registry
       - server_configuration
+      - transport_free_response_transfer_event_and_observer
       - response_conversion
       - path_parameters
       - query_parameters
@@ -162,6 +163,9 @@ products:
       - apply_bounded_body_buffering_and_backpressure
       - translate_daylily_response_to_nio_response
       - bridge_async_responder_to_event_loop
+      - enforce_header_and_upload_idle_deadlines
+      - quiesce_connections_and_bound_graceful_drain
+      - arbitrate_terminal_response_transfer_events
     depends_on:
       - DaylilyCore
       - NIOCore
@@ -179,6 +183,7 @@ products:
       - provide_console_request_log_sink
       - provide_in_memory_request_log_sink_for_checks
       - record_request_duration_and_public_error_reason
+      - provide_console_and_in_memory_response_transfer_observers
       - keep_logging_and_tracing_out_of_core
     depends_on:
       - DaylilyCore
@@ -195,9 +200,11 @@ products:
     responsibility:
       - adapt_request_log_to_swift_log
       - provide_swift_log_request_log_sink
+      - adapt_response_transfer_events_to_swift_log
       - keep_swift_log_out_of_core_and_observability
       - avoid_global_logging_bootstrap
     depends_on:
+      - DaylilyCore
       - DaylilyObservability
       - Logging
     not_reexported_by:
@@ -226,7 +233,7 @@ products:
       - register_generated_handlers_as_daylily_routes
       - bridge_daylily_requests_and_responses_through_http_types
       - bridge_daylily_request_body_to_openapi_http_body
-      - buffer_openapi_response_body_under_explicit_limit
+      - stream_openapi_response_body_with_optional_bounded_collection
       - reject_unsupported_openapi_path_templates
       - keep_openapi_runtime_out_of_core
     depends_on:
@@ -472,12 +479,12 @@ implemented_features:
     task: "0012-002-graceful-shutdown"
     module: DaylilyNIO
     behavior:
-      - "SIGINT and SIGTERM close the server channel"
+      - "SIGINT and SIGTERM stop accepting work and drain active connections within shutdownGracePeriod"
       - "Application.run can continue into shutdown and cleanup lifecycle phases"
     decisions:
       - "signal handling is transport-owned"
       - "NIO channel types are not exposed to user APIs"
-      - "request draining and shutdown timeouts are deferred"
+      - "0024 adds connection quiescing, bounded graceful drain, and immediate force cancellation"
   server_configuration:
     status: implemented
     epic: "0012-lifecycle-server-controls"
@@ -488,7 +495,7 @@ implemented_features:
       - DaylilyNIO
     public_api:
       - ServerConfiguration
-      - "Application.run(configuration:)"
+      - "Application.run(configuration:responseObserver:)"
       - "NIOServerConfiguration.init(_:)"
     defaults:
       host: "127.0.0.1"
@@ -497,11 +504,17 @@ implemented_features:
       reuseAddress: true
       maxMessagesPerRead: 16
       gracefulShutdownSignals: true
+      requestHeaderTimeout: ".seconds(15)"
+      uploadIdleTimeout: ".seconds(30)"
+      shutdownGracePeriod: ".seconds(10)"
     decisions:
       - "ServerConfiguration is NIO-free and lives in DaylilyCore"
       - "Application.run(host:port:) remains convenience sugar"
       - "Application.run(configuration:) is the explicit server control API"
       - "NIOServerConfiguration mirrors the active NIO transport controls"
+      - "Header/upload durations must be positive; shutdown grace must be nonnegative. Nil disables the corresponding deadline."
+      - "Upload idle time excludes server body backpressure and ends when an early response abandons the body."
+      - "Observer injection is separate from equatable ServerConfiguration and defaults to nil."
   daylily_testing_minimal_client:
     status: implemented
     epic: "0011-daylily-testing"
@@ -731,7 +744,7 @@ implemented_features:
       - "Ecosystem packages should be integrated through optional adapters or boundary layers."
       - "Optional ecosystem modules must not add dependencies to DaylilyCore."
       - "SwiftLog integration should be a RequestLogSink, not a replacement request logging middleware."
-      - "DaylilySwiftLog should depend on DaylilyObservability and SwiftLog's Logging product."
+      - "DaylilySwiftLog directly depends on DaylilyCore, DaylilyObservability, and SwiftLog's Logging product."
       - "Daylily should not bootstrap LoggingSystem; applications own global logging configuration."
       - "DaylilyServiceLifecycle should expose Application as a ServiceLifecycle Service, not replace Application.run."
       - "Applications own ServiceGroup configuration and signal policy."
@@ -803,7 +816,7 @@ implemented_features:
       - README.zh-CN.md
     public_api:
       - "DaylilyApplicationService"
-      - "Application.serviceLifecycleService(configuration:)"
+      - "Application.serviceLifecycleService(configuration:responseObserver:)"
       - "ServerConfiguration.serviceLifecycleDefault"
       - "ServerConfiguration.withGracefulShutdownSignals(_:)"
     decisions:
@@ -1600,12 +1613,13 @@ public_api:
       - DaylilyOpenAPI
     Application.run:
       signatures:
-        - "public func run(host: String = \"127.0.0.1\", port: Int = 8080) async throws"
-        - "public func run(configuration: ServerConfiguration) async throws"
+        - "public func run(host: String = \"127.0.0.1\", port: Int = 8080, responseObserver: (any ResponseTransferObserver)? = nil) async throws"
+        - "public func run(configuration: ServerConfiguration, responseObserver: (any ResponseTransferObserver)? = nil) async throws"
       parameters:
         host: "bind host"
         port: "bind port"
         configuration: "explicit server configuration"
+        responseObserver: "optional terminal transfer observer; nil creates no delivery task"
     macros:
       DaylilyServer:
         signature: "public macro DaylilyServer()"
@@ -1695,7 +1709,31 @@ public_api:
         - "public init()"
         - "public func record(_ log: RequestLog)"
         - "public func snapshot() -> [RequestLog]"
+    InMemoryResponseTransferObserver:
+      kind: actor
+      conforms: [ResponseTransferObserver]
+      initializer: "public init()"
+      methods:
+        - "public func record(_ event: ResponseTransferEvent)"
+        - "public func snapshot() -> [ResponseTransferEvent]"
+      contract: "Retains terminal events for tests/local inspection; retention is unbounded."
+    ConsoleResponseTransferObserver:
+      kind: struct
+      conforms: [ResponseTransferObserver]
+      initializer: "public init()"
+      methods:
+        - "public func record(_ event: ResponseTransferEvent) async"
+      contract: "Prints terminal transfer outcome, body bytes and transfer duration separately from handler request logs."
   DaylilySwiftLog:
+    SwiftLogResponseTransferObserver:
+      kind: struct
+      conforms: [ResponseTransferObserver]
+      initializers:
+        - "public init(logger: Logger)"
+        - "public init(label: String = \"daylily.response.transfer\")"
+      methods:
+        - "public func record(_ event: ResponseTransferEvent) async"
+      contract: "Completed/cancelled/failed map to info/notice/error independently of HTTP status. Records daylily.response.bytes_sent and daylily.response.transfer_duration_ns with optional request context; never bootstraps LoggingSystem."
     SwiftLogRequestLogSink:
       kind: struct
       conforms:
@@ -1735,14 +1773,14 @@ public_api:
       conforms:
         - Service
       initializers:
-        - "public init(application: Application, configuration: ServerConfiguration = .serviceLifecycleDefault)"
+        - "public init(application: Application, configuration: ServerConfiguration = .serviceLifecycleDefault, responseObserver: (any ResponseTransferObserver)? = nil)"
       methods:
         - "public func run() async throws"
       contract: "Adapts Daylily Application into a ServiceLifecycle Service while preserving Application.run lifecycle order."
     Application:
       kind: extension
       methods:
-        - "public func serviceLifecycleService(configuration: ServerConfiguration = .serviceLifecycleDefault) -> DaylilyApplicationService"
+        - "public func serviceLifecycleService(configuration: ServerConfiguration = .serviceLifecycleDefault, responseObserver: (any ResponseTransferObserver)? = nil) -> DaylilyApplicationService"
       contract: "Convenience helper for creating the optional ServiceLifecycle adapter service."
     ServerConfiguration:
       kind: extension
@@ -2179,8 +2217,37 @@ public_api:
         - "reuseAddress: Bool"
         - "maxMessagesPerRead: Int"
         - "gracefulShutdownSignals: Bool"
-      initializer: "public init(host: String = \"127.0.0.1\", port: Int = 8080, backlog: Int = 256, reuseAddress: Bool = true, maxMessagesPerRead: Int = 16, gracefulShutdownSignals: Bool = true)"
-      contract: "NIO-free configuration consumed by Application.run(configuration:)."
+        - "requestHeaderTimeout: Duration?"
+        - "uploadIdleTimeout: Duration?"
+        - "shutdownGracePeriod: Duration?"
+      initializer: "public init(host: String = \"127.0.0.1\", port: Int = 8080, backlog: Int = 256, reuseAddress: Bool = true, maxMessagesPerRead: Int = 16, gracefulShutdownSignals: Bool = true, requestHeaderTimeout: Duration? = .seconds(15), uploadIdleTimeout: Duration? = .seconds(30), shutdownGracePeriod: Duration? = .seconds(10))"
+      contract: "NIO-free equatable configuration. Nil disables a deadline; nil grace waits until completion or force cancellation; zero grace closes immediately. Header/upload durations must be positive and grace nonnegative."
+    ResponseTransferOutcome:
+      kind: enum
+      raw_type: String
+      conforms: [Equatable, Sendable]
+      cases: [completed, cancelled, failed]
+      contract: "Terminal transport outcome is independent of the HTTP response status."
+    ResponseTransferEvent:
+      kind: struct
+      conforms: [Equatable, Sendable]
+      properties:
+        - "public let method: HTTPMethod?"
+        - "public let path: String?"
+        - "public let status: Status"
+        - "public let requestID: String?"
+        - "public let correlationID: String?"
+        - "public let bytesSent: Int"
+        - "public let durationNanoseconds: UInt64"
+        - "public let outcome: ResponseTransferOutcome"
+      initializer: "public init(method: HTTPMethod? = nil, path: String? = nil, status: Status, requestID: String? = nil, correlationID: String? = nil, bytesSent: Int, durationNanoseconds: UInt64, outcome: ResponseTransferOutcome)"
+      contract: "Immutable terminal snapshot. Counts successfully flushed body bytes, not headers/framing or peer consumption. Duration excludes handler production and observer delivery."
+    ResponseTransferObserver:
+      kind: protocol
+      conforms: [Sendable]
+      methods:
+        - "func record(_ event: ResponseTransferEvent) async"
+      contract: "Nonthrowing sink delivered outside the event loop after exactly-once terminal arbitration. Calls may overlap or arrive out of order; shutdown does not await sink completion and durable delivery belongs to the application."
     Route:
       kind: struct
       conforms:
@@ -2624,11 +2691,27 @@ public_api:
     NIOHTTPServer:
       kind: struct
       role: transport
+      conforms: [Sendable]
+      initializer: "public init(configuration: NIOServerConfiguration = NIOServerConfiguration(), responseObserver: (any ResponseTransferObserver)? = nil, responder: @escaping @Sendable (Request) async -> Response)"
       methods:
         - "public func run(started: @escaping @Sendable () async throws -> Void = {}) async throws"
         - "@_spi(ServiceLifecycle) public func run(started: @escaping @Sendable () async throws -> Void = {}, shutdownRequests: AsyncStream<Void>) async throws"
     NIOServerConfiguration:
       kind: struct
+      conforms: [Sendable]
+      properties:
+        - "host: String"
+        - "port: Int"
+        - "backlog: Int"
+        - "reuseAddress: Bool"
+        - "maxMessagesPerRead: Int"
+        - "gracefulShutdownSignals: Bool"
+        - "requestHeaderTimeout: Duration?"
+        - "uploadIdleTimeout: Duration?"
+        - "shutdownGracePeriod: Duration?"
+      initializers:
+        - "public init(host: String = \"127.0.0.1\", port: Int = 8080, backlog: Int = 256, reuseAddress: Bool = true, maxMessagesPerRead: Int = 16, gracefulShutdownSignals: Bool = true, requestHeaderTimeout: Duration? = .seconds(15), uploadIdleTimeout: Duration? = .seconds(30), shutdownGracePeriod: Duration? = .seconds(10))"
+        - "public init(_ configuration: ServerConfiguration)"
       defaults:
         host: "127.0.0.1"
         port: 8080
@@ -2636,6 +2719,9 @@ public_api:
         reuseAddress: true
         maxMessagesPerRead: 16
         gracefulShutdownSignals: true
+        requestHeaderTimeout: ".seconds(15)"
+        uploadIdleTimeout: ".seconds(30)"
+        shutdownGracePeriod: ".seconds(10)"
   DaylilyMacros:
     DaylilyServerMacro:
       kind: macro_implementation
@@ -2665,19 +2751,19 @@ runtime_rules:
   macro_limit_policy: "Macro limitations must stay macro limitations. Applications may use runtime DSL, custom composition roots, and their own service wiring when macro or helper defaults do not fit."
   query_and_header_input_policy: "Request.query uses ordered QueryParameters that preserve repeated names and raw query text; Headers uses ordered HeaderField storage that preserves repeated fields; typed require/get remains convenience lookup. Required @Query/@Header inputs lower to req.query.require/req.headers.require; optional T?, Optional<T>, and Swift.Optional<T> inputs lower to the corresponding get with wrapped-type metadata and required: false. Missing optional values become nil; invalid present values remain 400. RouteInputMetadata.query/header describe both forms. Optional path inputs are rejected at compile time."
   macro_json_body_policy: "@Body parameters are the preferred marker wrappers in DaylilyJSON; @DaylilyServer lowers them into try await req.json(Type.self) plus RouteBodyMetadata.json(...). @JSONBody remains as a compatibility alias spelling with the same lowering. The raw one-shot request body type is RequestBody."
-  lifecycle_policy: "Application lifecycle phases are configure, boot, started, shutdown, cleanup. Application.run binds lifecycle to transport; Application.respond(to:) does not run lifecycle. The default NIO server closes on SIGINT/SIGTERM and also closes when its run task is cancelled. DaylilyServiceLifecycle adapts Application into a ServiceLifecycle Service without replacing lifecycle hooks or creating a ServiceGroup. Managed service lifecycle is designed around future ApplicationService and Application.service(_:), with Application owning lifecycle and Dependencies remaining lookup-only."
+  lifecycle_policy: "Application lifecycle phases are configure, boot, started, shutdown, cleanup. Application.run binds lifecycle to transport; Application.respond(to:) does not run lifecycle. The default NIO server quiesces/drains on SIGINT/SIGTERM and force-closes when its run task is cancelled. DaylilyServiceLifecycle adapts Application into a ServiceLifecycle Service without replacing lifecycle hooks or creating a ServiceGroup. Managed service lifecycle is designed around future ApplicationService and Application.service(_:), with Application owning lifecycle and Dependencies remaining lookup-only."
   dependencies_policy: "Dependencies is an app-wide concrete and keyed Sendable registry in DaylilyCore. Application.respond(to:) stamps dependencies onto each request. Missing required dependencies map to 500 Internal Server Error. Protocol-oriented and same-type multi-instance lookup uses typed DependencyKey<Value>; direct protocol metatype lookup is not the preferred surface. @Dependency lowers keyed handler parameters to Request.dependencies.require(key). Managed service lifecycle is designed around future ApplicationService but not implemented."
-  server_configuration_policy: "ServerConfiguration is the NIO-free user-facing server control type. Application.run(configuration:) bridges it into DaylilyNIO. DaylilyServiceLifecycle adds serviceLifecycleDefault with gracefulShutdownSignals disabled so ServiceGroup owns signal handling by default."
+  server_configuration_policy: "ServerConfiguration is NIO-free and equatable. Header/upload/grace Duration? defaults are 15/30/10 seconds; nil disables the corresponding deadline. Upload idle time excludes transport backpressure and abandoned bodies; inbound deadlines do not limit handlers or response producers. Signals and ServiceLifecycle shutdown quiesce and drain connections; Task cancellation force-closes. Observers are separate optional run/initializer arguments. ServiceLifecycle disables transport signal ownership by default."
   test_client_policy: "TestClient is an in-memory helper in DaylilyTesting; it calls Application.respond(to:) directly and does not use transport. TestRequest and response assertions are testing helpers, not runtime behavior."
   route_metadata_policy: "Route metadata lives in DaylilyCore and is exposed through Route.describe(...) and Application.describeRoutes(); it does not affect routing and is the source of truth for OpenAPI generation."
   openapi_policy: "DaylilyOpenAPI maps Application.describeRoutes() into minimal OpenAPI documents; deep Swift schema derivation and richer operation metadata are separate tasks."
   wildcard_prefix: "*"
   current_body_model: "RequestBody one-shot API with NIO true streaming bridge and in-process buffered RequestBody.bytes support"
-  future_body_model: "response body streaming and higher-level upload helpers"
+  future_body_model: "higher-level upload helpers"
   middleware_order: "application -> router dispatch -> group -> route -> handler"
   middleware_body_policy: "middleware can read RequestBody, but RequestBody remains one-shot and no automatic replay occurs"
   explicit_buffered_body_policy: "withBufferedBody consumes the original RequestBody, buffers under an explicit limit, creates a one-shot replacement RequestBody.bytes value, and does not enable automatic replay"
-  observability_policy: "DaylilyObservability owns request ID generation, request logging, timing, public error reason logging, and future observability helpers; DaylilyCore does not depend on logging backends, tracing SDKs, metrics clients, or transport APIs. DaylilySwiftLog is an optional SwiftLog adapter module that implements RequestLogSink and is not re-exported by Daylily."
+  observability_policy: "DaylilyCore owns transport-free ResponseTransferEvent/Outcome/Observer. DaylilyObservability owns request ID/logging plus console and in-memory transfer observers. NIO freezes exactly one terminal event on its event loop and asynchronously awaits the nonthrowing sink outside it; shutdown does not wait for sink completion. Bytes count successful body flushes and duration excludes handler time. Optional DaylilySwiftLog directly depends on Core and Observability, adapts both request logs and transfer events, and never bootstraps LoggingSystem."
   ecosystem_adapter_policy: "SwiftLog, ServiceLifecycle, Swift HTTP Types, and Swift OpenAPI Generator integrations live in optional modules and are not re-exported by Daylily. DaylilyHTTPTypes adapts boundary types while DaylilyCore keeps Daylily-owned Request/Response models and does not import HTTPTypes. DaylilyOpenAPITransport adapts OpenAPIRuntime ServerTransport registrations while DaylilyCore does not import OpenAPIRuntime."
   errors:
     response_error: "status + reason"
@@ -2724,6 +2810,7 @@ aidev_files:
     - ai/epics/0018-beta-docs.md
     - ai/epics/0019-release-hygiene.md
     - ai/epics/0020-package-consumer-experience.md
+    - ai/epics/0024-release-and-operational-readiness.md
   tasks:
     - ai/tasks/0001-001-minimal-http-server.md
     - ai/tasks/0002-001-aidev-project-contract.md
@@ -2767,6 +2854,12 @@ aidev_files:
     - ai/tasks/0020-006-di-usage-polish.md
     - ai/tasks/0020-007-protocol-keyed-dependencies-design.md
     - ai/tasks/0020-008-lifecycle-integration-design.md
+    - ai/tasks/0024-001-publish-alpha2.md
+    - ai/tasks/0024-002-request-deadlines-and-shutdown-drain.md
+    - ai/tasks/0024-003-response-transfer-observability.md
+    - ai/tasks/0024-004-deployment-trial.md
+    - ai/tasks/0024-005-contract-and-ai-regression.md
+    - ai/tasks/0024-006-operational-readiness-closure.md
   docs:
     - CHANGELOG.md
     - docs/README.md
@@ -2854,7 +2947,7 @@ verification:
     cleanup: "stop the HelloDaylily process"
 
 roadmap:
-  current_task: "0024-001-publish-alpha2"
+  current_task: "0024-006-operational-readiness-closure"
   epics:
     completed:
       - "0001-runtime-foundation"
@@ -2877,7 +2970,7 @@ roadmap:
     in_progress:
       - "0024-release-and-operational-readiness"
     next_recommended:
-      - "server-operation-deadlines-and-deployment-trials"
+      - "complete-operational-readiness-validation"
   completed:
     - "0001-001-minimal-http-server"
     - "0002-001-aidev-project-contract"
@@ -2972,3 +3065,50 @@ reliability_delivery:
     - "Optional query/header inputs use get and required=false; optional paths are rejected."
     - "OpenAPI security is descriptive; application middleware owns enforcement."
     - "External revision/release profiles validate exact resolver pins and identical current capabilities."
+
+operational_readiness:
+  status: in_progress
+  epic: "0024-release-and-operational-readiness"
+  current_task: "0024-006-operational-readiness-closure"
+  task_ids: ["0024-001", "0024-002", "0024-003", "0024-004", "0024-005", "0024-006"]
+  acceptance: "Five implementation priorities passed their local/release gates; exact integration candidate CI is tracked in 0024-006."
+  published_release: "0.1.0-alpha.2"
+  release_revision: "f0d53421981e42e423e0b53b4f6a5dc3460bec81"
+  release_ci: "https://github.com/sinduke/Daylily/actions/runs/36212096436"
+  release_ci_result: "10/10 jobs passed"
+  runtime_release_status: "unreleased after alpha.2"
+  guide: docs/operational-readiness.md
+  evidence: docs/operational-trial-results.md
+  local_tests: "65 Swift tests, 29 contract checks, build/check/default HTTP run"
+  deployment: "300.073 seconds, 31382 successes, 0 failures, cleanup succeeded"
+  ai_trials: "6/6 fixed open-test edits accepted; cost unknown"
+  source_files:
+    - Sources/DaylilyCore/ServerConfiguration.swift
+    - Sources/DaylilyCore/ResponseTransfer.swift
+    - Sources/DaylilyNIO/NIOHTTPServer.swift
+    - Sources/Daylily/Application+Run.swift
+    - Sources/DaylilyObservability/ResponseTransferObservers.swift
+    - Sources/DaylilySwiftLog/SwiftLogResponseTransferObserver.swift
+    - Sources/DaylilyServiceLifecycle/DaylilyApplicationService.swift
+  validation_files:
+    - Tests/DaylilyTests/ServerOperationTests.swift
+    - Tests/DaylilyTests/ResponseTransferObserverTests.swift
+    - examples/deployment-trial/Package.swift
+    - examples/deployment-trial/Dockerfile
+    - examples/deployment-trial/Sources/TrialServer/TrialServer.swift
+    - scripts/deployment-trial.py
+    - scripts/openapi-compatibility-check.py
+    - ai/evals/contracts/test_compatibility.py
+    - ai/evals/repeated-changes/README.md
+    - ai/evals/repeated-changes/run.py
+  contracts:
+    - "Request headers default to 15 seconds, upload idle to 30 seconds, and graceful drain to 10 seconds."
+    - "Nil disables a deadline. Nil grace permits unlimited drain until completion or force cancellation; zero grace closes immediately."
+    - "Upload deadlines pause during inbound server backpressure and stop when an early response abandons the request body."
+    - "Header deadlines restart after successful response-end flush, not while output framing is backpressured."
+    - "Quiescing rejects new connections and queued pipeline work; force closure cancels cooperative handlers/producers but cannot forcibly terminate arbitrary Swift tasks."
+    - "Exactly one terminal event is generated per observed response; asynchronous sink delivery is best effort at process exit and does not extend shutdown grace."
+    - "Body bytesSent counts successful write/flush completion, not peer consumption; transfer duration excludes handler response production."
+    - "SwiftLog response transfer levels follow outcome and use daylily.response.transfer_duration_ns separately from request-handler duration."
+    - "The Docker deployment trial publishes only loopback host ports and preserves scoped results/logs; it does not certify production capacity or native TLS/HTTP2."
+    - "Repeated application changes use fixed open-test fixtures and retained acceptance evidence; results are not a blinded test or general AI benchmark."

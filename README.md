@@ -196,7 +196,7 @@ Use Daylily as a SwiftPM package:
 .package(url: "https://github.com/sinduke/Daylily.git", from: "0.1.0-alpha.2")
 ```
 
-The `main` README may describe unreleased APIs. The `Dependencies` registry is currently available from the source checkout and will be included in a future pre-release tag.
+The latest published release is `0.1.0-alpha.2`. The `main` README may describe unreleased APIs; operation deadlines, bounded draining, and response-transfer observation require the current checkout until the next release.
 
 Add the product to your target:
 
@@ -281,6 +281,8 @@ Dedicated beta docs are also available:
 - [Quick Start](docs/quickstart.md)
 - [Capability Matrix](docs/capability-matrix.md)
 - [Release Readiness](docs/release-readiness.md)
+- [Operational readiness and deployment](docs/operational-readiness.md)
+- [Contract and real AI regression](docs/contract-and-ai-regression.md)
 - [Commerce API Example](docs/examples/commerce-api.md)
 - [Dependencies Usage](docs/examples/dependencies.md)
 - [JSON API Example](docs/examples/json-api.md)
@@ -976,6 +978,16 @@ Near-term:
 
 1. Harden the optional ecosystem adapter set through consumer feedback.
 2. Continue OpenAPI schema expansion and security scheme components after the macro/runtime bridge stays stable.
+
+## Operational validation (current checkout)
+
+```sh
+python3 ai/evals/contracts/test_compatibility.py
+scripts/contract-regression-test.sh --mode path
+python3 scripts/deployment-trial.py --duration 300 --artifacts /tmp/daylily-deployment
+```
+
+The deployment command requires Docker and a new/empty artifact directory. It runs two Linux replicas behind Caddy with loopback-only host ports, verifies SSE and rolling shutdown, and removes its own resources. See the [guide](docs/operational-readiness.md) for defaults, commands, evidence, and limits. Actual model-edit trials are opt-in and consume the user's configured Codex account; they are not part of automatic CI.
 
 ## License
 

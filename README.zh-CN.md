@@ -196,7 +196,7 @@ Daylily 不是只想成为 routing library，而是在探索 Swift cloud develop
 .package(url: "https://github.com/sinduke/Daylily.git", from: "0.1.0-alpha.2")
 ```
 
-`main` 分支 README 可能会描述尚未进入 tag 的 API。`Dependencies` registry 目前可从源码 checkout 使用，会进入后续 pre-release tag。
+最新发布版本为 `0.1.0-alpha.2`。`main` 可能包含尚未发布的 API；请求期限、有界停机排空和传输观测需要当前源码 checkout，等待后续版本发布。
 
 把 product 加到 target 里：
 
@@ -281,6 +281,8 @@ README 后半部分就是详细使用教程入口，保留了可以直接复制�
 - [Quick Start](docs/quickstart.md)
 - [Capability Matrix](docs/capability-matrix.md)
 - [Release Readiness](docs/release-readiness.md)
+- [运行边界与部署验证](docs/operational-readiness.md)
+- [契约与实际 AI 修改回归](docs/contract-and-ai-regression.md)
 - [Commerce API Example](docs/examples/commerce-api.md)
 - [Dependencies Usage](docs/examples/dependencies.md)
 - [JSON API Example](docs/examples/json-api.md)
@@ -981,3 +983,13 @@ Daylily/
 ## License
 
 Daylily 使用 [MIT License](LICENSE) 发布。
+
+## 当前源码运行验证
+
+```sh
+python3 ai/evals/contracts/test_compatibility.py
+scripts/contract-regression-test.sh --mode path
+python3 scripts/deployment-trial.py --duration 300 --artifacts /tmp/daylily-deployment
+```
+
+部署命令需要 Docker 和新的/空的证据目录。它在本地 Linux 容器中运行两个实例与 Caddy，验证 SSE、慢连接和滚动停机，结束时仅清理本次创建的资源。实际模型修改试验为手动选择，会使用已配置 Codex 账户的额度，不进入自动 CI。详见上方指南。

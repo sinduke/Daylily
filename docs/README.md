@@ -26,6 +26,8 @@ Daylily provides default paths, not mandatory paths. Runtime APIs are first-clas
 - [JSON API](examples/json-api.md): request decoding, JSON responses, and macro `@Body` input.
 - [Middleware](examples/middleware.md): application/group/route middleware, observability, and one-shot body rules.
 - [Reliability and streaming](reliability-and-streaming.md): current-checkout streaming, lifecycle, OpenAPI, and optional input contracts.
+- [Operational readiness](operational-readiness.md): request deadlines, graceful drain, transfer observation and a real container deployment trial.
+- [Contract and AI regression](contract-and-ai-regression.md): generated-client compatibility and repeated actual model edits.
 - [Testing](examples/testing.md): transport-free tests with `DaylilyTesting`.
 
 ## Deeper Project Docs
@@ -44,4 +46,4 @@ Daylily provides default paths, not mandatory paths. Runtime APIs are first-clas
 - External consumer and template validation: fresh SwiftPM packages in path, exact revision, and exact release modes.
 - Example validation: commerce API, actual generated OpenAPI client/server, and fixed application-change exercises.
 - Transport: NIO-backed HTTP/1.1.
-- Status: experimental package-consumer work after the first alpha release.
+- Status: experimental package-consumer work after the alpha.2 release.

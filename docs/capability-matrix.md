@@ -1,6 +1,6 @@
 # Capability Matrix
 
-This matrix tracks the current beta-facing capability surface. It is intentionally conservative: planned ecosystem work is listed separately from implemented runtime behavior.
+This matrix tracks the current beta-facing capability surface. The current checkout includes operational work after alpha.2; use versioned docs for release capabilities. It is intentionally conservative: planned ecosystem work is listed separately from implemented runtime behavior.
 
 ## Runtime and HTTP
 
@@ -25,7 +25,7 @@ This matrix tracks the current beta-facing capability surface. It is intentional
 | Lifecycle failure recovery | Implemented | Shared runner, teardown once, all teardown hooks attempted, aggregated failures. |
 | Middleware | Implemented | Application, group, and route scope. |
 | Lifecycle hooks | Implemented | `configure`, `boot`, `started`, `shutdown`, `cleanup`. |
-| Server configuration | Implemented | Host, port, backlog, address reuse, read batching, shutdown signals. |
+| Server configuration | Implemented | Host, port, backlog, address reuse, read batching, signals, header/upload idle deadlines and bounded graceful drain. |
 | Dependencies registry | MVP + keyed runtime | App-wide concrete and keyed `Sendable` registry with `register`, `get`, `require`, `DependencyKey<Value>`, `Request.dependencies`, and documented `makeApplication` usage guidance. |
 
 ## Macro Layer
@@ -54,6 +54,8 @@ This matrix tracks the current beta-facing capability surface. It is intentional
 | OpenAPI operation security | Implemented | Explicit route security metadata maps to operation `security`; explicit security scheme components are registered and validated. |
 | Explicit OpenAPI schemas | Implemented | Object, array, string enum, local references, named components, and validation. |
 | Generated server/client round trip | Implemented | `examples/openapi-service` runs actual generated code over HTTP with ServiceGroup and SwiftLog. |
+| Response-transfer observation | Implemented (unreleased) | Terminal outcome, flushed body bytes and transfer duration, separate from handler logs; optional console/in-memory/SwiftLog observers. |
+| Contract evolution regression | Implemented | Conservative OpenAPI subset diff plus actual old/new generated clients over HTTP. |
 | Deep Swift schema derivation | Planned | Explicit schema registration remains the supported path. |
 | Request ID middleware | MVP | Daylily-owned request ID plus external correlation ID behavior. |
 | Request logging middleware | MVP | Method, path, status, IDs, duration, and public error reason. |
@@ -67,6 +69,7 @@ This matrix tracks the current beta-facing capability surface. It is intentional
 | Behavior check suite | Implemented | `swift run HelloDaylily --check`. |
 | Formal Swift Testing target | Implemented | `swift test` calls the shared behavior suite. |
 | AIDEV project handoff | Implemented | AI-readable architecture, registry, contracts, and playbooks. |
+| Repeated actual AI changes | Implemented | Three fixed edits × two isolated runs with immutable acceptance and recorded patches/timing/usage; opt-in. |
 | Machine-readable registry | Implemented | `ai/aidev/registry.yml`. |
 
 ## Ecosystem Work
@@ -83,5 +86,5 @@ This matrix tracks the current beta-facing capability surface. It is intentional
 | ORM/database module | Future | Explicitly out of current beta closure. |
 | Queue/background jobs | Future | Ecosystem direction. |
 | WebSocket/realtime | Future | Ecosystem direction. |
-| Deployment tooling | Future | Release/deploy story comes after alpha release hygiene. |
+| Container deployment trial | Implemented | Two Linux replicas behind Caddy, rolling shutdown, SSE/disconnect/slow-peer checks and bounded sustained traffic. Public cloud automation remains future work. |
 | Benchmarks | Planned | To publish after runtime and beta docs stabilize. |

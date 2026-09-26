@@ -123,13 +123,14 @@ Daylily/
 
 - Public user-facing library.
 - Re-exports `DaylilyCore`, `DaylilyJSON`, `DaylilyNIO`, `DaylilyObservability`, and `DaylilyOpenAPI`.
-- Adds `Application.run(host:port:)`.
+- Adds `Application.run(host:port:responseObserver:)` and `run(configuration:responseObserver:)`, both with an optional nil observer.
 - Exposes `@DaylilyServer`, HTTP route marker macros, and `@GROUP`.
 
 `DaylilyCore`
 
 - Framework runtime.
 - Owns request, response, body, dependencies, route, route metadata, routes, router, middleware, handler, status, headers, parameters, errors.
+- Owns transport-free server deadline configuration and response-transfer events/observer protocol.
 - Must stay independent from NIO and transport-specific APIs.
 
 `DaylilyJSON`
@@ -154,19 +155,22 @@ Daylily/
 - Feeds NIO body chunks into `BodyBytes` without exposing NIO types.
 - Uses bounded buffering and practical backpressure for request bodies.
 - Converts Daylily `Response` into NIO HTTP response parts.
+- Owns header/upload deadlines, graceful connection drain, forced closure, and terminal transfer accounting.
 
 `DaylilyObservability`
 
 - Optional observability helpers.
 - Depends on `DaylilyCore`.
 - Owns `RequestIDMiddleware`, `RequestLoggingMiddleware`, `RequestLog`, and request log sinks.
+- Provides optional in-memory and console response-transfer observers.
 - Must not pull logging backends, tracing SDKs, or transport-specific APIs into `DaylilyCore`.
 
 `DaylilySwiftLog`
 
 - Optional SwiftLog adapter.
-- Depends on `DaylilyObservability` and SwiftLog's `Logging` product.
+- Directly depends on `DaylilyCore`, `DaylilyObservability`, and SwiftLog's `Logging` product.
 - Owns `SwiftLogRequestLogSink`, `SwiftLogRequestLogLevelStrategy`, and `SwiftLogRequestLogMetadataStrategy`.
+- Owns `SwiftLogResponseTransferObserver` for terminal outcomes, flushed body bytes, and transfer duration.
 - Is not re-exported by the umbrella `Daylily` module.
 - Must not call `LoggingSystem.bootstrap(...)`.
 
@@ -325,7 +329,13 @@ Daylily/
 
 `Sources/DaylilyCore/ServerConfiguration.swift`
 
-- NIO-free server configuration consumed by `Application.run(configuration:)`.
+- NIO-free server configuration consumed by `Application.run(configuration:responseObserver:)`.
+- Defines optional header/upload/grace durations (15/30/10 seconds by default); nil disables the corresponding deadline.
+
+`Sources/DaylilyCore/ResponseTransfer.swift`
+
+- Defines immutable `ResponseTransferEvent`, `ResponseTransferOutcome`, and nonthrowing async `ResponseTransferObserver`.
+- Keeps transfer observation independent of NIO and logging backends.
 
 `Sources/DaylilyCore/Response.swift`
 
@@ -379,7 +389,9 @@ Daylily/
 - NIO HTTP server and channel handler.
 - Accepts a `started` callback so `Application.run` can run lifecycle after bind.
 - Exposes a ServiceLifecycle SPI shutdown stream used by `DaylilyServiceLifecycle`.
-- Closes the server channel when the run task is cancelled, allowing external lifecycle systems to stop the server.
+- Quiesces the listener/connections and drains active responses within the configured grace period; task cancellation force-closes immediately.
+- Owns inbound deadline timers and their suspension during transport backpressure.
+- Arbitrates exactly one terminal transfer event on the event loop and delivers it from a Swift task. Channel task gates reject late work after closure.
 
 `Sources/DaylilyObservability/RequestLoggingMiddleware.swift`
 
@@ -388,17 +400,28 @@ Daylily/
 - Defines `RequestLoggingMiddleware`.
 - Provides `ConsoleRequestLogSink` and `InMemoryRequestLogSink`.
 
+`Sources/DaylilyObservability/ResponseTransferObservers.swift`
+
+- Provides `InMemoryResponseTransferObserver` for local inspection/tests and `ConsoleResponseTransferObserver` for terminal transfer output.
+- In-memory retention is unbounded; applications own production retention/export.
+
 `Sources/DaylilySwiftLog/SwiftLogRequestLogSink.swift`
 
 - Defines the optional SwiftLog request log sink adapter.
 - Maps `RequestLog` values into SwiftLog message, level, and metadata.
 - Keeps SwiftLog metadata at the adapter boundary.
 
+`Sources/DaylilySwiftLog/SwiftLogResponseTransferObserver.swift`
+
+- Maps terminal outcomes to SwiftLog levels and metadata without bootstrapping a backend.
+- Uses `daylily.response.transfer_duration_ns` separately from handler request duration.
+
 `Sources/DaylilyServiceLifecycle/DaylilyApplicationService.swift`
 
 - Defines the optional Swift ServiceLifecycle application adapter.
 - Adapts `Application` into a ServiceLifecycle `Service`.
 - Provides `Application.serviceLifecycleService(...)`.
+- Forwards the optional response observer through its initializer and application helper.
 - Provides `ServerConfiguration.serviceLifecycleDefault` and `withGracefulShutdownSignals(_:)`.
 
 `Sources/DaylilyHTTPTypes/HTTPTypesAdapter.swift`
@@ -413,7 +436,7 @@ Daylily/
 - Defines the optional Swift OpenAPI Generator server transport adapter.
 - Converts generated OpenAPIRuntime handler registrations into Daylily routes.
 - Bridges Daylily one-shot request bodies to OpenAPIRuntime `HTTPBody`.
-- Buffers OpenAPIRuntime response bodies under an explicit limit.
+- Streams OpenAPIRuntime response bodies by default; explicit collection retains a bounded buffer.
 - Rejects unsupported path templates during registration.
 
 `Sources/DaylilyObservability/RequestIDMiddleware.swift`
@@ -530,3 +553,13 @@ Daylily/
 - `scripts/smoke-common.sh`: dependency profiles, exact pin verification, isolated workspaces and process cleanup.
 - `scripts/openapi-smoke-test.sh` / `scripts/ai-exercises-smoke-test.sh`: external generation and application exercise validation.
 - `docs/reliability-and-streaming.md`: current-checkout behavior and migration guide.
+
+## Operational Readiness (0024, in progress)
+
+- `ai/epics/0024-release-and-operational-readiness.md` and tasks `0024-001` through `0024-006` track release, deadlines/drain, transfer observation, deployment, contract/AI regression, and final closure. Implementation does not imply that every acceptance gate has completed.
+- `Tests/DaylilyTests/ServerOperationTests.swift`: real-socket deadline, backpressure, drain, terminal-event, and observer-isolation regressions.
+- `Tests/DaylilyTests/ResponseTransferObserverTests.swift`: collector concurrency and SwiftLog adapter metadata/levels.
+- `examples/deployment-trial`: independent API/SSE consumer, Linux image, two-replica reverse-proxy trial application.
+- `scripts/deployment-trial.py`: loopback host ports, bounded operational checks, scoped Docker cleanup, and preserved evidence.
+- `scripts/openapi-compatibility-check.py` and `ai/evals/contracts`: supported-subset compatibility checks and fixtures.
+- `ai/evals/repeated-changes`: fixed application-edit fixtures, isolated agent runner, open-test acceptance checks, and retained run evidence; this is not a blinded test or general benchmark.

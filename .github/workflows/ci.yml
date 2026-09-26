@@ -85,6 +85,7 @@ jobs:
           swift build
           swift test
           swift run --skip-build HelloDaylily --check
+          python3 ai/evals/contracts/test_compatibility.py
 
       - name: Validate external packages
         if: matrix.suite != 'core'
@@ -113,6 +114,9 @@ jobs:
             run_smoke commerce scripts/example-smoke-test.sh "${source_args[@]}"
             run_smoke openapi scripts/openapi-smoke-test.sh "${source_args[@]}"
           fi
+          if [[ "$VALIDATION_SUITE" == path || "$VALIDATION_SUITE" == revision ]]; then
+            run_smoke contract scripts/contract-regression-test.sh "${source_args[@]}"
+          fi
           if [[ "$VALIDATION_SUITE" == path ]]; then
             run_smoke ai-exercises scripts/ai-exercises-smoke-test.sh --mode path
           fi
@@ -128,5 +132,24 @@ jobs:
             ${{ env.SMOKE_ARTIFACT_DIR }}/*.log
             ${{ env.SMOKE_ARTIFACT_DIR }}/*/Package.resolved
             ${{ env.SMOKE_ARTIFACT_DIR }}/*/dependency-record.json
+            ${{ env.SMOKE_ARTIFACT_DIR }}/*/*-diff.json
             ${{ env.SMOKE_ARTIFACT_DIR }}/*/*.log
+          if-no-files-found: ignore
+
+  deployment:
+    name: Linux · reverse-proxy deployment
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: API/SSE deployment, cancellation, rolling restart and traffic
+        run: python3 scripts/deployment-trial.py --duration 30 --artifacts "$RUNNER_TEMP/daylily-deployment"
+      - name: Preserve deployment evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-Linux
+          path: ${{ runner.temp }}/daylily-deployment
           if-no-files-found: ignore

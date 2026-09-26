@@ -1,12 +1,14 @@
 # Release Readiness
 
-Daylily is experimental. Alpha.2 release preparation is in progress; the last published release is `0.1.0-alpha.1`; current-checkout capabilities are listed in [Reliability and streaming](reliability-and-streaming.md). A new alpha candidate must pass the complete CI matrix before tagging. A successful local test run is not a substitute for that gate.
+Daylily is experimental. The latest published prerelease is [0.1.0-alpha.2](https://github.com/sinduke/Daylily/releases/tag/0.1.0-alpha.2). Its migration guide is [here](migration-alpha2.md). Current-checkout operation deadlines, draining and transfer observation are a subsequent **unreleased** increment; see [operational readiness](operational-readiness.md).
 
-## Validated candidate
+## Published alpha.2
 
-On 2026-09-26, candidate `7d56798aa43620426409f4ebca50471137e04084` passed [all eight CI jobs](https://github.com/sinduke/Daylily/actions/runs/36209852394): core, path, exact revision, and legacy alpha.1 on macOS and Linux. Both core suites ran 49 tests. External suites passed consumer/template/commerce, actual generated OpenAPI client/server HTTP calls, and the path-only six-test application exercises. Resolver artifacts verify the candidate SHA; legacy jobs separately resolve the original alpha.1 tag.
+The completed reliability candidate `7d56798` passed [eight CI jobs](https://github.com/sinduke/Daylily/actions/runs/36209852394). Release preparation `f0d53421981e42e423e0b53b4f6a5dc3460bec81` then independently passed [eight jobs](https://github.com/sinduke/Daylily/actions/runs/36211564375) before the annotated alpha.2 tag was published on 2026-09-26.
 
-This is a validated source candidate. No new tag or release was created. See [task 0023-007](../ai/tasks/0023-007-integration-and-release-readiness.md) for evidence and the initial Linux container ownership fix.
+[Exact-tag validation](https://github.com/sinduke/Daylily/actions/runs/36212096436) passed all **ten** jobs: core/path/revision/legacy/release on macOS and Linux. Alpha.2 core has 49 tests. Release jobs build consumer, template, commerce and generated OpenAPI HTTP examples. Downloaded consumer/template/commerce resolver records on both platforms confirm version `0.1.0-alpha.2` at `f0d53421981e42e423e0b53b4f6a5dc3460bec81`; legacy alpha.1 remains independently covered.
+
+The later operational changes do not modify this tag. Their local tests and deployment evidence are recorded in [operational trial results](operational-trial-results.md), with exact-candidate CI recorded when completed.
 
 ## Supported validation environment
 
@@ -18,7 +20,7 @@ This is a validated source candidate. No new tag or release was created. See [ta
 
 ## Candidate validation
 
-The two platform matrices independently run core, path consumer, exact candidate revision consumer, and legacy alpha.1 consumer suites. Independent jobs continue when another fails. Toolchain, resolver pins, and smoke logs are uploaded as artifacts.
+The two platform matrices independently run core, path consumer, exact candidate revision consumer, and legacy alpha.1 consumer suites. Core checks also validate the compatibility checker; path/revision suites generate old/new contracts and run real HTTP regressions. A separate Linux job runs the reverse-proxy deployment with 30 seconds of sustained traffic. Independent jobs continue when another fails. Toolchain, resolver pins, and smoke logs are uploaded as artifacts.
 
 Current candidate revision consumers use the checked-out Git commit through a local Git URL. This tests actual SwiftPM source-control resolution even for a PR merge commit without a public tag. Working tree path tests do not prove that a release includes those changes.
 
@@ -31,6 +33,9 @@ scripts/template-smoke-test.sh --mode path
 scripts/example-smoke-test.sh --mode path
 scripts/openapi-smoke-test.sh --mode path
 scripts/ai-exercises-smoke-test.sh
+python3 ai/evals/contracts/test_compatibility.py
+scripts/contract-regression-test.sh --mode path
+python3 scripts/deployment-trial.py --duration 300 --artifacts /tmp/daylily-deployment
 scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.1 --profile legacy-alpha1
 scripts/template-smoke-test.sh --mode release --version 0.1.0-alpha.1
 ```
@@ -51,14 +56,14 @@ The current consumer includes macro dependencies, middleware, optional query/hea
 ## Known limits
 
 - Public APIs are experimental; use the docs corresponding to your dependency version.
-- HTTP/1.1 only; no built-in TLS, HTTP/2, request draining deadline, or upload deadlines.
+- HTTP/1.1 only; no built-in TLS or HTTP/2. Alpha.2 has no operation deadlines; the current checkout adds header/upload idle limits and bounded graceful drain.
 - Cooperative cancellation cannot forcibly stop handler code that ignores cancellation.
 - `body` and `bodyString` are buffered compatibility views; streams require bounded async helpers.
 - OpenAPI validation covers the supported explicit schema subset, not the complete OpenAPI/JSON Schema standard.
 - Mixed generated path templates such as `{name}.zip` are rejected.
 - `@Security` is metadata only; applications own authentication middleware.
 - Deep Swift schema derivation, keyless dependency inference, optional path segments, and managed `ApplicationService` runtime APIs remain deferred.
-- ORM, queues, WebSocket, deployment tooling, and published benchmarks remain future work.
+- ORM, queues, WebSocket, public-cloud deployment automation and published benchmarks remain future work. The container deployment trial does not establish production capacity or long-duration stability.
 
 ## Release gate
 
