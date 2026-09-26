@@ -4,15 +4,18 @@ public struct OpenAPIDocument: Codable, Equatable, Sendable {
     public var openapi: String
     public var info: OpenAPIInfo
     public var paths: [String: [String: OpenAPIOperation]]
+    public var components: OpenAPIComponents?
 
     public init(
         openapi: String = "3.1.0",
         info: OpenAPIInfo,
-        paths: [String: [String: OpenAPIOperation]]
+        paths: [String: [String: OpenAPIOperation]],
+        components: OpenAPIComponents? = nil
     ) {
         self.openapi = openapi
         self.info = info
         self.paths = paths
+        self.components = components
     }
 }
 
@@ -117,26 +120,12 @@ public struct OpenAPIMediaType: Codable, Equatable, Sendable {
     }
 }
 
-public struct OpenAPISchema: Codable, Equatable, Sendable {
-    public var type: String
-    public var format: String?
-    public var swiftType: String?
-
-    public init(type: String, format: String? = nil, swiftType: String? = nil) {
-        self.type = type
-        self.format = format
-        self.swiftType = swiftType
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case type
-        case format
-        case swiftType = "x-swift-type"
-    }
-}
-
 public struct OpenAPIBuilder: Sendable {
-    public init() {}
+    public var components: OpenAPIComponents
+
+    public init(components: OpenAPIComponents = .init()) {
+        self.components = components
+    }
 
     public func document(
         for routes: [RouteDescription],
@@ -149,17 +138,18 @@ public struct OpenAPIBuilder: Sendable {
         for route in routes {
             let path = Self.openAPIPath(for: route.path)
             let method = route.method.rawValue.lowercased()
-            paths[path, default: [:]][method] = Self.operation(for: route.metadata)
+            paths[path, default: [:]][method] = operation(for: route.metadata)
         }
 
         return OpenAPIDocument(
             openapi: openapi,
             info: OpenAPIInfo(title: title, version: version),
-            paths: paths
+            paths: paths,
+            components: components.schemas.isEmpty && components.securitySchemes.isEmpty ? nil : components
         )
     }
 
-    private static func operation(for metadata: RouteMetadata) -> OpenAPIOperation {
+    private func operation(for metadata: RouteMetadata) -> OpenAPIOperation {
         OpenAPIOperation(
             summary: metadata.summary,
             description: metadata.description,
@@ -172,7 +162,7 @@ public struct OpenAPIBuilder: Sendable {
         )
     }
 
-    private static func security(for metadata: RouteMetadata) -> [[String: [String]]]? {
+    private func security(for metadata: RouteMetadata) -> [[String: [String]]]? {
         guard !metadata.security.isEmpty else {
             return nil
         }
@@ -182,7 +172,7 @@ public struct OpenAPIBuilder: Sendable {
         }
     }
 
-    private static func parameter(for input: RouteInputMetadata) -> OpenAPIParameter {
+    private func parameter(for input: RouteInputMetadata) -> OpenAPIParameter {
         OpenAPIParameter(
             name: input.name,
             location: input.location.rawValue,
@@ -191,7 +181,7 @@ public struct OpenAPIBuilder: Sendable {
         )
     }
 
-    private static func requestBody(for body: RouteBodyMetadata) -> OpenAPIRequestBody {
+    private func requestBody(for body: RouteBodyMetadata) -> OpenAPIRequestBody {
         OpenAPIRequestBody(
             required: body.required,
             content: [
@@ -200,7 +190,7 @@ public struct OpenAPIBuilder: Sendable {
         )
     }
 
-    private static func responses(for metadata: RouteMetadata) -> [String: OpenAPIResponse] {
+    private func responses(for metadata: RouteMetadata) -> [String: OpenAPIResponse] {
         let responses = metadata.responses.isEmpty ? [.response(.ok)] : metadata.responses
         var output: [String: OpenAPIResponse] = [:]
 
@@ -224,8 +214,11 @@ public struct OpenAPIBuilder: Sendable {
         return output
     }
 
-    private static func schema(for typeName: String) -> OpenAPISchema {
-        switch simplified(typeName) {
+    private func schema(for typeName: String) -> OpenAPISchema {
+        let name = Self.simplified(typeName)
+        if components.schemas[typeName] != nil { return .reference(typeName) }
+        if components.schemas[name] != nil { return .reference(name) }
+        switch name {
         case "String":
             return OpenAPISchema(type: "string")
         case "Int", "Int8", "Int16", "Int32", "Int64", "UInt", "UInt8", "UInt16", "UInt32", "UInt64":
@@ -269,8 +262,21 @@ public struct OpenAPIBuilder: Sendable {
 }
 
 public extension Application {
-    func openAPI(title: String, version: String, openapi: String = "3.1.0") -> OpenAPIDocument {
-        OpenAPIBuilder().document(
+    /// Builds and validates the supported OpenAPI subset before export or code generation.
+    func validatedOpenAPI(
+        title: String, version: String, openapi: String = "3.1.0",
+        components: OpenAPIComponents = .init()
+    ) throws -> OpenAPIDocument {
+        let document = self.openAPI(title: title, version: version, openapi: openapi, components: components)
+        try document.validate()
+        return document
+    }
+
+    func openAPI(
+        title: String, version: String, openapi: String = "3.1.0",
+        components: OpenAPIComponents = .init()
+    ) -> OpenAPIDocument {
+        OpenAPIBuilder(components: components).document(
             for: describeRoutes(),
             title: title,
             version: version,
