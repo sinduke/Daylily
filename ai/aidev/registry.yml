@@ -5,7 +5,7 @@ project:
   license: MIT
   license_file: LICENSE
   swift_tools_version: "6.3"
-  current_phase: "validated_release_candidate"
+  current_phase: "release_and_operational_readiness"
   authoritative_ai_entry:
     - AIDEV.md
     - ai/aidev/start-here.md
@@ -2854,7 +2854,7 @@ verification:
     cleanup: "stop the HelloDaylily process"
 
 roadmap:
-  current_task: null
+  current_task: "0024-001-publish-alpha2"
   epics:
     completed:
       - "0001-runtime-foundation"
@@ -2874,7 +2874,8 @@ roadmap:
       - "0021-ecosystem-compatibility"
       - "0022-macro-middleware-and-security"
       - "0023-reliability-and-streaming"
-    in_progress: []
+    in_progress:
+      - "0024-release-and-operational-readiness"
     next_recommended:
       - "server-operation-deadlines-and-deployment-trials"
   completed:

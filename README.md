@@ -27,7 +27,7 @@ Designed for humans and AI agents together.
 
 ---
 
-Current-checkout additions and migration notes: [Reliability and streaming](docs/reliability-and-streaming.md). Requires Swift 6.3; validated with Swift 6.3.2. Published alpha.1 predates these additions.
+Current-checkout additions and migration notes: [Reliability and streaming](docs/reliability-and-streaming.md). Requires Swift 6.3; validated with Swift 6.3.2. These additions ship in alpha.2; see the [migration guide](docs/migration-alpha2.md).
 
 ## Why Daylily Exists
 
@@ -193,7 +193,7 @@ Potential ecosystem directions:
 Use Daylily as a SwiftPM package:
 
 ```swift
-.package(url: "https://github.com/sinduke/Daylily.git", from: "0.1.0-alpha.1")
+.package(url: "https://github.com/sinduke/Daylily.git", from: "0.1.0-alpha.2")
 ```
 
 The `main` README may describe unreleased APIs. The `Dependencies` registry is currently available from the source checkout and will be included in a future pre-release tag.
@@ -219,7 +219,7 @@ To verify Daylily from a fresh external SwiftPM package:
 
 ```sh
 scripts/consumer-smoke-test.sh --mode path
-scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.1
+scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.2
 ```
 
 To start from the recommended minimal app shape:

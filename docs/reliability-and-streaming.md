@@ -1,6 +1,6 @@
 # Reliability and Streaming
 
-These APIs describe the current checkout. The published `0.1.0-alpha.1` predates them. Use Swift 6.3.2 for validation; the package requires Swift tools 6.3.
+These APIs are included in `0.1.0-alpha.2`. The older `0.1.0-alpha.1` predates them. Use Swift 6.3.2 for validation; the package requires Swift tools 6.3.
 
 ## Streaming a response
 

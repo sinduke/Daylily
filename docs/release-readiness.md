@@ -1,6 +1,6 @@
 # Release Readiness
 
-Daylily is experimental. The published release is `0.1.0-alpha.1`; current-checkout capabilities are listed in [Reliability and streaming](reliability-and-streaming.md). A new alpha candidate must pass the complete CI matrix before tagging. A successful local test run is not a substitute for that gate.
+Daylily is experimental. Alpha.2 release preparation is in progress; the last published release is `0.1.0-alpha.1`; current-checkout capabilities are listed in [Reliability and streaming](reliability-and-streaming.md). A new alpha candidate must pass the complete CI matrix before tagging. A successful local test run is not a substitute for that gate.
 
 ## Validated candidate
 

@@ -27,7 +27,7 @@
 
 ---
 
-当前源码新增能力与兼容说明：[可靠性和流式响应](docs/reliability-and-streaming.md)。要求 Swift 6.3，验证工具链为 Swift 6.3.2；已发布的 alpha.1 不包含本轮新增能力。
+当前源码新增能力与兼容说明：[可靠性和流式响应](docs/reliability-and-streaming.md)。要求 Swift 6.3，验证工具链为 Swift 6.3.2；这些能力随 alpha.2 发布，升级见[迁移指南](docs/migration-alpha2.md)。
 
 ## 为什么 Daylily 存在
 
@@ -193,7 +193,7 @@ Daylily 不是只想成为 routing library，而是在探索 Swift cloud develop
 作为 SwiftPM package 使用：
 
 ```swift
-.package(url: "https://github.com/sinduke/Daylily.git", from: "0.1.0-alpha.1")
+.package(url: "https://github.com/sinduke/Daylily.git", from: "0.1.0-alpha.2")
 ```
 
 `main` 分支 README 可能会描述尚未进入 tag 的 API。`Dependencies` registry 目前可从源码 checkout 使用，会进入后续 pre-release tag。
@@ -219,7 +219,7 @@ swift run
 
 ```sh
 scripts/consumer-smoke-test.sh --mode path
-scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.1
+scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.2
 ```
 
 如果要从推荐的最小 app 结构开始：

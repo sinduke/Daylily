@@ -6,6 +6,8 @@ Daylily is currently experimental. Public APIs may change before beta or stable 
 
 ## Unreleased
 
+## 0.1.0-alpha.2 - 2026-09-26
+
 ### Added
 
 - Demand-driven ResponseBody streams, awaited writes, SSE events, explicit bounded async testing helpers, and real socket regressions.
