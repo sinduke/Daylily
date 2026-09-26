@@ -996,7 +996,7 @@ Daylily is released under the [MIT License](LICENSE).
 
 ## Alpha.4 candidate validation (0026)
 
-The [execution checklist](ai/epics/0026-real-business-and-sustained-operation.md) covers persistent commerce, bounded runtime resources, nullable contracts, sustained external Linux deployment and broader AI edits. Current API and ownership semantics: [candidate guide](docs/alpha4-candidate.md).
+The [execution checklist](ai/epics/0026-real-business-and-sustained-operation.md) covers persistent commerce, bounded runtime resources, nullable contracts, sustained external Linux deployment and broader AI edits. Current API and ownership semantics: [candidate guide](docs/alpha4-candidate.md). All priorities and integration are verified; see [acceptance results](docs/alpha4-acceptance-results.md).
 
 ```sh
 scripts/persistent-consumer-smoke-test.sh --mode path

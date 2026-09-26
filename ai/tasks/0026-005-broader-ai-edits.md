@@ -40,7 +40,7 @@ Validation:
 
 Notes:
 
-- Status remains in-progress until evidence is available. Twenty-four-hour soak is a later Beta gate.
+- All six actual trials and the independent evidence review are complete. Integrated candidate CI and deployment acceptance are recorded in 0026-006.
 
 Completed evidence:
 

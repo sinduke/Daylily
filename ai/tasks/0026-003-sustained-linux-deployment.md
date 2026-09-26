@@ -1,6 +1,6 @@
 # 0026-003 Sustained Linux Deployment
 
-Status: in-progress
+Status: implemented
 Epic: 0026-real-business-and-sustained-operation
 
 Goal:
@@ -25,8 +25,8 @@ Steps:
 
 - [x] 0026-003.1 Build the private reverse-proxy and persistent commerce topology with isolated resources.
 - [x] 0026-003.2 Verify TLS/proxy behavior, API/SSE, process replacement and database outage/recovery.
-- [ ] 0026-003.3 Collect timestamped RSS/FD/connection/request/stream data during at least 3,600 seconds of traffic.
-- [ ] 0026-003.4 Run short local validation then the one-hour exact-candidate GitHub Linux trial and review artifacts.
+- [x] 0026-003.3 Collect timestamped RSS/FD/connection/request/stream data during at least 3,600 seconds of traffic.
+- [x] 0026-003.4 Run short local validation then the one-hour exact-candidate GitHub Linux trial and review artifacts.
 
 Architecture impact:
 
@@ -51,11 +51,11 @@ Validation:
 - Smoke-4 executed harness SHA-256 `7a8d797c21e65ed015d684b3135d2cff9e8daae34c27fb7bec62f8d96d7cf2a6`. The final harness SHA-256 `f297249d501e79e1d7ba65b17e22167756109c1540720cd9f060f0d9c26032db` adds only the post-`read1` deadline assertion identified by independent review; a forced-EOF counterexample now raises TimeoutError. The exact final source will also run in CI short and one-hour jobs.
 - Independent review caught and closed three evidence risks: FD growth hidden by a replica restart (now budgeted by generation), indefinitely writing responses or trickled headers preventing cleanup (now wall-clock socket watchdog, bounded chunk reads and 256 KiB response cap), and proxy probe latency inflating drain time (now independent concurrent process/stream timing).
 - True TCP adversarial checks passed: endless body and trickled headers stop at approximately 0.20 seconds; oversized bodies are rejected immediately; sockets and deadline threads are released. A synthetic per-generation +698 FD growth counterexample now fails, and timeout-induced EOF is rejected for both normal responses and preflight SSE.
-- Final-hash smoke-5 also passed: 60.100 seconds, 2,685 successes, 20 expected database 503s, zero unexpected failures; `image_source_verified=true`, executed harness hash exactly equals the frozen final file, all operational/resource gates and cleanup passed. Evidence: `/tmp/daylily-alpha4-sustained-smoke-5/results.json`. The separately tagged borrowed image was then explicitly removed with exit 0; `/tmp/daylily-alpha4-sustained-smoke-5/diagnostic-image-cleanup.json` records that final cleanup. No local trial resources remain and no further local trial is planned. Measured >= 3,600-second GitHub Linux validation remains pending. The parent owns CI execution and final evidence review.
+- Final-hash smoke-5 also passed: 60.100 seconds, 2,685 successes, 20 expected database 503s, zero unexpected failures; `image_source_verified=true`, executed harness hash exactly equals the file frozen at that stage, all operational/resource gates and cleanup passed. Evidence: `/tmp/daylily-alpha4-sustained-smoke-5/results.json`. The separately tagged borrowed image was then explicitly removed with exit 0; `/tmp/daylily-alpha4-sustained-smoke-5/diagnostic-image-cleanup.json` records that final cleanup. No local trial resources remain and no further local trial is planned. At that stage the measured >= 3,600-second GitHub Linux validation was pending; completed evidence follows below. The parent owns CI execution and final evidence review.
 
 Notes:
 
-- Status remains in-progress until evidence is available. Twenty-four-hour soak is a later Beta gate.
+- Acceptance is complete with the exact-candidate evidence below. Twenty-four-hour soak is a later Beta gate.
 
 Reproduction:
 
@@ -74,3 +74,9 @@ External Python 3.12 regression correction:
 - The harness now checks response closure before touching the socket, then still enforces the total deadline and rejects missing Content-Length bytes at completion. Final corrected harness SHA-256: `939c5d190c7865578cc633d9220952325626c4c8c3ce14d73926669f3a2c5ad3`.
 - New `python3 scripts/test-sustained-http.py` contains 13 real loopback TCP checks covering fixed/chunked/EOF bodies, truncation, handshaked incremental SSE, trickled headers, endless bodies, forced EOF at deadline, size limits and empty responses. The old harness reproducibly fails the fixed-length case on Linux Python 3.12.14; the corrected harness passes all 13 on Python 3.12.14 (0.483 seconds) and macOS Python 3.9.6 (0.472 seconds). CI now runs these regressions on both platforms. Logs: `/tmp/daylily-alpha4-python312-before.log`, `/tmp/daylily-alpha4-python312-after.log`, `/tmp/daylily-alpha4-python39-after.log`.
 - This changes the harness after local smoke-5; the final clean GitHub short and one-hour runs remain the authoritative candidate evidence.
+
+Completed external acceptance:
+
+- Tested revision `1f8e0ea5f149b09cc398d302bf37c5cd63258452`: [full CI](https://github.com/sinduke/Daylily/actions/runs/36244501153) 12/12 successful; [one-hour Linux run](https://github.com/sinduke/Daylily/actions/runs/36244505313) passed.
+- 3600.175 seconds; 223,821 successful requests; 20 expected database 503s; zero unexpected failures; 494 resource records (493 complete samples and one planned restart gap); peak RSS 36,248 KiB; zero cleanup errors.
+- Raw data/provenance/resolver audit passed. See [acceptance results](../../docs/alpha4-acceptance-results.md). This closes the authorized alpha.4 checklist without creating a new version tag.

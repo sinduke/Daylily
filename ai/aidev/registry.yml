@@ -2967,7 +2967,7 @@ verification:
     cleanup: "stop the HelloDaylily process"
 
 roadmap:
-  current_task: "0025-001-publish-alpha3"
+  current_task: "0026-006-integration-and-verification"
   epics:
     completed:
       - "0001-runtime-foundation"
@@ -2989,9 +2989,10 @@ roadmap:
       - "0023-reliability-and-streaming"
       - "0024-release-and-operational-readiness"
       - "0025-alpha3-release"
+      - "0026-real-business-and-sustained-operation"
     in_progress: []
     next_recommended:
-      - "select-external-deployment-and-longer-trial"
+      - "24-hour-soak-before-beta"
   completed:
     - "0001-001-minimal-http-server"
     - "0002-001-aidev-project-contract"
@@ -3060,9 +3061,9 @@ roadmap:
     - "0026-005-broader-ai-edits"
     - "0026-004-nullable-contracts"
     - "0026-002-runtime-resource-bounds"
-  in_progress:
     - "0026-003-sustained-linux-deployment"
     - "0026-006-integration-and-verification"
+  in_progress: []
   next_recommended: []
   later:
     - "0013-003-observability-hooks"
@@ -3171,7 +3172,14 @@ alpha3_release:
 
 real_business_delivery:
   epic: "0026-real-business-and-sustained-operation"
-  status: in-progress
+  status: implemented
+  validated_revision: "1f8e0ea5f149b09cc398d302bf37c5cd63258452"
+  ci_run: "https://github.com/sinduke/Daylily/actions/runs/36244501153"
+  ci_result: "12/12 jobs passed; 12 exact candidate resolver pins verified"
+  sustained_run: "https://github.com/sinduke/Daylily/actions/runs/36244505313"
+  sustained_seconds: 3600.174521409
+  unexpected_failures: 0
+  acceptance_report: docs/alpha4-acceptance-results.md
   guide: docs/alpha4-candidate.md
   tasks: ["0026-001", "0026-002", "0026-003", "0026-004", "0026-005", "0026-006"]
   candidate_version: "0.1.0-alpha.4 (unreleased)"
@@ -3184,6 +3192,7 @@ real_business_delivery:
   commands:
     - "scripts/persistent-consumer-smoke-test.sh --mode path"
     - "python3 scripts/persistent-commerce-smoke-test.py --help"
+    - "python3 scripts/test-sustained-http.py"
     - "python3 scripts/sustained-deployment-trial.py --duration 3600 --artifacts /new/empty/evidence"
     - "python3 ai/evals/repeated-changes/run_extended.py --baseline-only --repetitions 1 --output /new/empty/baselines"
   model_trial_evidence: ai/evals/repeated-changes/results/2026-09-26-alpha4/README.md

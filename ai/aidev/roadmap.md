@@ -527,6 +527,6 @@ Alpha.3 is published at `cfa8357`. Preparation run 36216710327 passed 9/9 jobs; 
 
 ## 0026 Real Business and Sustained Operation
 
-Status: in-progress
+Status: implemented
 
-The user authorized all five alpha.4 priorities with verification required before closure. See [the execution checklist](../epics/0026-real-business-and-sustained-operation.md). Persistent commerce, resource bounds and nullable contracts proceed in parallel; broader actual AI edits and a one-hour external Linux deployment complete the evidence. A 24-hour soak remains a Beta gate.
+The user authorized all five alpha.4 priorities with verification required before closure. See [the execution checklist](../epics/0026-real-business-and-sustained-operation.md). Persistent commerce, resource bounds, nullable contracts and broader actual AI edits are implemented. Exact candidate `1f8e0ea5f149b09cc398d302bf37c5cd63258452` passed all 12 CI jobs and the one-hour Linux deployment with audited evidence; see [acceptance results](../../docs/alpha4-acceptance-results.md). A 24-hour soak remains a Beta gate.

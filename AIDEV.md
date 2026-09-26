@@ -103,6 +103,7 @@ Alpha.3 packages the deadline/drain/transfer increment; publication and exact-ve
 
 ```sh
 python3 ai/evals/contracts/test_compatibility.py
+python3 scripts/test-sustained-http.py
 scripts/contract-regression-test.sh --mode path
 python3 scripts/deployment-trial.py --duration 300 --artifacts /tmp/daylily-deployment
 ```

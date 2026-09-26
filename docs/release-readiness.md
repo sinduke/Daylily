@@ -2,9 +2,9 @@
 
 Daylily is experimental. The latest published prerelease is [0.1.0-alpha.3](https://github.com/sinduke/Daylily/releases/tag/0.1.0-alpha.3). Alpha.3 packages operation deadlines, graceful draining and transfer observation. Read the [alpha.3 migration guide](migration-alpha3.md) and [operational guide](operational-readiness.md).
 
-## Alpha.4 candidate in progress
+## Validated alpha.4 candidate
 
-The current checkout adds per-write deadlines/bounded observation, explicit nullable contracts and an independent persistent commerce consumer. [Epic 0026](../ai/epics/0026-real-business-and-sustained-operation.md) tracks the required one-hour external Linux run, broader actual AI trials and complete exact-candidate CI. See [candidate semantics](alpha4-candidate.md). These changes are not yet a published tag.
+The current checkout adds per-write deadlines/bounded observation, explicit nullable contracts and an independent persistent commerce consumer. [Epic 0026](../ai/epics/0026-real-business-and-sustained-operation.md) is complete: candidate `1f8e0ea5f149b09cc398d302bf37c5cd63258452` passed all 12 CI jobs and a measured one-hour external Linux run, with resolver and raw evidence audit. See [candidate semantics](alpha4-candidate.md) and [acceptance results](alpha4-acceptance-results.md). These changes are not yet a published tag.
 
 ## Published alpha.3
 
@@ -28,7 +28,7 @@ The later operational changes do not modify this tag. Their local tests and depl
 
 ## Candidate validation
 
-The two platform matrices independently run core, path consumer, exact candidate revision consumer, and legacy alpha.1 consumer suites. Core checks also validate the compatibility checker; path/revision/release suites generate old/new contracts and run real HTTP regressions. A separate Linux job runs the reverse-proxy deployment with 30 seconds of sustained traffic. Independent jobs continue when another fails. Toolchain, resolver pins, and smoke logs are uploaded as artifacts.
+The two platform matrices independently run core, path consumer, exact candidate revision consumer, and legacy alpha.1 consumer suites. Core checks also validate the compatibility checker; path/revision/release suites generate old/new contracts and run real HTTP regressions. A separate Linux job runs the reverse-proxy deployment with 30 seconds of sustained traffic. Two additional persistent-consumer jobs verify the independent database application on macOS/Linux, and a separate business deployment job runs 60 seconds of verified-TLS API/SSE/database traffic. The one-hour gate is dispatched with `business_trial_seconds=3600` and `business_only=true` against the same candidate. Core also runs 13 HTTP harness regressions and baseline-only AI fixture checks without model calls. Independent jobs continue when another fails. Toolchain, resolver pins, and smoke logs are uploaded as artifacts.
 
 Current candidate revision consumers use the checked-out Git commit through a local Git URL. This tests actual SwiftPM source-control resolution even for a PR merge commit without a public tag. Working tree path tests do not prove that a release includes those changes.
 
@@ -42,6 +42,7 @@ scripts/example-smoke-test.sh --mode path
 scripts/openapi-smoke-test.sh --mode path
 scripts/ai-exercises-smoke-test.sh
 python3 ai/evals/contracts/test_compatibility.py
+python3 scripts/test-sustained-http.py
 scripts/contract-regression-test.sh --mode path
 python3 scripts/deployment-trial.py --duration 300 --artifacts /tmp/daylily-deployment
 scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.1 --profile legacy-alpha1

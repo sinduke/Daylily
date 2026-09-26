@@ -62,4 +62,4 @@ The dependency is an immutable archive of the published alpha.3 commit. Read res
 
 ## Validation state
 
-Implementation/focused checks are recorded per task. Full candidate CI and the external one-hour deployment remain required until the execution checklist records their completed evidence. A new published tag is a separate release action.
+All five priorities and integration are complete at candidate `1f8e0ea5f149b09cc398d302bf37c5cd63258452`: full CI passed 12/12 jobs and the external Linux run sustained traffic for 3600.175 seconds with zero unexpected failures. See [acceptance results](alpha4-acceptance-results.md) and the completed execution checklist. A new published tag is a separate release action.

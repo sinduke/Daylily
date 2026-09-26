@@ -50,4 +50,4 @@ Daylily provides default paths, not mandatory paths. Runtime APIs are first-clas
 - Status: experimental package-consumer work for the alpha.3 release.
 
 
-Current unreleased work: [alpha.4 candidate guide](alpha4-candidate.md), including persistent commerce, resource limits, nullable contracts and extended validation. Published alpha.3 guidance remains versioned.
+Current unreleased work: [alpha.4 candidate guide](alpha4-candidate.md), including persistent commerce, resource limits, nullable contracts and extended validation. Published alpha.3 guidance remains versioned. The candidate checklist is complete; see [acceptance results](alpha4-acceptance-results.md).
