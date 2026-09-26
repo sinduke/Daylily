@@ -2967,7 +2967,7 @@ verification:
     cleanup: "stop the HelloDaylily process"
 
 roadmap:
-  current_task: "0026-006-integration-and-verification"
+  current_task: "0027-001-publish-alpha4"
   epics:
     completed:
       - "0001-runtime-foundation"
@@ -2990,7 +2990,8 @@ roadmap:
       - "0024-release-and-operational-readiness"
       - "0025-alpha3-release"
       - "0026-real-business-and-sustained-operation"
-    in_progress: []
+    in_progress:
+      - "0027-alpha4-release"
     next_recommended:
       - "24-hour-soak-before-beta"
   completed:
@@ -3063,7 +3064,8 @@ roadmap:
     - "0026-002-runtime-resource-bounds"
     - "0026-003-sustained-linux-deployment"
     - "0026-006-integration-and-verification"
-  in_progress: []
+  in_progress:
+    - "0027-001-publish-alpha4"
   next_recommended: []
   later:
     - "0013-003-observability-hooks"
@@ -3197,3 +3199,15 @@ real_business_delivery:
     - "python3 ai/evals/repeated-changes/run_extended.py --baseline-only --repetitions 1 --output /new/empty/baselines"
   model_trial_evidence: ai/evals/repeated-changes/results/2026-09-26-alpha4/README.md
   beta_gate: "A separate 24-hour soak; one-hour evidence does not prove leak freedom or production capacity"
+
+alpha4_release:
+  status: in-progress
+  epic: "0027-alpha4-release"
+  task: "0027-001-publish-alpha4"
+  version: "0.1.0-alpha.4"
+  migration: docs/migration-alpha4.md
+  prior_validated_revision: "1f8e0ea5f149b09cc398d302bf37c5cd63258452"
+  prior_ci: "https://github.com/sinduke/Daylily/actions/runs/36244501153"
+  prior_sustained_run: "https://github.com/sinduke/Daylily/actions/runs/36244505313"
+  published: false
+  boundaries: "Publish validated capabilities; runtime, tests, scripts, locks and historical evidence remain unchanged."

@@ -47,7 +47,7 @@ Daylily provides default paths, not mandatory paths. Runtime APIs are first-clas
 - External consumer and template validation: fresh SwiftPM packages in path, exact revision, and exact release modes.
 - Example validation: commerce API, actual generated OpenAPI client/server, and fixed application-change exercises.
 - Transport: NIO-backed HTTP/1.1.
-- Status: experimental package-consumer work for the alpha.3 release.
+- Status: experimental package-consumer work for this experimental prerelease; see [release status](release-readiness.md).
 
 
-Current unreleased work: [alpha.4 candidate guide](alpha4-candidate.md), including persistent commerce, resource limits, nullable contracts and extended validation. Published alpha.3 guidance remains versioned. The candidate checklist is complete; see [acceptance results](alpha4-acceptance-results.md).
+Alpha.4: [capability guide](alpha4-candidate.md), [migration](migration-alpha4.md), and [acceptance results](alpha4-acceptance-results.md), including persistent commerce, resource limits, nullable contracts and extended validation. See [release status](release-readiness.md) for publication and exact-tag verification; alpha.3 guidance remains versioned.

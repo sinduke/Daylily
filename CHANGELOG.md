@@ -6,6 +6,10 @@ Daylily is currently experimental. Public APIs may change before beta or stable 
 
 ## Unreleased
 
+No unreleased changes.
+
+## 0.1.0-alpha.4 - 2026-09-26
+
 ### Added
 
 - Bound concurrent response-observer delivery with explicit drop counters and per-response-write stall deadlines.
@@ -17,7 +21,8 @@ Daylily is currently experimental. Public APIs may change before beta or stable 
 
 - Response writes now default to a 30-second pending-write deadline; `nil` disables it. This does not cap handler or idle SSE time.
 - Observation defaults to 64 simultaneous callbacks per server; new events are dropped under saturation. Durable export/retention remain application-owned.
-- See [the alpha.4 candidate guide](docs/alpha4-candidate.md); these changes are not yet a published version.
+- Swift tools minimum remains 6.3; validated with Swift 6.3.2 on macOS and Linux.
+- See [alpha.4 migration](docs/migration-alpha4.md) and the [capability guide](docs/alpha4-candidate.md). The persistent example keeps database dependencies and lifecycle ownership outside the framework core.
 
 ## 0.1.0-alpha.3 - 2026-09-26
 

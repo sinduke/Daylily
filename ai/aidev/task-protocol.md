@@ -197,7 +197,7 @@ Any change that affects architecture, public API, runtime behavior, commands, or
 Independent tasks may run concurrently with explicit file ownership. A parent integrates shared AIDEV and runs repository-wide validation; per-task records distinguish implemented code from pending integration/CI. Exact candidate revision tests must use committed state, while path smoke may test the working tree. Task-level commits can share a final integration task for cross-cutting documentation and release evidence.
 
 
-## Alpha.4 candidate validation (0026)
+## Alpha.4 capability validation (0026)
 
 The [execution checklist](../epics/0026-real-business-and-sustained-operation.md) covers persistent commerce, bounded runtime resources, nullable contracts, sustained external Linux deployment and broader AI edits. Current API and ownership semantics: [candidate guide](../../docs/alpha4-candidate.md).
 

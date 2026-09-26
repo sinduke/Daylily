@@ -14,10 +14,10 @@ This guide covers both SwiftPM package usage and running the Daylily repository 
 Add Daylily as a package dependency:
 
 ```swift
-.package(url: "https://github.com/sinduke/Daylily.git", from: "0.1.0-alpha.3")
+.package(url: "https://github.com/sinduke/Daylily.git", from: "0.1.0-alpha.4")
 ```
 
-Documentation on `main` may describe APIs newer than the latest tag. Alpha.3 adds operational deadlines, graceful drain and transfer observation to alpha.2's reliability capabilities. Read [alpha.3 migration](migration-alpha3.md); upgrades from alpha.1 should also read [alpha.2 migration](migration-alpha2.md). See [release status](release-readiness.md) for the publication gate. Current-profile scripts exercise alpha.3 APIs; use the alpha.2-tagged scripts when rechecking alpha.2.
+Documentation on `main` may describe APIs newer than the latest tag. Alpha.4 adds write-stall deadlines, bounded observer callbacks and nullable schemas to the alpha.3 operational APIs. Read [alpha.4 migration](migration-alpha4.md); earlier upgrades should also follow [alpha.3 migration](migration-alpha3.md) and [alpha.2 migration](migration-alpha2.md). See [release status](release-readiness.md) for publication and exact-version verification. Current-profile scripts require alpha.4 APIs; use scripts from the corresponding older tag when rechecking alpha.2 or alpha.3.
 
 Add the product to your target:
 
@@ -28,7 +28,7 @@ Add the product to your target:
 Daylily validates this external package path with a generated consumer smoke package:
 
 ```sh
-scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.3 --profile current
+scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.4 --profile current
 ```
 
 ## Clone and Build
@@ -68,7 +68,7 @@ Daylily validates the template in both local path and released package modes:
 
 ```sh
 scripts/template-smoke-test.sh --mode path
-scripts/template-smoke-test.sh --mode release --version 0.1.0-alpha.3
+scripts/template-smoke-test.sh --mode release --version 0.1.0-alpha.4
 ```
 
 ## Run the Commerce API Example

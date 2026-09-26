@@ -193,10 +193,10 @@ Potential ecosystem directions:
 Use Daylily as a SwiftPM package:
 
 ```swift
-.package(url: "https://github.com/sinduke/Daylily.git", from: "0.1.0-alpha.3")
+.package(url: "https://github.com/sinduke/Daylily.git", from: "0.1.0-alpha.4")
 ```
 
-The latest published prerelease is `0.1.0-alpha.3`, including operation deadlines, bounded draining and response-transfer observation. See [release readiness](docs/release-readiness.md) for publication and validation status. The `main` README may later describe newer APIs.
+Alpha.4 adds per-write deadlines, bounded observer delivery, nullable contracts and a persistent commerce example. Read the [alpha.4 migration guide](docs/migration-alpha4.md) and [release readiness](docs/release-readiness.md) for publication and exact-version validation status. The `main` README may later describe newer APIs.
 
 Add the product to your target:
 
@@ -219,7 +219,7 @@ To verify Daylily from a fresh external SwiftPM package:
 
 ```sh
 scripts/consumer-smoke-test.sh --mode path
-scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.3
+scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.4
 ```
 
 To start from the recommended minimal app shape:
@@ -994,7 +994,7 @@ The deployment command requires Docker and a new/empty artifact directory. It ru
 Daylily is released under the [MIT License](LICENSE).
 
 
-## Alpha.4 candidate validation (0026)
+## Alpha.4 capability validation (0026)
 
 The [execution checklist](ai/epics/0026-real-business-and-sustained-operation.md) covers persistent commerce, bounded runtime resources, nullable contracts, sustained external Linux deployment and broader AI edits. Current API and ownership semantics: [candidate guide](docs/alpha4-candidate.md). All priorities and integration are verified; see [acceptance results](docs/alpha4-acceptance-results.md).
 

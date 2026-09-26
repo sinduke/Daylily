@@ -2,9 +2,9 @@
 
 Daylily is experimental. The latest published prerelease is [0.1.0-alpha.3](https://github.com/sinduke/Daylily/releases/tag/0.1.0-alpha.3). Alpha.3 packages operation deadlines, graceful draining and transfer observation. Read the [alpha.3 migration guide](migration-alpha3.md) and [operational guide](operational-readiness.md).
 
-## Validated alpha.4 candidate
+## Alpha.4 release preparation
 
-The current checkout adds per-write deadlines/bounded observation, explicit nullable contracts and an independent persistent commerce consumer. [Epic 0026](../ai/epics/0026-real-business-and-sustained-operation.md) is complete: candidate `1f8e0ea5f149b09cc398d302bf37c5cd63258452` passed all 12 CI jobs and a measured one-hour external Linux run, with resolver and raw evidence audit. See [candidate semantics](alpha4-candidate.md) and [acceptance results](alpha4-acceptance-results.md). These changes are not yet a published tag.
+The current checkout adds per-write deadlines/bounded observation, explicit nullable contracts and an independent persistent commerce consumer. [Epic 0026](../ai/epics/0026-real-business-and-sustained-operation.md) is complete: candidate `1f8e0ea5f149b09cc398d302bf37c5cd63258452` passed all 12 CI jobs and a measured one-hour external Linux run, with resolver and raw evidence audit. See [candidate semantics](alpha4-candidate.md) and [acceptance results](alpha4-acceptance-results.md). Publication of `0.1.0-alpha.4` is now authorized and tracked in [task 0027-001](../ai/tasks/0027-001-publish-alpha4.md). The preparation commit must pass the full matrix before tagging; exact-tag validation then adds release consumers for 14 jobs. Runtime, tests, harness and dependency locks remain those of the validated candidate. See [alpha.4 migration](migration-alpha4.md).
 
 ## Published alpha.3
 

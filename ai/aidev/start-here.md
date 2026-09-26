@@ -413,4 +413,4 @@ Current strategic order:
 
 ## Alpha.4 candidate work (0026)
 
-The current checkout adds bounded observation delivery, per-write response deadlines and explicit nullable schemas, plus a separate persistent commerce consumer. See [the candidate guide](../../docs/alpha4-candidate.md) and [execution checklist](../epics/0026-real-business-and-sustained-operation.md) for exact state; the latest published tag remains alpha.3 until a separate release.
+The current checkout adds bounded observation delivery, per-write response deadlines and explicit nullable schemas, plus a separate persistent commerce consumer. See [the candidate guide](../../docs/alpha4-candidate.md) and [execution checklist](../epics/0026-real-business-and-sustained-operation.md) for exact state; publication and exact-version validation are tracked in [release status](../../docs/release-readiness.md) and [task 0027-001](../tasks/0027-001-publish-alpha4.md).

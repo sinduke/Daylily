@@ -193,10 +193,10 @@ Daylily 不是只想成为 routing library，而是在探索 Swift cloud develop
 作为 SwiftPM package 使用：
 
 ```swift
-.package(url: "https://github.com/sinduke/Daylily.git", from: "0.1.0-alpha.3")
+.package(url: "https://github.com/sinduke/Daylily.git", from: "0.1.0-alpha.4")
 ```
 
-最新发布的预发布版本为 `0.1.0-alpha.3`，包含请求期限、有界停机排空和传输观测。发布及验证状态见[发布说明](docs/release-readiness.md)；`main` 后续可能包含更新的 API。
+Alpha.4 新增响应写入期限、有界观测回调、可空契约及持久化业务示例。升级请阅读 [alpha.4 迁移指南](docs/migration-alpha4.md)，发布及精确版本验证状态见[发布说明](docs/release-readiness.md)；`main` 后续可能包含更新的 API。
 
 把 product 加到 target 里：
 
@@ -219,7 +219,7 @@ swift run
 
 ```sh
 scripts/consumer-smoke-test.sh --mode path
-scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.3
+scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.4
 ```
 
 如果要从推荐的最小 app 结构开始：

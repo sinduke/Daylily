@@ -1,6 +1,6 @@
-# Alpha.4 candidate: real business and sustained operation
+# Alpha.4: real business and sustained operation
 
-The latest published version remains `0.1.0-alpha.3`. This guide describes the current **unreleased alpha.4 candidate**. Execution and evidence are tracked in [epic 0026](../ai/epics/0026-real-business-and-sustained-operation.md). Do not use these added APIs against the alpha.3 tag.
+This guide describes the alpha.4 capabilities validated in [epic 0026](../ai/epics/0026-real-business-and-sustained-operation.md). Read [alpha.4 migration](migration-alpha4.md) when upgrading, and [release status](release-readiness.md) for publication and exact-tag verification. These added APIs require alpha.4 and are unavailable in alpha.3.
 
 ## Bounded transport resources
 
@@ -62,4 +62,4 @@ The dependency is an immutable archive of the published alpha.3 commit. Read res
 
 ## Validation state
 
-All five priorities and integration are complete at candidate `1f8e0ea5f149b09cc398d302bf37c5cd63258452`: full CI passed 12/12 jobs and the external Linux run sustained traffic for 3600.175 seconds with zero unexpected failures. See [acceptance results](alpha4-acceptance-results.md) and the completed execution checklist. A new published tag is a separate release action.
+All five priorities and integration are complete at candidate `1f8e0ea5f149b09cc398d302bf37c5cd63258452`: full CI passed 12/12 jobs and the external Linux run sustained traffic for 3600.175 seconds with zero unexpected failures. See [acceptance results](alpha4-acceptance-results.md) and the completed execution checklist. Publication and exact-version verification are tracked separately in [task 0027-001](../ai/tasks/0027-001-publish-alpha4.md).

@@ -1,6 +1,6 @@
 # Operational readiness (alpha.3)
 
-This page preserves the published alpha.3 contract. For the current unreleased write deadline, bounded observer and persistent TLS/database trial, see [alpha.4 candidate](alpha4-candidate.md).
+This page preserves the published alpha.3 contract. For the alpha.4 write deadline, bounded observer and persistent TLS/database trial, see the [alpha.4 guide](alpha4-candidate.md) and [migration notes](migration-alpha4.md).
 
 These APIs are part of `0.1.0-alpha.3`. Alpha.2 contains the earlier reliability/streaming work and does not include this operational increment. See the [migration guide](migration-alpha3.md) and [publication status](release-readiness.md).
 

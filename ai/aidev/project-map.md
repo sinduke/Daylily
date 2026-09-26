@@ -575,5 +575,10 @@ Daylily/
 - `scripts/test-sustained-http.py`: standard-library loopback HTTP regression, including Python 3.12 fixed-length completion and total deadlines.
 - `ai/evals/contracts/nullable-*.json`: real generated-client nullable contracts.
 - `ai/evals/repeated-changes/run_extended.py`: opt-in withheld-acceptance edits against an immutable released source snapshot.
-- `docs/alpha4-candidate.md`: current unreleased API/consumer/validation contract.
+- `docs/alpha4-candidate.md`: alpha.4 API/consumer/validation contract.
 - `docs/alpha4-acceptance-results.md` and `ai/evals/deployment/results/2026-09-26-alpha4/`: completed candidate acceptance, one-hour result, independent CI audit and artifact hashes.
+
+## Alpha.4 release (0027)
+
+- `docs/migration-alpha4.md`: migration from alpha.3, write/observer defaults, nullability boundaries and application-owned persistence.
+- `ai/epics/0027-alpha4-release.md` and `ai/tasks/0027-001-publish-alpha4.md`: preparation, publication and exact-version acceptance.

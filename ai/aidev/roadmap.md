@@ -530,3 +530,10 @@ Alpha.3 is published at `cfa8357`. Preparation run 36216710327 passed 9/9 jobs; 
 Status: implemented
 
 The user authorized all five alpha.4 priorities with verification required before closure. See [the execution checklist](../epics/0026-real-business-and-sustained-operation.md). Persistent commerce, resource bounds, nullable contracts and broader actual AI edits are implemented. Exact candidate `1f8e0ea5f149b09cc398d302bf37c5cd63258452` passed all 12 CI jobs and the one-hour Linux deployment with audited evidence; see [acceptance results](../../docs/alpha4-acceptance-results.md). A 24-hour soak remains a Beta gate.
+
+
+## 0027 Alpha.4 Release
+
+Status: in-progress
+
+Publish the completed 0026 capabilities as `0.1.0-alpha.4`, with explicit default-change migration, versioned package installation and exact-tag macOS/Linux validation. See [task 0027-001](../tasks/0027-001-publish-alpha4.md). Previous tags and the original one-hour/AI evidence remain unchanged.
