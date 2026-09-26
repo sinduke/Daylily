@@ -1,0 +1,46 @@
+{
+  "success": false,
+  "retryReachedLookupBeforeFirstCommit": true,
+  "first": [
+    201,
+    {
+      "id": 1001,
+      "customerEmail": "orders@example.com",
+      "status": "accepted",
+      "items": [
+        {
+          "unitPriceCents": 1299,
+          "lineTotalCents": 2598,
+          "productID": 1,
+          "name": "Jasmine Green Tea",
+          "quantity": 2
+        }
+      ],
+      "totalCents": 2598
+    }
+  ],
+  "concurrentRetry": [
+    400,
+    "Product is out of stock"
+  ],
+  "afterCommitReplay": [
+    201,
+    {
+      "id": 1001,
+      "items": [
+        {
+          "quantity": 2,
+          "unitPriceCents": 1299,
+          "lineTotalCents": 2598,
+          "productID": 1,
+          "name": "Jasmine Green Tea"
+        }
+      ],
+      "totalCents": 2598,
+      "status": "accepted",
+      "customerEmail": "orders@example.com"
+    }
+  ],
+  "rows": 1,
+  "error": "AssertionError: {'success': False, 'retryReachedLookupBeforeFirstCommit': True, 'first': (201, {'id': 1001, 'customerEmail': 'orders@example.com', 'status': 'accepted', 'items': [{'unitPriceCents': 1299, 'lineTotalCents': 2598, 'productID': 1, 'name': 'Jasmine Green Tea', 'quantity': 2}], 'totalCents': 2598}), 'concurrentRetry': (400, 'Product is out of stock'), 'afterCommitReplay': (201, {'id': 1001, 'items': [{'quantity': 2, 'unitPriceCents': 1299, 'lineTotalCents': 2598, 'productID': 1, 'name': 'Jasmine Green Tea'}], 'totalCents': 2598, 'status': 'accepted', 'customerEmail': 'orders@example.com'}), 'rows': 1}"
+}

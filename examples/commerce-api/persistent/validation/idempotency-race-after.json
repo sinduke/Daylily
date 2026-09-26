@@ -1,0 +1,59 @@
+{
+  "success": true,
+  "retryReachedLookupBeforeFirstCommit": false,
+  "first": [
+    201,
+    {
+      "totalCents": 2598,
+      "id": 1001,
+      "items": [
+        {
+          "unitPriceCents": 1299,
+          "name": "Jasmine Green Tea",
+          "lineTotalCents": 2598,
+          "productID": 1,
+          "quantity": 2
+        }
+      ],
+      "customerEmail": "orders@example.com",
+      "status": "accepted"
+    }
+  ],
+  "concurrentRetry": [
+    201,
+    {
+      "customerEmail": "orders@example.com",
+      "totalCents": 2598,
+      "status": "accepted",
+      "items": [
+        {
+          "lineTotalCents": 2598,
+          "unitPriceCents": 1299,
+          "productID": 1,
+          "name": "Jasmine Green Tea",
+          "quantity": 2
+        }
+      ],
+      "id": 1001
+    }
+  ],
+  "afterCommitReplay": [
+    201,
+    {
+      "items": [
+        {
+          "unitPriceCents": 1299,
+          "productID": 1,
+          "name": "Jasmine Green Tea",
+          "quantity": 2,
+          "lineTotalCents": 2598
+        }
+      ],
+      "totalCents": 2598,
+      "customerEmail": "orders@example.com",
+      "id": 1001,
+      "status": "accepted"
+    }
+  ],
+  "rows": 1
+}

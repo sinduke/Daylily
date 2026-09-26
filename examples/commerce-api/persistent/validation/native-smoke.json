@@ -1,0 +1,80 @@
+{
+  "checks": [
+    {
+      "name": "simultaneous replica startup and migration lock",
+      "evidence": null
+    },
+    {
+      "name": "product reads and SQL binding",
+      "evidence": null
+    },
+    {
+      "name": "order commit visible across replicas",
+      "evidence": {
+        "id": 1001,
+        "totalCents": 5098
+      }
+    },
+    {
+      "name": "invalid orders and transactional rollback",
+      "evidence": null
+    },
+    {
+      "name": "48 concurrent cross-replica writes",
+      "evidence": {
+        "uniqueIDs": 48
+      }
+    },
+    {
+      "name": "32 concurrent idempotent retries and conflicting payload",
+      "evidence": null
+    },
+    {
+      "name": "idempotent replay preserves the committed price and availability snapshot",
+      "evidence": null
+    },
+    {
+      "name": "application restart preserves committed orders",
+      "evidence": null
+    },
+    {
+      "name": "database blackhole has a bounded operation deadline",
+      "evidence": {
+        "seconds": 1.5740891660000003
+      }
+    },
+    {
+      "name": "database stop-start, liveness, bounded 503 and write recovery",
+      "evidence": null
+    },
+    {
+      "name": "SSE completion and client disconnect cleanup",
+      "evidence": {
+        "activeRequests": 1,
+        "activeStreams": 0,
+        "failed": 0,
+        "instance": "replica-0",
+        "completedRequests": 12,
+        "completed": 11,
+        "cancelled": 1
+      }
+    },
+    {
+      "name": "graceful HTTP-before-pool shutdown leaves zero application connections",
+      "evidence": null
+    },
+    {
+      "name": "startup database failure exits nonzero and joins application resources",
+      "evidence": null
+    }
+  ],
+  "success": true,
+  "sourceRevision": "07b2c67b76588f3c43b1b28a321ae586d97ce3df",
+  "sourceDirty": true,
+  "mode": "native-http",
+  "postgresImage": "sha256:d74eeac9a635390a49bc21bd49fccd973de707e2a53a76ac49b552b8712ec46f",
+  "rowCount": 51,
+  "keyCount": 51,
+  "durationSeconds": 31.192185709,
+  "cleanupErrors": []
+}

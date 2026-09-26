@@ -4,6 +4,10 @@ This is Daylily's first real API example: a small product and order service with
 state, JSON DTOs, typed path/query inputs, route metadata, and transport-free
 tests.
 
+For PostgreSQL persistence, connection lifecycle, concurrent writes and outage
+recovery, see the independent [persistent commerce consumer](persistent/README.md).
+The commands below continue to run the original in-memory application.
+
 The shape intentionally stays close to `templates/minimal-app`:
 
 ```text
