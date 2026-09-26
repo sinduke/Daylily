@@ -2,90 +2,126 @@ name: CI
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
+    paths-ignore:
+      - '**/*.md'
+      - 'ai/aidev/registry.yml'
   pull_request:
-    branches:
-      - main
+    branches: [main]
+    paths-ignore:
+      - '**/*.md'
+      - 'ai/aidev/registry.yml'
   workflow_dispatch:
+    inputs:
+      release_version:
+        description: Optional published version to validate with the complete current capability set
+        required: false
+        type: string
 
 permissions:
   contents: read
 
 jobs:
-  macos:
-    name: macOS Build, Test, and Check
-    runs-on: macos-latest
+  validate:
+    name: ${{ matrix.platform }} · Swift 6.3.2 · ${{ matrix.suite }}
+    runs-on: ${{ matrix.runner }}
+    container: ${{ matrix.container }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [macOS, Linux]
+        suite: ${{ fromJSON(inputs.release_version && '["core","path","revision","legacy","release"]' || '["core","path","revision","legacy"]') }}
+        include:
+          - platform: macOS
+            runner: macos-26
+            container: ''
+            developer_directory: /Applications/Xcode_26.5.app/Contents/Developer
+          - platform: Linux
+            runner: ubuntu-24.04
+            container: swift:6.3.2-noble
+            developer_directory: ''
+    defaults:
+      run:
+        shell: bash
+    env:
+      DEVELOPER_DIR: ${{ matrix.developer_directory }}
+      SMOKE_SWIFT_VERSION: '6.3.2'
+      VALIDATION_SUITE: ${{ matrix.suite }}
+      RELEASE_VERSION: ${{ inputs.release_version }}
 
     steps:
-      - name: Checkout
+      - name: Install Linux smoke dependencies
+        if: matrix.platform == 'Linux'
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends ca-certificates curl git python3
+
+      - name: Checkout exact candidate
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
 
-      - name: Show Swift Version
-        run: swift --version
+      - name: Verify pinned toolchain and prerequisites
+        run: |
+          source scripts/smoke-common.sh
+          smoke_require_tools curl
+          SMOKE_ARTIFACT_DIR="$RUNNER_TEMP/daylily-smoke"
+          echo "SMOKE_ARTIFACT_DIR=$SMOKE_ARTIFACT_DIR" >> "$GITHUB_ENV"
+          mkdir -p "$SMOKE_ARTIFACT_DIR"
+          swift --version > "$SMOKE_ARTIFACT_DIR/toolchain.txt"
+          git rev-parse HEAD > "$SMOKE_ARTIFACT_DIR/candidate-revision.txt"
 
-      - name: Resolve Dependencies
-        run: swift package resolve
+      - name: Build, test, and run checks
+        if: matrix.suite == 'core'
+        run: |
+          swift package resolve
+          swift build
+          swift test
+          swift run --skip-build HelloDaylily --check
 
-      - name: Build
-        run: swift build
+      - name: Validate external packages
+        if: matrix.suite != 'core'
+        run: |
+          case "$VALIDATION_SUITE" in
+            path) source_args=(--mode path);;
+            revision)
+              # A Git URL checks SwiftPM source-control consumption of this exact
+              # commit, including PR merge commits that have no published tag.
+              source_args=(--mode revision --repo-url "file://$GITHUB_WORKSPACE" --revision "$(git rev-parse HEAD)")
+              ;;
+            legacy) source_args=(--mode release --version 0.1.0-alpha.1);;
+            release) source_args=(--mode release --version "$RELEASE_VERSION");;
+          esac
+          profile=current
+          if [[ "$VALIDATION_SUITE" == legacy ]]; then profile=legacy-alpha1; fi
+          failed=0
+          run_smoke() {
+            local name="$1"
+            shift
+            "$@" --workdir "$SMOKE_ARTIFACT_DIR/$name" --keep 2>&1 | tee "$SMOKE_ARTIFACT_DIR/$name.log" || failed=1
+          }
+          run_smoke consumer scripts/consumer-smoke-test.sh "${source_args[@]}" --profile "$profile"
+          run_smoke template scripts/template-smoke-test.sh "${source_args[@]}"
+          if [[ "$VALIDATION_SUITE" != legacy ]]; then
+            run_smoke commerce scripts/example-smoke-test.sh "${source_args[@]}"
+            run_smoke openapi scripts/openapi-smoke-test.sh "${source_args[@]}"
+          fi
+          if [[ "$VALIDATION_SUITE" == path ]]; then
+            run_smoke ai-exercises scripts/ai-exercises-smoke-test.sh --mode path
+          fi
+          exit "$failed"
 
-      - name: Run Swift Tests
-        run: swift test
-
-      - name: Run Daylily Checks
-        run: swift run HelloDaylily --check
-
-      - name: Run Path Consumer Smoke
-        run: scripts/consumer-smoke-test.sh --mode path
-
-      - name: Run Release Consumer Smoke
-        run: scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.1
-
-      - name: Run Path Template Smoke
-        run: scripts/template-smoke-test.sh --mode path
-
-      - name: Run Release Template Smoke
-        run: scripts/template-smoke-test.sh --mode release --version 0.1.0-alpha.1
-
-      - name: Run Path Example Smoke
-        run: scripts/example-smoke-test.sh --mode path
-
-  linux:
-    name: Linux Build, Test, and Check
-    runs-on: ubuntu-latest
-    container: swift:6.3.2-noble
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Show Swift Version
-        run: swift --version
-
-      - name: Resolve Dependencies
-        run: swift package resolve
-
-      - name: Build
-        run: swift build
-
-      - name: Run Swift Tests
-        run: swift test
-
-      - name: Run Daylily Checks
-        run: swift run HelloDaylily --check
-
-      - name: Run Path Consumer Smoke
-        run: scripts/consumer-smoke-test.sh --mode path
-
-      - name: Run Release Consumer Smoke
-        run: scripts/consumer-smoke-test.sh --mode release --version 0.1.0-alpha.1
-
-      - name: Run Path Template Smoke
-        run: scripts/template-smoke-test.sh --mode path
-
-      - name: Run Release Template Smoke
-        run: scripts/template-smoke-test.sh --mode release --version 0.1.0-alpha.1
-
-      - name: Run Path Example Smoke
-        run: scripts/example-smoke-test.sh --mode path
+      - name: Preserve resolver and smoke diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-${{ matrix.platform }}-${{ matrix.suite }}
+          path: |
+            ${{ runner.temp }}/daylily-smoke/*.txt
+            ${{ runner.temp }}/daylily-smoke/*.log
+            ${{ runner.temp }}/daylily-smoke/*/Package.resolved
+            ${{ runner.temp }}/daylily-smoke/*/dependency-record.json
+            ${{ runner.temp }}/daylily-smoke/*/*.log
+          if-no-files-found: ignore

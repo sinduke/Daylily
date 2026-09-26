@@ -6,7 +6,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 MODE="path"
-VERSION="0.1.0-alpha.1"
+VERSION=""
+REVISION=""
+PROFILE="template"
 REPO_URL="https://github.com/sinduke/Daylily.git"
 PACKAGE_PATH="$REPO_ROOT"
 TEMPLATE_DIR="$REPO_ROOT/templates/minimal-app"
@@ -14,27 +16,37 @@ SMOKE_NAME="minimal app template"
 BRANCH="main"
 KEEP_WORKDIR="0"
 WORKDIR=""
+source "$SCRIPT_DIR/smoke-common.sh"
 
 usage() {
     cat <<'USAGE'
 Usage: scripts/template-smoke-test.sh [options]
 
 Options:
-  --mode path|release|branch   Dependency mode. Default: path.
-  --version VERSION            Release version for --mode release. Default: 0.1.0-alpha.1.
-  --repo-url URL               Git repository URL for release/branch mode.
+  --mode path|release|revision|branch  Dependency source. Default: path.
+  --version VERSION            Required exact release version.
+  --revision SHA               Required full commit SHA for revision mode.
+  --repo-url URL               Git repository URL for release/revision/branch mode.
   --package-path PATH          Local package path for --mode path.
   --template-dir PATH          Template directory to copy.
   --name NAME                  Human-readable smoke name. Default: minimal app template.
   --branch BRANCH              Branch name for --mode branch. Default: main.
-  --workdir PATH               Reuse or create the smoke package in PATH.
+  --workdir PATH               New or empty scratch directory.
   --keep                       Keep the generated smoke package after the run.
   -h, --help                   Show this help.
+Environment: SMOKE_SWIFT_VERSION optionally asserts the exact compiler version.
 USAGE
 }
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
+        --mode|--version|--revision|--repo-url|--package-path|--template-dir|--name|--branch|--workdir) smoke_require_value "$@";;
+    esac
+    case "$1" in
+        --revision)
+            REVISION="$2"
+            shift 2
+            ;;
         --mode)
             MODE="$2"
             shift 2
@@ -83,91 +95,35 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-swift_string_literal() {
-    local value="$1"
-    value="${value//\\/\\\\}"
-    value="${value//\"/\\\"}"
-    value="${value//$'\n'/\\n}"
-    printf '"%s"' "$value"
-}
+PROFILE="$SMOKE_NAME"
+smoke_dependency
+smoke_require_tools
 
-absolute_path() {
-    local path="$1"
-    if [[ "$path" = /* ]]; then
-        printf '%s\n' "$path"
-    else
-        printf '%s\n' "$(cd "$(dirname "$path")" && pwd)/$(basename "$path")"
-    fi
-}
-
-replace_dependency() {
-    local package_file="$1"
-    local dependency="$2"
-    local tmp_file="$package_file.tmp"
-
-    awk -v dependency="$dependency" '
-        /\/\/ DAYLILY_DEPENDENCY_START/ {
-            print
-            print "        " dependency
-            skip = 1
-            next
-        }
-        /\/\/ DAYLILY_DEPENDENCY_END/ {
-            skip = 0
-            print
-            next
-        }
-        !skip {
-            print
-        }
-    ' "$package_file" > "$tmp_file"
-
-    mv "$tmp_file" "$package_file"
-}
-
-case "$MODE" in
-    path)
-        PACKAGE_PATH="$(absolute_path "$PACKAGE_PATH")"
-        DAYLILY_DEPENDENCY=".package(name: \"Daylily\", path: $(swift_string_literal "$PACKAGE_PATH")),"
-        ;;
-    release)
-        DAYLILY_DEPENDENCY=".package(url: $(swift_string_literal "$REPO_URL"), from: $(swift_string_literal "$VERSION")),"
-        ;;
-    branch)
-        DAYLILY_DEPENDENCY=".package(url: $(swift_string_literal "$REPO_URL"), branch: $(swift_string_literal "$BRANCH")),"
-        ;;
-    *)
-        echo "Unsupported mode: $MODE" >&2
-        usage >&2
-        exit 2
-        ;;
-esac
-
-TEMPLATE_DIR="$(absolute_path "$TEMPLATE_DIR")"
+TEMPLATE_DIR="$(cd "$TEMPLATE_DIR" && pwd)"
 if [[ ! -f "$TEMPLATE_DIR/Package.swift" ]]; then
     echo "Template directory is missing Package.swift: $TEMPLATE_DIR" >&2
     exit 1
 fi
 
-if [[ -z "$WORKDIR" ]]; then
-    WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/daylily-template-smoke.XXXXXX")"
-else
-    mkdir -p "$WORKDIR"
-    WORKDIR="$(absolute_path "$WORKDIR")"
+smoke_prepare_workdir
+trap smoke_cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+# Copy project inputs only; never copy a potentially huge local build/cache tree.
+cp "$TEMPLATE_DIR/Package.swift" "$WORKDIR/Package.swift"
+cp -R "$TEMPLATE_DIR/Sources" "$WORKDIR/Sources"
+if [[ -d "$TEMPLATE_DIR/Tests" ]]; then
+    cp -R "$TEMPLATE_DIR/Tests" "$WORKDIR/Tests"
 fi
-
-cleanup() {
-    if [[ "$KEEP_WORKDIR" != "1" ]]; then
-        rm -rf "$WORKDIR"
-    else
-        echo "Kept template smoke package at $WORKDIR"
-    fi
-}
-trap cleanup EXIT
-
-cp -R "$TEMPLATE_DIR/." "$WORKDIR/"
-rm -rf "$WORKDIR/.build" "$WORKDIR/Package.resolved"
-replace_dependency "$WORKDIR/Package.swift" "$DAYLILY_DEPENDENCY"
+python3 - "$WORKDIR/Package.swift" "$DAYLILY_DEPENDENCY" <<'PYTHON'
+import pathlib, sys
+path = pathlib.Path(sys.argv[1])
+text = path.read_text()
+start = text.index("        // DAYLILY_DEPENDENCY_START")
+end = text.index("        // DAYLILY_DEPENDENCY_END", start)
+path.write_text(text[:start] + "        // DAYLILY_DEPENDENCY_START\n        " + sys.argv[2] + ",\n" + text[end:])
+PYTHON
 
 echo "Smoke package: $WORKDIR"
 echo "Smoke target: $SMOKE_NAME"
@@ -176,9 +132,11 @@ echo "Dependency mode: $MODE"
 (
     cd "$WORKDIR"
     swift package resolve
+    smoke_record_dependency
     swift build
     swift test
-    swift run App --check
+    SMOKE_BIN_PATH="$(swift build --show-bin-path)"
+    "$SMOKE_BIN_PATH/App" --check
 )
 
 echo "Daylily $SMOKE_NAME smoke passed ($MODE)."

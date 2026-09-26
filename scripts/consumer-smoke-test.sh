@@ -6,10 +6,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 MODE="path"
-VERSION="0.1.0-alpha.1"
+VERSION=""
+REVISION=""
+PROFILE="current"
 REPO_URL="https://github.com/sinduke/Daylily.git"
 PACKAGE_PATH="$REPO_ROOT"
 BRANCH="main"
+SMOKE_APP_PID=""
+source "$SCRIPT_DIR/smoke-common.sh"
 KEEP_WORKDIR="0"
 WORKDIR=""
 
@@ -18,22 +22,36 @@ usage() {
 Usage: scripts/consumer-smoke-test.sh [options]
 
 Options:
-  --mode path|release|branch   Dependency mode. Default: path.
-  --version VERSION            Release version for --mode release. Default: 0.1.0-alpha.1.
-  --repo-url URL               Git repository URL for release/branch mode.
+  --mode path|release|revision|branch  Dependency source. Default: path.
+  --profile current|legacy-alpha1     Capability set, independent of source. Default: current.
+  --version VERSION            Required exact version for --mode release.
+  --revision SHA               Required full commit SHA for --mode revision.
+  --repo-url URL               Git repository URL for release/revision/branch mode.
   --package-path PATH          Local package path for --mode path.
   --branch BRANCH              Branch name for --mode branch. Default: main.
-  --workdir PATH               Reuse or create the smoke package in PATH.
+  --workdir PATH               New or empty scratch directory.
   --keep                       Keep the generated smoke package after the run.
   -h, --help                   Show this help.
 
 Environment:
-  CONSUMER_MACRO_PORT          Port for path-mode macro runtime smoke. Default: 18080.
+  CONSUMER_MACRO_PORT          Port for current-profile macro HTTP smoke. Default: 18080.
+  SMOKE_SWIFT_VERSION          Optional exact compiler version assertion (CI uses 6.3.2).
 USAGE
 }
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
+        --mode|--profile|--version|--revision|--repo-url|--package-path|--branch|--workdir) smoke_require_value "$@";;
+    esac
+    case "$1" in
+        --profile)
+            PROFILE="$2"
+            shift 2
+            ;;
+        --revision)
+            REVISION="$2"
+            shift 2
+            ;;
         --mode)
             MODE="$2"
             shift 2
@@ -74,91 +92,52 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-swift_string_literal() {
-    local value="$1"
-    value="${value//\\/\\\\}"
-    value="${value//\"/\\\"}"
-    value="${value//$'\n'/\\n}"
-    printf '"%s"' "$value"
-}
-
-absolute_path() {
-    local path="$1"
-    if [[ "$path" = /* ]]; then
-        printf '%s\n' "$path"
-    else
-        printf '%s\n' "$(cd "$(dirname "$path")" && pwd)/$(basename "$path")"
-    fi
-}
-
-case "$MODE" in
-    path)
-        PACKAGE_PATH="$(absolute_path "$PACKAGE_PATH")"
-        DAYLILY_DEPENDENCY=".package(name: \"Daylily\", path: $(swift_string_literal "$PACKAGE_PATH"))"
-        ;;
-    release)
-        DAYLILY_DEPENDENCY=".package(url: $(swift_string_literal "$REPO_URL"), from: $(swift_string_literal "$VERSION"))"
-        ;;
-    branch)
-        DAYLILY_DEPENDENCY=".package(url: $(swift_string_literal "$REPO_URL"), branch: $(swift_string_literal "$BRANCH"))"
-        ;;
-    *)
-        echo "Unsupported mode: $MODE" >&2
-        usage >&2
-        exit 2
-        ;;
+case "$PROFILE" in
+    current|legacy-alpha1) ;;
+    *) echo "Unsupported capability profile: $PROFILE" >&2; exit 2;;
 esac
+smoke_dependency
+smoke_require_tools curl
 
 MACRO_DEPENDENCY_SMOKE="0"
-if [[ "$MODE" == "path" ]]; then
+if [[ "$PROFILE" == "current" ]]; then
     MACRO_DEPENDENCY_SMOKE="1"
 fi
 
 SWIFT_LOG_SMOKE="0"
 SWIFT_LOG_TEST_DEPENDENCY=""
-if [[ "$MODE" == "path" ]]; then
+if [[ "$PROFILE" == "current" ]]; then
     SWIFT_LOG_SMOKE="1"
     SWIFT_LOG_TEST_DEPENDENCY='                .product(name: "DaylilySwiftLog", package: "Daylily"),'
 fi
 
 SERVICE_LIFECYCLE_SMOKE="0"
 SERVICE_LIFECYCLE_TEST_DEPENDENCY=""
-if [[ "$MODE" == "path" ]]; then
+if [[ "$PROFILE" == "current" ]]; then
     SERVICE_LIFECYCLE_SMOKE="1"
     SERVICE_LIFECYCLE_TEST_DEPENDENCY='                .product(name: "DaylilyServiceLifecycle", package: "Daylily"),'
 fi
 
 HTTP_TYPES_SMOKE="0"
 HTTP_TYPES_TEST_DEPENDENCY=""
-if [[ "$MODE" == "path" ]]; then
+if [[ "$PROFILE" == "current" ]]; then
     HTTP_TYPES_SMOKE="1"
     HTTP_TYPES_TEST_DEPENDENCY='                .product(name: "DaylilyHTTPTypes", package: "Daylily"),'
 fi
 
 OPENAPI_TRANSPORT_SMOKE="0"
 OPENAPI_TRANSPORT_TEST_DEPENDENCY=""
-if [[ "$MODE" == "path" ]]; then
+if [[ "$PROFILE" == "current" ]]; then
     OPENAPI_TRANSPORT_SMOKE="1"
     OPENAPI_TRANSPORT_TEST_DEPENDENCY='                .product(name: "DaylilyOpenAPITransport", package: "Daylily"),'
 fi
 
 CONSUMER_MACRO_PORT="${CONSUMER_MACRO_PORT:-18080}"
 
-if [[ -z "$WORKDIR" ]]; then
-    WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/daylily-consumer-smoke.XXXXXX")"
-else
-    mkdir -p "$WORKDIR"
-    WORKDIR="$(absolute_path "$WORKDIR")"
-fi
-
-cleanup() {
-    if [[ "$KEEP_WORKDIR" != "1" ]]; then
-        rm -rf "$WORKDIR"
-    else
-        echo "Kept consumer smoke package at $WORKDIR"
-    fi
-}
-trap cleanup EXIT
+smoke_prepare_workdir
+trap smoke_cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 mkdir -p \
     "$WORKDIR/Sources/ConsumerRuntimeApp" \
@@ -300,6 +279,16 @@ struct ConsumerMacroApp {
         @Dependency(ConsumerDependencies.label) label: String
     ) -> String {
         "\(label):\(greeting.message(for: id))"
+    }
+
+    @GET("/optional")
+    func optional(
+        @Query page: Int?,
+        @Query("offset") offset: Optional<Int>,
+        @Header("x-label") label: String?,
+        @Header("x-debug") debug: Swift.Optional<Bool>
+    ) -> String {
+        "\((page ?? offset).map(String.init) ?? "none"):\(label ?? debug.map(String.init) ?? "none")"
     }
 
     @POST("/json/echo")
@@ -557,17 +546,26 @@ run_macro_dependency_smoke() {
     local started="0"
     local status="0"
 
-    if ! command -v curl >/dev/null 2>&1; then
-        echo "curl is required for path-mode macro runtime smoke." >&2
-        return 1
-    fi
+    python3 - "$port" <<'PYTHON'
+import socket, sys
+port = int(sys.argv[1])
+if not 1 <= port <= 65535:
+    raise SystemExit('CONSUMER_MACRO_PORT must be between 1 and 65535')
+with socket.socket() as probe:
+    probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    try:
+        probe.bind(('127.0.0.1', port))
+    except OSError as error:
+        raise SystemExit(f'Consumer smoke port {port} is unavailable: {error}')
+PYTHON
+    echo "Starting ConsumerMacroApp HTTP smoke on http://127.0.0.1:$port"
+    # Build before the readiness timeout; slow Linux compilation is not startup failure.
+    "$SMOKE_BIN_PATH/ConsumerMacroApp" --port "$port" > "$log_file" 2>&1 &
+    SMOKE_APP_PID=$!
+    local app_pid="$SMOKE_APP_PID"
 
-    echo "Starting ConsumerMacroApp dependency smoke on http://127.0.0.1:$port"
-
-    swift run ConsumerMacroApp --port "$port" > "$log_file" 2>&1 &
-    local app_pid=$!
-
-    for _ in {1..120}; do
+    local deadline=$((SECONDS + 30))
+    while (( SECONDS < deadline )); do
         if ! kill -0 "$app_pid" 2>/dev/null; then
             echo "ConsumerMacroApp exited before it was ready." >&2
             sed -n '1,200p' "$log_file" >&2
@@ -575,7 +573,7 @@ run_macro_dependency_smoke() {
             return 1
         fi
 
-        if response="$(curl --silent --show-error "http://127.0.0.1:$port/hello" 2>/dev/null)"; then
+        if response="$(curl --noproxy '*' --connect-timeout 1 --max-time 5 --fail --silent --show-error "http://127.0.0.1:$port/hello" 2>/dev/null)"; then
             started="1"
             break
         fi
@@ -590,16 +588,32 @@ run_macro_dependency_smoke() {
     elif [[ "$response" != "Daylily consumer macros ship." ]]; then
         echo "Unexpected ConsumerMacroApp /hello response: $response" >&2
         status="1"
-    else
-        response="$(curl --silent --show-error "http://127.0.0.1:$port/dependency/42" 2>/dev/null || true)"
+    elif [[ "$PROFILE" == "current" ]]; then
+        response="$(curl --noproxy '*' --connect-timeout 1 --max-time 5 --fail --silent --show-error "http://127.0.0.1:$port/dependency/42" 2>/dev/null || true)"
         if [[ "$response" != "external:Consumer macro dependency 42" ]]; then
             echo "Unexpected ConsumerMacroApp dependency response: $response" >&2
             sed -n '1,200p' "$log_file" >&2
             status="1"
         fi
 
+        response="$(curl --noproxy '*' --connect-timeout 1 --max-time 5 --fail --silent --show-error "http://127.0.0.1:$port/optional" || true)"
+        if [[ "$response" != "none:none" ]]; then
+            echo "Optional macro inputs did not preserve missing values: $response" >&2
+            status="1"
+        fi
+        response="$(curl --noproxy '*' --connect-timeout 1 --max-time 5 --fail --silent --show-error -H 'x-label: external' "http://127.0.0.1:$port/optional?page=7" || true)"
+        if [[ "$response" != "7:external" ]]; then
+            echo "Optional macro inputs did not decode present values: $response" >&2
+            status="1"
+        fi
+        response="$(curl --noproxy '*' --connect-timeout 1 --max-time 5 --silent --show-error --output /dev/null --write-out '%{http_code}' "http://127.0.0.1:$port/optional?page=invalid" || true)"
+        if [[ "$response" != "400" ]]; then
+            echo "Invalid optional query should return 400, got: $response" >&2
+            status="1"
+        fi
+
         headers_file="$WORKDIR/ConsumerMacroApp-route.headers"
-        response="$(curl --silent --show-error --dump-header "$headers_file" "http://127.0.0.1:$port/middleware/route" 2>/dev/null || true)"
+        response="$(curl --noproxy '*' --connect-timeout 1 --max-time 5 --fail --silent --show-error --dump-header "$headers_file" "http://127.0.0.1:$port/middleware/route" 2>/dev/null || true)"
         if [[ "$response" != "route middleware" ]]; then
             echo "Unexpected ConsumerMacroApp route middleware response: $response" >&2
             sed -n '1,200p' "$log_file" >&2
@@ -619,7 +633,7 @@ run_macro_dependency_smoke() {
         fi
 
         headers_file="$WORKDIR/ConsumerMacroApp-group-route.headers"
-        response="$(curl --silent --show-error --dump-header "$headers_file" "http://127.0.0.1:$port/middleware/group/route" 2>/dev/null || true)"
+        response="$(curl --noproxy '*' --connect-timeout 1 --max-time 5 --fail --silent --show-error --dump-header "$headers_file" "http://127.0.0.1:$port/middleware/group/route" 2>/dev/null || true)"
         if [[ "$response" != "group route middleware" ]]; then
             echo "Unexpected ConsumerMacroApp group route middleware response: $response" >&2
             sed -n '1,200p' "$log_file" >&2
@@ -639,8 +653,7 @@ run_macro_dependency_smoke() {
         fi
     fi
 
-    kill "$app_pid" 2>/dev/null || true
-    wait "$app_pid" 2>/dev/null || true
+    smoke_stop_app
 
     if [[ "$status" == "0" ]]; then
         echo "ConsumerMacroApp dependency checks passed."
@@ -649,24 +662,68 @@ run_macro_dependency_smoke() {
     return "$status"
 }
 
+run_macro_diagnostics_smoke() {
+    mkdir -p "$WORKDIR/Fixtures/InvalidPathFixture"
+    cat > "$WORKDIR/Fixtures/InvalidPathFixture/main.swift" <<'SWIFT'
+import Daylily
+
+@main
+@DaylilyServer
+struct InvalidPathFixture {
+    @GET("/users/:id")
+    func user(@Path id: Int?) -> String {
+        "invalid"
+    }
+}
+SWIFT
+    # Add the intentionally invalid target only after normal builds and tests.
+    cp "$WORKDIR/Package.swift" "$WORKDIR/Package.swift.valid"
+    python3 - "$WORKDIR/Package.swift" <<'PYTHON'
+import pathlib, sys
+path = pathlib.Path(sys.argv[1])
+text = path.read_text()
+fixture = '.executableTarget(name: "InvalidPathFixture", dependencies: [.product(name: "Daylily", package: "Daylily")], path: "Fixtures/InvalidPathFixture"),'
+path.write_text(text.replace('    targets: [', '    targets: [\n        ' + fixture, 1))
+PYTHON
+    local compiled=0
+    if swift build --target InvalidPathFixture > "$WORKDIR/macro-diagnostics.log" 2>&1; then
+        compiled=1
+    fi
+    mv "$WORKDIR/Package.swift.valid" "$WORKDIR/Package.swift"
+    if [[ "$compiled" == 1 ]]; then
+        echo 'Optional @Path unexpectedly compiled.' >&2
+        return 1
+    fi
+    python3 - "$WORKDIR/macro-diagnostics.log" <<'PYTHON'
+import pathlib, sys
+text = pathlib.Path(sys.argv[1]).read_text()
+if '@Path parameters cannot be optional' not in text:
+    print(text, file=sys.stderr)
+    raise SystemExit('Compilation failed without the expected optional @Path diagnostic')
+print('Optional @Path compile diagnostic passed.')
+PYTHON
+}
+
 echo "Consumer smoke package: $WORKDIR"
 echo "Dependency mode: $MODE"
+echo "Capability profile: $PROFILE"
 echo "Macro dependency runtime smoke: $MACRO_DEPENDENCY_SMOKE"
 echo "SwiftLog adapter smoke: $SWIFT_LOG_SMOKE"
 echo "ServiceLifecycle adapter smoke: $SERVICE_LIFECYCLE_SMOKE"
 echo "Swift HTTP Types adapter smoke: $HTTP_TYPES_SMOKE"
 echo "Swift OpenAPI Generator transport smoke: $OPENAPI_TRANSPORT_SMOKE"
 
-(
-    cd "$WORKDIR"
-    swift package resolve
-    swift build --product ConsumerRuntimeApp
-    swift build --product ConsumerMacroApp
-    swift test
-    swift run ConsumerRuntimeApp --check
-    if [[ "$MACRO_DEPENDENCY_SMOKE" == "1" ]]; then
-        run_macro_dependency_smoke
-    fi
-)
+cd "$WORKDIR"
+swift package resolve
+smoke_record_dependency
+swift build --product ConsumerRuntimeApp
+swift build --product ConsumerMacroApp
+swift test
+SMOKE_BIN_PATH="$(swift build --show-bin-path)"
+"$SMOKE_BIN_PATH/ConsumerRuntimeApp" --check
+if [[ "$PROFILE" == "current" ]]; then
+    run_macro_dependency_smoke
+    run_macro_diagnostics_smoke
+fi
 
-echo "Daylily external consumer smoke passed ($MODE)."
+echo "Daylily external consumer smoke passed ($MODE, $PROFILE)."
