@@ -1,0 +1,10 @@
+{
+  "Package.resolved": "92145ade8e8fb5d772a00f306acd8888e91eec5652bb15be87ca3d6681ff4460",
+  "a-before-restart.log": "52095084551663888dd692ddbe8712e464c08ac0f440aadb44ac0000b6ba234b",
+  "build.log": "7517203ea4f06eeebaa463a39bd396d4dbbf76b54bacb98a6639d971fb302935",
+  "daylily-trial-f3657b556e-a.log": "3ab8769bce9debb336a1c777169532983fa9d1c84203af55183a4c8cbc5d8b96",
+  "daylily-trial-f3657b556e-b.log": "6fdf8db76a9b20f49f603168490bb3c406733a623d1cd26e6c014766ee3de011",
+  "daylily-trial-f3657b556e-proxy.log": "3fc3377fbf896a68339b1bd5a6ba0c131fc828444f34f0d324fad4700b3b21f0",
+  "proxy/Caddyfile": "acb5e8977c4e4dca702d7b50029b06c71de28d1690a747719aa99dae7944e621",
+  "results.json": "c58ffb4b16b9e45ca73e0cbc37fde76fe5b9ad0e9988284288f3cf28c9220e19"
+}

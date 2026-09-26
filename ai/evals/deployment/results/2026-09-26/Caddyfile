@@ -1,0 +1,14 @@
+{
+ admin localhost:2019
+ auto_https off
+}
+:8080 {
+ reverse_proxy a:8080 b:8080 {
+  lb_policy round_robin
+  lb_try_duration 2s
+  lb_try_interval 50ms
+  health_uri /health
+  health_interval 250ms
+  health_timeout 250ms
+ }
+}

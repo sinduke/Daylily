@@ -1,0 +1,84 @@
+{
+  "duration_requested_seconds": 300,
+  "checks": {
+    "api_and_two_replicas": true,
+    "incremental_sse_seconds": [
+      0.0010947090000001936,
+      0.5028957090000006,
+      1.0063722919999947,
+      1.5073330839999954,
+      2.018247500000001,
+      2.5223010840000057,
+      3.029498625000002
+    ],
+    "disconnect_releases_producer": true,
+    "slow_reader_flushed_bytes_before_cancel": 14353053,
+    "header_timeout_seconds": 2.004083499999993,
+    "upload_timeout_seconds": 2.0095480830000128,
+    "rolling_drain_seconds": 2.255969124999993,
+    "rolling_restart": true,
+    "producer_failure_observed": true
+  },
+  "result": "passed",
+  "revision": "f0d53421981e42e423e0b53b4f6a5dc3460bec81",
+  "working_tree_dirty": true,
+  "docker_version": "29.4.0",
+  "source_tree_sha256": "dadb4a685c3e1925da2bb191d4c42b75fce0a70942d505e5cf849a38a529d0c1",
+  "swift_version": "Swift version 6.3.2 (swift-6.3.2-RELEASE)\nTarget: aarch64-unknown-linux-gnu",
+  "images": [
+    {
+      "id": "sha256:6a07426406ef0b601d21f9bad3ca4355aa211ee95fa7e53be22eae051461996b",
+      "digests": [
+        "daylily-trial-f3657b556e@sha256:6a07426406ef0b601d21f9bad3ca4355aa211ee95fa7e53be22eae051461996b"
+      ],
+      "architecture": "arm64",
+      "os": "linux"
+    },
+    {
+      "id": "sha256:6aeddd44c3078b0f9a35206472a11420648a79c184603ef95957d0a20044cb2b",
+      "digests": [
+        "caddy@sha256:6aeddd44c3078b0f9a35206472a11420648a79c184603ef95957d0a20044cb2b"
+      ],
+      "architecture": "arm64",
+      "os": "linux"
+    },
+    {
+      "id": "sha256:70680d9f3bfca824d7c1242d9fa35152513137531c6c2e98797877139b4bab28",
+      "digests": [
+        "swift@sha256:70680d9f3bfca824d7c1242d9fa35152513137531c6c2e98797877139b4bab28"
+      ],
+      "architecture": "arm64",
+      "os": "linux"
+    }
+  ],
+  "resources_before": "{\"BlockIO\":\"23MB / 0B\",\"CPUPerc\":\"0.49%\",\"Container\":\"daylily-trial-f3657b556e-a\",\"ID\":\"43a294d7e7a0\",\"MemPerc\":\"0.63%\",\"MemUsage\":\"24.93MiB / 3.893GiB\",\"Name\":\"daylily-trial-f3657b556e-a\",\"NetIO\":\"5.69kB / 4.73kB\",\"PIDs\":\"13\"}\n{\"BlockIO\":\"3.53MB / 0B\",\"CPUPerc\":\"0.55%\",\"Container\":\"daylily-trial-f3657b556e-b\",\"ID\":\"7e1e5a5508a3\",\"MemPerc\":\"0.08%\",\"MemUsage\":\"3.113MiB / 3.893GiB\",\"Name\":\"daylily-trial-f3657b556e-b\",\"NetIO\":\"42.5kB / 11.6MB\",\"PIDs\":\"14\"}\n{\"BlockIO\":\"45.1MB / 28.7kB\",\"CPUPerc\":\"0.68%\",\"Container\":\"daylily-trial-f3657b556e-proxy\",\"ID\":\"19222bb975a5\",\"MemPerc\":\"0.33%\",\"MemUsage\":\"13.16MiB / 3.893GiB\",\"Name\":\"daylily-trial-f3657b556e-proxy\",\"NetIO\":\"11.7MB / 9.97MB\",\"PIDs\":\"11\"}",
+  "sustained": {
+    "seconds": 300.072927667,
+    "workers": 4,
+    "requests_succeeded": 31382,
+    "failures": [],
+    "p50_ms": 3.858583000010185,
+    "p95_ms": 48.21666600000185
+  },
+  "metrics_after": [
+    {
+      "activeStreams": 0,
+      "completed": 16907,
+      "instance": "a",
+      "cancelled": 0,
+      "failed": 0,
+      "bytesSent": 650207
+    },
+    {
+      "instance": "b",
+      "completed": 16976,
+      "activeStreams": 0,
+      "cancelled": 1,
+      "failed": 1,
+      "bytesSent": 15011703
+    }
+  ],
+  "resources_after": "{\"BlockIO\":\"76.6MB / 0B\",\"CPUPerc\":\"0.41%\",\"Container\":\"daylily-trial-f3657b556e-a\",\"ID\":\"43a294d7e7a0\",\"MemPerc\":\"0.47%\",\"MemUsage\":\"18.64MiB / 3.893GiB\",\"Name\":\"daylily-trial-f3657b556e-a\",\"NetIO\":\"5.62MB / 5.02MB\",\"PIDs\":\"18\"}\n{\"BlockIO\":\"19.1MB / 0B\",\"CPUPerc\":\"0.40%\",\"Container\":\"daylily-trial-f3657b556e-b\",\"ID\":\"7e1e5a5508a3\",\"MemPerc\":\"0.16%\",\"MemUsage\":\"6.406MiB / 3.893GiB\",\"Name\":\"daylily-trial-f3657b556e-b\",\"NetIO\":\"5.67MB / 16.7MB\",\"PIDs\":\"18\"}\n{\"BlockIO\":\"96.2MB / 28.7kB\",\"CPUPerc\":\"0.52%\",\"Container\":\"daylily-trial-f3657b556e-proxy\",\"ID\":\"19222bb975a5\",\"MemPerc\":\"0.85%\",\"MemUsage\":\"34.09MiB / 3.893GiB\",\"Name\":\"daylily-trial-f3657b556e-proxy\",\"NetIO\":\"37.8MB / 35.9MB\",\"PIDs\":\"13\"}",
+  "cleanup_errors": [],
+  "total_seconds": 382.865983209
+}
