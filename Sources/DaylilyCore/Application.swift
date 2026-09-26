@@ -90,9 +90,61 @@ public struct Application: Sendable {
     }
 
     public func runLifecycle(_ phase: LifecyclePhase) async throws {
+        if phase == .shutdown || phase == .cleanup {
+            let failures = await collectLifecycleFailures(phase)
+            if failures.count == 1 { throw failures[0].error }
+            if !failures.isEmpty { throw LifecycleRunError(primaryError: nil, failures: failures) }
+            return
+        }
         for operation in lifecycleHooks[phase] ?? [] {
             try await operation()
         }
+    }
+
+    /// Common execution path for transport and ecosystem adapters.
+    @_spi(Lifecycle)
+    public func runWithLifecycle(
+        _ serve: @Sendable (@escaping LifecycleOperation) async throws -> Void
+    ) async throws {
+        var primaryError: (any Error)?
+        var enteredBoot = false
+        do {
+            try Task.checkCancellation()
+            try await runLifecycle(.configure)
+            try Task.checkCancellation()
+            enteredBoot = true
+            try await runLifecycle(.boot)
+            try Task.checkCancellation()
+            try await serve { try await runLifecycle(.started) }
+        } catch {
+            primaryError = error
+        }
+
+        // This task is deliberately independent of caller cancellation. We await it
+        // before returning so asynchronous cleanup can finish after server cancellation.
+        let shouldShutdown = enteredBoot
+        let teardown = Task {
+            var failures: [LifecycleFailure] = []
+            if shouldShutdown { failures += await collectLifecycleFailures(.shutdown) }
+            failures += await collectLifecycleFailures(.cleanup)
+            return failures
+        }
+        let failures = await teardown.value
+        if let primaryError {
+            if failures.isEmpty { throw primaryError }
+            throw LifecycleRunError(primaryError: primaryError, failures: failures)
+        }
+        if failures.count == 1 { throw failures[0].error }
+        if !failures.isEmpty { throw LifecycleRunError(primaryError: nil, failures: failures) }
+    }
+
+    private func collectLifecycleFailures(_ phase: LifecyclePhase) async -> [LifecycleFailure] {
+        var failures: [LifecycleFailure] = []
+        for (index, operation) in (lifecycleHooks[phase] ?? []).enumerated() {
+            do { try await operation() }
+            catch { failures.append(LifecycleFailure(phase: phase, hookIndex: index, error: error)) }
+        }
+        return failures
     }
 
     public func describeRoutes() -> [RouteDescription] {

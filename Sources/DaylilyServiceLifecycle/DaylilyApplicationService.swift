@@ -1,4 +1,4 @@
-import DaylilyCore
+@_spi(Lifecycle) import DaylilyCore
 @_spi(ServiceLifecycle) import DaylilyNIO
 import ServiceLifecycle
 
@@ -34,28 +34,11 @@ public struct DaylilyApplicationService: Service {
             await application.respond(to: request)
         }
 
-        try await application.runLifecycle(.configure)
-        try await application.runLifecycle(.boot)
-
-        var didShutdown = false
-
-        do {
+        try await application.runWithLifecycle { started in
             try await server.run(
-                started: {
-                    try await application.runLifecycle(.started)
-                },
+                started: started,
                 shutdownRequests: shutdownRequests
             )
-            try await application.runLifecycle(.shutdown)
-            didShutdown = true
-            try await application.runLifecycle(.cleanup)
-        } catch {
-            if !didShutdown {
-                try? await application.runLifecycle(.shutdown)
-            }
-
-            try? await application.runLifecycle(.cleanup)
-            throw error
         }
     }
 }
