@@ -52,8 +52,8 @@ Guarantees:
 - Every teardown hook is attempted once in registration order; teardown is awaited independently of caller cancellation.
 - A single error is preserved; combined primary/teardown failures use `LifecycleRunError` with indexed `LifecycleFailure` entries.
 - Hooks must tolerate partial startup; the framework does not discover resources or infer which resources an arbitrary hook created.
-- SIGINT/SIGTERM close the default NIO server channel so lifecycle shutdown can continue.
-- Cancelling the NIO server run task closes the server channel so external lifecycle systems can stop the server.
+- SIGINT/SIGTERM stop accepting connections, close idle connections, and drain the active response within `shutdownGracePeriod` before lifecycle shutdown continues.
+- Cancelling the NIO server run task forces connections closed immediately, including an unlimited graceful drain.
 - Lifecycle APIs do not expose NIO types.
 
 ## Server Configuration Contract
@@ -71,7 +71,14 @@ Guarantees:
 - `ServerConfiguration` is NIO-free.
 - `Application.run(configuration:)` is the explicit server control API.
 - `Application.run(host:port:)` remains convenience sugar.
-- Defaults preserve the original host, port, backlog, reuse address, max messages per read, and graceful signal behavior.
+- Defaults preserve host, port, backlog, address reuse, read batching, and signal handling.
+- `requestHeaderTimeout` defaults to 15 seconds, starts while waiting for a complete request head (including idle accepted/keep-alive connections), and closes expired connections.
+- `uploadIdleTimeout` defaults to 30 seconds between inbound body chunks, pauses during framework backpressure, and stops once input ends or an early response abandons input. Expiry wakes/cancels the request; it writes 408 only before response headers, otherwise closes the connection.
+- Incoming request timers do not impose a handler or outgoing SSE duration limit. The next header timer starts after response-end flush.
+- Header/upload durations must be positive or `nil` (disabled).
+- `shutdownGracePeriod` defaults to 10 seconds. Signals/ServiceLifecycle graceful shutdown stop acceptance and new pipelined work, close idle connections, and let active responses finish. Expiry closes remaining connections and cooperatively cancels handlers/producers.
+- A zero grace period closes immediately; `nil` permits unlimited draining. Task cancellation always forces closure and can interrupt unlimited draining.
+- No transport deadline can forcibly terminate non-cooperative application code. Teardown hooks and durable observer exporter shutdown remain application-owned.
 
 Known limitations:
 
@@ -81,7 +88,6 @@ Known limitations:
 
 Lifecycle limitations:
 
-- No graceful request draining yet.
 - No worker or pool integration yet.
 
 ## Dependency Injection Contract
@@ -320,7 +326,7 @@ Boundaries:
 - `DaylilyObservability` may use Foundation for default UUID request ID generation.
 - `DaylilyCore` does not depend on `DaylilyObservability`.
 - No logging backend, metrics backend, tracing SDK, or transport dependency is required by `DaylilyCore` or `DaylilyObservability`.
-- `DaylilySwiftLog` is an optional adapter module that depends on `DaylilyObservability` and SwiftLog's `Logging` product.
+- `DaylilySwiftLog` is an optional adapter module that depends on `DaylilyCore`, `DaylilyObservability`, and SwiftLog's `Logging` product.
 - `DaylilySwiftLog` is not re-exported by `Daylily`.
 - `DaylilySwiftLog` must not call `LoggingSystem.bootstrap(...)`.
 - `DaylilyServiceLifecycle` is an optional adapter module that depends on `DaylilyCore`, `DaylilyNIO`, and ServiceLifecycle's `ServiceLifecycle` product.
@@ -395,7 +401,8 @@ public struct DaylilyApplicationService: Service
 
 public extension Application {
     func serviceLifecycleService(
-        configuration: ServerConfiguration = .serviceLifecycleDefault
+        configuration: ServerConfiguration = .serviceLifecycleDefault,
+        responseObserver: (any ResponseTransferObserver)? = nil
     ) -> DaylilyApplicationService
 }
 
@@ -410,7 +417,7 @@ Guarantees:
 
 - ServiceLifecycle integration exposes a Daylily `Application` as a ServiceLifecycle `Service`.
 - `DaylilyApplicationService.run()` mirrors existing `Application.run(configuration:)` lifecycle order.
-- ServiceLifecycle graceful shutdown closes the Daylily NIO server channel through an adapter-owned shutdown stream.
+- ServiceLifecycle graceful shutdown uses an adapter-owned stream to stop acceptance and drain active responses within `shutdownGracePeriod`. The optional `responseObserver` receives transport terminal events.
 - `NIOHTTPServer.run` closes its server channel when the run task is cancelled.
 - `ServerConfiguration.serviceLifecycleDefault` disables Daylily's own graceful shutdown signal handlers by default so `ServiceGroup` owns signals.
 - Applications may pass any `ServerConfiguration` to choose a different signal policy.
@@ -932,7 +939,7 @@ Known limitations:
 - No TLS.
 - No HTTP/2.
 - No configurable worker count; backlog and signal policy are configurable.
-- No request draining deadline or request/header timeouts yet.
+- No total request execution deadline or forced termination of application code.
 
 Extension points:
 
@@ -1044,3 +1051,13 @@ Extension points:
 A cancelled task reading buffered or streaming RequestBody throws CancellationError. Cancelling a suspended producer/reader wakes the associated waiters. Explicit transport writer.cancel() still ends reads normally. One-shot consumption is unchanged.
 
 DaylilyTesting has collectBody(upTo:), bodyString(upTo:), requireBody(_:upTo:), json(_:upTo:), and requireJSON(_:as:upTo:) async helpers. They require a bound, consume streams once, and propagate producer/limit failures. Synchronous body/JSON helpers reject streams. See api-registry for complete signatures.
+
+## Response transfer observation (0024)
+
+`ResponseTransferObserver` and its immutable `ResponseTransferEvent` live in standard-library-only `DaylilyCore`. `Application.run`, `NIOHTTPServer`, and the ServiceLifecycle adapter accept an optional observer. The default creates no observer tasks. In-memory and console observers live in `DaylilyObservability`; the optional SwiftLog adapter uses namespaced metadata without global bootstrap.
+
+The transport arbitrates one terminal `completed`, `cancelled`, or `failed` event for each response that begins transmission. Request failures before a response begins do not invent a transfer event. A completed 4xx/5xx HTTP response can have outcome `completed`; transport outcome is independent of HTTP status. Successful response-end flush completes a transfer. Producer/write errors fail it; observed disconnect, deadline, or forced closure cancel it.
+
+`bytesSent` counts body bytes with successful write/flush, excludes framing/headers, and does not prove peer consumption. `durationNanoseconds` measures response transmission until terminal state. Handler/middleware duration remains a separate metric. Event method/path and request/correlation IDs may be absent where unavailable.
+
+Delivery runs asynchronously outside the event loop, may be concurrent or out of request order, and is best effort when the process exits. Server shutdown never waits indefinitely for an observer. Applications own durable export, retention, redaction, and exporter shutdown; the in-memory observer is intended for tests and small development runs.

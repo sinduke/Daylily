@@ -475,3 +475,9 @@ MVP assumptions:
 Macros create or expose the same route graph the runtime DSL creates.
 
 The runtime is the source of truth. Macros are a declaration layer on top.
+
+## Operational boundaries
+
+Inbound request deadlines bound waiting for a head or additional upload bytes. They do not bound handler execution or outgoing SSE duration. Graceful shutdown stops new work, drains active responses up to a configured deadline, then closes connections; forced task cancellation closes immediately. Cancellation is cooperative at the application boundary.
+
+Handler logs and response-transfer events describe different intervals. A stream-producing handler can finish before its body has been sent. Transfer events describe terminal transport outcome, flushed body bytes and duration; optional observers receive them outside the event loop without extending server shutdown. See `docs/operational-readiness.md` for defaults, limitations and deployment evidence.

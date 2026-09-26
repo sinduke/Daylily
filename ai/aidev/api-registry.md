@@ -104,8 +104,14 @@ Rules:
 
 ```swift
 extension Application {
-    public func run(host: String = "127.0.0.1", port: Int = 8080) async throws
-    public func run(configuration: ServerConfiguration) async throws
+    public func run(
+        host: String = "127.0.0.1", port: Int = 8080,
+        responseObserver: (any ResponseTransferObserver)? = nil
+    ) async throws
+    public func run(
+        configuration: ServerConfiguration,
+        responseObserver: (any ResponseTransferObserver)? = nil
+    ) async throws
 }
 ```
 
@@ -114,11 +120,12 @@ Parameters:
 - `host`: address to bind. Default `127.0.0.1`.
 - `port`: port to bind. Default `8080`.
 - `configuration`: explicit server configuration.
+- `responseObserver`: optional terminal transfer observer, forwarded to the transport. Nil creates no observation-delivery task.
 
 Lifecycle order:
 
 ```text
-configure -> boot -> NIO bind -> started -> server close -> shutdown -> cleanup
+configure -> boot -> NIO bind -> started -> listener close and connection drain -> shutdown -> cleanup
 ```
 
 ## Module DaylilyObservability
@@ -205,12 +212,30 @@ public actor InMemoryRequestLogSink: RequestLogSink {
 }
 ```
 
+### Response Transfer Observers
+
+```swift
+public actor InMemoryResponseTransferObserver: ResponseTransferObserver {
+    public init()
+    public func record(_ event: ResponseTransferEvent)
+    public func snapshot() -> [ResponseTransferEvent]
+}
+
+public struct ConsoleResponseTransferObserver: ResponseTransferObserver {
+    public init()
+    public func record(_ event: ResponseTransferEvent) async
+}
+```
+
+The in-memory observer retains all events for tests and local inspection. The console observer prints terminal transfer information separately from handler request logs. Applications own retention and exporter lifetime.
+
 Rules:
 
 - `DaylilyObservability` depends on `DaylilyCore` and uses Foundation for default UUID request ID generation.
 - `RequestIDMiddleware` generates `x-daylily-request-id`.
 - Incoming `x-request-id` is external correlation data, not Daylily's unique request identity.
 - `RequestLoggingMiddleware` records method, path, final status, request ID, external correlation ID, duration, and public error reason.
+- Request logging measures downstream handler execution; response-transfer observation measures actual transport completion after a response is returned.
 - Successful downstream responses record `response.status`.
 - Thrown `ResponseError` values record `error.status` and then rethrow.
 - Unknown thrown errors record `500 Internal Server Error` and then rethrow.
@@ -261,9 +286,21 @@ public struct SwiftLogRequestLogMetadataStrategy: Sendable {
 }
 ```
 
+### SwiftLogResponseTransferObserver
+
+```swift
+public struct SwiftLogResponseTransferObserver: ResponseTransferObserver {
+    public init(logger: Logger)
+    public init(label: String = "daylily.response.transfer")
+    public func record(_ event: ResponseTransferEvent) async
+}
+```
+
+Maps `completed` to `.info`, `cancelled` to `.notice`, and `failed` to `.error`, independently of HTTP status. Metadata includes `daylily.event = response_transfer`, `daylily.http.status_code`, `daylily.response.outcome`, `daylily.response.bytes_sent`, and `daylily.response.transfer_duration_ns`; method, path, request ID, and correlation ID are included when present. Transfer duration is separate from request logging's `daylily.duration_ns`.
+
 Rules:
 
-- `DaylilySwiftLog` depends on `DaylilyObservability` and SwiftLog's `Logging` product.
+- `DaylilySwiftLog` directly depends on `DaylilyCore`, `DaylilyObservability`, and SwiftLog's `Logging` product.
 - `DaylilySwiftLog` is not re-exported by the umbrella `Daylily` module.
 - `SwiftLogRequestLogSink` adapts `RequestLog` to SwiftLog; it does not replace `RequestLoggingMiddleware`.
 - `SwiftLogRequestLogSink(label:)` creates a `Logger(label:)` convenience value, but never calls `LoggingSystem.bootstrap(...)`.
@@ -280,7 +317,8 @@ Rules:
 public struct DaylilyApplicationService: Service {
     public init(
         application: Application,
-        configuration: ServerConfiguration = .serviceLifecycleDefault
+        configuration: ServerConfiguration = .serviceLifecycleDefault,
+        responseObserver: (any ResponseTransferObserver)? = nil
     )
 
     public func run() async throws
@@ -292,7 +330,8 @@ public struct DaylilyApplicationService: Service {
 ```swift
 public extension Application {
     func serviceLifecycleService(
-        configuration: ServerConfiguration = .serviceLifecycleDefault
+        configuration: ServerConfiguration = .serviceLifecycleDefault,
+        responseObserver: (any ResponseTransferObserver)? = nil
     ) -> DaylilyApplicationService
 }
 ```
@@ -313,7 +352,8 @@ Rules:
 - `DaylilyServiceLifecycle` is not re-exported by the umbrella `Daylily` module.
 - `DaylilyApplicationService` adapts `Application` into a ServiceLifecycle `Service`.
 - `DaylilyApplicationService.run()` mirrors `Application.run(configuration:)` lifecycle phase order while using the ServiceLifecycle shutdown stream.
-- ServiceLifecycle graceful shutdown closes the Daylily NIO server channel through a shutdown stream.
+- ServiceLifecycle graceful shutdown stops accepting work and drains active connections through a shutdown stream; task cancellation force-closes connections.
+- The optional response observer is forwarded to NIO and remains separate from the equatable server configuration.
 - `ServerConfiguration.serviceLifecycleDefault` sets `gracefulShutdownSignals` to `false` so `ServiceGroup` owns signal handling by default.
 - Applications own `ServiceGroup` creation, logger, service ordering, graceful shutdown signals, cancellation signals, and timeouts.
 - The adapter does not move lifecycle ownership into `Dependencies`.
@@ -714,6 +754,9 @@ public struct ServerConfiguration: Equatable, Sendable {
     public var reuseAddress: Bool
     public var maxMessagesPerRead: Int
     public var gracefulShutdownSignals: Bool
+    public var requestHeaderTimeout: Duration?
+    public var uploadIdleTimeout: Duration?
+    public var shutdownGracePeriod: Duration?
 
     public init(
         host: String = "127.0.0.1",
@@ -721,7 +764,10 @@ public struct ServerConfiguration: Equatable, Sendable {
         backlog: Int = 256,
         reuseAddress: Bool = true,
         maxMessagesPerRead: Int = 16,
-        gracefulShutdownSignals: Bool = true
+        gracefulShutdownSignals: Bool = true,
+        requestHeaderTimeout: Duration? = .seconds(15),
+        uploadIdleTimeout: Duration? = .seconds(30),
+        shutdownGracePeriod: Duration? = .seconds(10)
     )
 }
 ```
@@ -730,7 +776,47 @@ Rules:
 
 - `ServerConfiguration` is NIO-free and lives in `DaylilyCore`.
 - `Application.run(configuration:)` bridges it into the active transport.
-- The default NIO server closes on SIGINT/SIGTERM so `shutdown` and `cleanup` can run.
+- Header/upload timeouts must be positive; the grace period must be nonnegative. Nil disables that deadline; nil grace waits for active connections until completion or force cancellation, and zero grace closes immediately.
+- Upload idle time excludes transport-imposed request-body backpressure and ends when the body completes or an early response abandons it. These inbound deadlines do not limit handler or response-producer lifetime.
+- SIGINT/SIGTERM and ServiceLifecycle graceful shutdown stop accepting new work, drain active responses, and force-close remaining connections after the grace period. Task cancellation closes immediately.
+
+### Response Transfer Observation
+
+```swift
+public enum ResponseTransferOutcome: String, Equatable, Sendable {
+    case completed
+    case cancelled
+    case failed
+}
+
+public struct ResponseTransferEvent: Equatable, Sendable {
+    public let method: HTTPMethod?
+    public let path: String?
+    public let status: Status
+    public let requestID: String?
+    public let correlationID: String?
+    public let bytesSent: Int
+    public let durationNanoseconds: UInt64
+    public let outcome: ResponseTransferOutcome
+
+    public init(
+        method: HTTPMethod? = nil, path: String? = nil, status: Status,
+        requestID: String? = nil, correlationID: String? = nil,
+        bytesSent: Int, durationNanoseconds: UInt64,
+        outcome: ResponseTransferOutcome
+    )
+}
+
+public protocol ResponseTransferObserver: Sendable {
+    func record(_ event: ResponseTransferEvent) async
+}
+```
+
+- The event and nonthrowing observer protocol are transport-free core APIs; no logging dependency enters core.
+- The transport arbitrates one terminal event per observed response, including disconnect while a producer ignores cancellation. A late producer cannot emit another terminal event.
+- `bytesSent` counts body bytes whose write/flush completed successfully, excluding headers/framing; it does not guarantee peer consumption.
+- Duration runs from response transmission start to terminal state, excluding handler response production and observer execution. Outcome is independent of HTTP status.
+- Delivery awaits `record` in a Swift task outside the event loop. Calls may be concurrent or out of order. Shutdown does not await sink completion; process-exit delivery is best effort, and durable buffering/exporter shutdown belongs to the application.
 
 ### Route
 
@@ -1625,6 +1711,9 @@ public struct NIOServerConfiguration: Sendable {
     public var reuseAddress: Bool
     public var maxMessagesPerRead: Int
     public var gracefulShutdownSignals: Bool
+    public var requestHeaderTimeout: Duration?
+    public var uploadIdleTimeout: Duration?
+    public var shutdownGracePeriod: Duration?
 
     public init(
         host: String = "127.0.0.1",
@@ -1632,7 +1721,10 @@ public struct NIOServerConfiguration: Sendable {
         backlog: Int = 256,
         reuseAddress: Bool = true,
         maxMessagesPerRead: Int = 16,
-        gracefulShutdownSignals: Bool = true
+        gracefulShutdownSignals: Bool = true,
+        requestHeaderTimeout: Duration? = .seconds(15),
+        uploadIdleTimeout: Duration? = .seconds(30),
+        shutdownGracePeriod: Duration? = .seconds(10)
     )
 
     public init(_ configuration: ServerConfiguration)
@@ -1645,6 +1737,7 @@ public struct NIOServerConfiguration: Sendable {
 public struct NIOHTTPServer: Sendable {
     public init(
         configuration: NIOServerConfiguration = NIOServerConfiguration(),
+        responseObserver: (any ResponseTransferObserver)? = nil,
         responder: @escaping @Sendable (Request) async -> Response
     )
 
@@ -1660,10 +1753,11 @@ public struct NIOHTTPServer: Sendable {
 
 Rules:
 
-- `run(started:)` binds, calls `started`, and waits for the server channel to close.
-- The ServiceLifecycle SPI overload also closes the server channel when `shutdownRequests` yields.
-- Default SIGINT/SIGTERM handling closes the server channel.
-- Cancelling the run task closes the server channel.
+- `run(started:)` binds, calls `started`, and waits for listener closure and active connection drain before shutting down the event-loop group.
+- The ServiceLifecycle SPI shutdown stream and default SIGINT/SIGTERM handling stop accepting new connections and queued pipelined requests, then drain active work until `shutdownGracePeriod` expires.
+- Cancelling the run task force-closes the listener and active connections, including an unlimited graceful drain.
+- Header deadlines start on an active idle connection and restart after successful response-end flush; upload deadlines pause under inbound backpressure. NIO configuration mirrors core deadline defaults and nil semantics.
+- Observer accounting and terminal arbitration stay on the event loop; immutable event delivery runs asynchronously outside it. Nil observers create no delivery tasks.
 - Signal handling stays in `DaylilyNIO` and does not leak NIO types into user APIs.
 
 Rules:

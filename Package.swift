@@ -75,6 +75,7 @@ let package = Package(
         .target(
             name: "DaylilySwiftLog",
             dependencies: [
+                "DaylilyCore",
                 "DaylilyObservability",
                 .product(name: "Logging", package: "swift-log"),
             ]
@@ -123,6 +124,7 @@ let package = Package(
                 "Daylily",
                 "DaylilyCheckSuite",
                 "DaylilyHTTPTypes",
+                "DaylilyObservability",
                 "DaylilyOpenAPITransport",
                 "DaylilyServiceLifecycle",
                 "DaylilySwiftLog",

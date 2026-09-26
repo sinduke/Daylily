@@ -84,6 +84,7 @@ Daylily -> DaylilyOpenAPI
 DaylilyJSON -> DaylilyCore
 DaylilyJSON -> Foundation
 DaylilyObservability -> DaylilyCore
+DaylilySwiftLog -> DaylilyCore
 DaylilySwiftLog -> DaylilyObservability
 DaylilySwiftLog -> SwiftLog Logging
 DaylilyServiceLifecycle -> DaylilyCore
@@ -105,6 +106,7 @@ DaylilyTests -> Daylily
 DaylilyTests -> DaylilyCheckSuite
 DaylilyTests -> DaylilyHTTPTypes
 DaylilyTests -> DaylilyOpenAPITransport
+DaylilyTests -> DaylilyObservability
 DaylilyTests -> DaylilyTesting
 DaylilyTests -> Swift Testing
 DaylilyMacros -> SwiftSyntax
@@ -115,7 +117,11 @@ DaylilyCore -> Standard Library only
 
 Middleware lives in `DaylilyCore`. It is runtime infrastructure, not transport infrastructure.
 
-Lifecycle phases live in `DaylilyCore`. `Application.run` wires them to the current transport, and `DaylilyNIO` only exposes a transport-level `started` callback for bind completion. `DaylilyServiceLifecycle` is an optional adapter that exposes `Application` as a ServiceLifecycle `Service`; it does not replace lifecycle hooks or create a `ServiceGroup`.
+Lifecycle phases live in `DaylilyCore`. `Application.run` wires them to the current transport, and `DaylilyNIO` reports bind completion through a transport-level `started` callback. `DaylilyServiceLifecycle` is an optional adapter that exposes `Application` as a ServiceLifecycle `Service`; it does not replace lifecycle hooks or create a `ServiceGroup`.
+
+`ServerConfiguration` keeps NIO-free `Duration?` settings for request headers, upload idle time, and shutdown grace. `DaylilyNIO` owns timers and connection state: graceful shutdown stops accepting new work, quiesces queued pipelined requests, and drains active responses until the grace deadline. Task cancellation force-closes immediately. Upload timers pause under transport-imposed inbound backpressure and end when an early response abandons the body; inbound deadlines do not limit response producers.
+
+Transfer observation is supplied separately through `Application.run`, `NIOHTTPServer.init`, and the optional ServiceLifecycle initializer/helper. Its default is nil, so `ServerConfiguration` remains equatable and ordinary requests create no observation-delivery task.
 
 The `Dependencies` registry lives in `DaylilyCore`. `Application` owns an app-wide registry and stamps it onto each request before middleware and route handlers run.
 
@@ -278,6 +284,10 @@ RequestLogSink
 ```
 
 Request logging is a normal middleware and follows the same ordering, short-circuiting, and error mapping rules as other middleware. It records the final response status for successful downstream responses, `ResponseError.status` for framework errors, and `500 Internal Server Error` for unknown thrown errors.
+
+Response-transfer observation begins after the handler produces its response. `DaylilyCore` owns `ResponseTransferEvent`, `ResponseTransferOutcome`, and the nonthrowing async `ResponseTransferObserver` protocol. NIO owns successful body-write accounting and exactly-once terminal arbitration on the connection event loop, including disconnect or forced closure while a producer ignores cancellation. The duration ends at transport completion/cancellation/failure and excludes handler production time; byte counts exclude headers/framing and do not guarantee peer consumption.
+
+NIO freezes an immutable event and awaits its observer in a Swift task outside the event loop. Observer calls can overlap or arrive out of request order. Server shutdown does not await observers, so a blocked exporter cannot defeat the grace deadline; process-exit delivery is best effort and durable exporter lifecycle belongs to the application. `DaylilyObservability` offers in-memory/console implementations; optional `DaylilySwiftLog` adapts the same event to application-owned logging without making core depend on `Logging`.
 
 0013-002 request ID and timing:
 
