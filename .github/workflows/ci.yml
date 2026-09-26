@@ -97,6 +97,7 @@ jobs:
           swift test
           swift run --skip-build HelloDaylily --check
           python3 ai/evals/contracts/test_compatibility.py
+          python3 scripts/test-sustained-http.py
           python3 ai/evals/repeated-changes/run_extended.py --baseline-only --repetitions 1 --jobs 2 --output "$SMOKE_ARTIFACT_DIR/ai-baselines"
 
       - name: Validate external packages
@@ -207,21 +208,24 @@ jobs:
           persist-credentials: false
       - name: Exact-source persistent package and unit tests
         run: |
+          echo "PERSISTENT_ARTIFACT_ROOT=$RUNNER_TEMP" >> "$GITHUB_ENV"
           if [[ "$RUNNER_OS" == Linux ]]; then
             git config --global --add safe.directory "$GITHUB_WORKSPACE"
           fi
           source_args=(--mode revision --repo-url "file://$GITHUB_WORKSPACE" --revision "$(git rev-parse HEAD)")
           if [[ -n "$RELEASE_VERSION" ]]; then source_args=(--mode release --version "$RELEASE_VERSION"); fi
           scripts/persistent-consumer-smoke-test.sh "${source_args[@]}" --workdir "$RUNNER_TEMP/persistent-consumer" --keep 2>&1 | tee "$RUNNER_TEMP/persistent-consumer.log"
+          test -s "$RUNNER_TEMP/persistent-consumer/Package.resolved"
+          test -s "$RUNNER_TEMP/persistent-consumer/dependency-record.json"
       - name: Preserve persistent dependency records
-        if: always()
+        if: always() && env.PERSISTENT_ARTIFACT_ROOT != ''
         uses: actions/upload-artifact@v4
         with:
           name: persistent-consumer-${{ matrix.platform }}
           path: |
-            ${{ runner.temp }}/persistent-consumer.log
-            ${{ runner.temp }}/persistent-consumer/Package.resolved
-            ${{ runner.temp }}/persistent-consumer/dependency-record.json
+            ${{ env.PERSISTENT_ARTIFACT_ROOT }}/persistent-consumer.log
+            ${{ env.PERSISTENT_ARTIFACT_ROOT }}/persistent-consumer/Package.resolved
+            ${{ env.PERSISTENT_ARTIFACT_ROOT }}/persistent-consumer/dependency-record.json
           if-no-files-found: ignore
 
   business-deployment:

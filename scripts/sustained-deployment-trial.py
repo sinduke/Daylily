@@ -121,15 +121,19 @@ def connection_budget(connection, timeout):
 def response_chunks(response, transport, deadline, limit=256 * 1024):
     """Read available chunks, checking the total budget even for endless SSE."""
     size = 0
-    while True:
+    # read1 may close the response (and its socket) as soon as the final
+    # Content-Length byte is consumed. Do not touch that socket on the next pass.
+    while not response.isclosed():
         transport.settimeout(remaining(deadline))
         chunk = response.read1(8192)
         remaining(deadline)
         if not chunk:
-            return
+            break
         size += len(chunk)
         require(size <= limit, f"response exceeded {limit} bytes")
         yield chunk
+    remaining(deadline)
+    require(response.length in (None, 0), f"incomplete response: {response.length} body bytes missing")
 
 
 def response_lines(response, transport, deadline):

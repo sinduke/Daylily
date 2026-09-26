@@ -2,6 +2,9 @@ import DaylilyCore
 import DaylilyOpenAPITransport
 import DaylilyServiceLifecycle
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 import Logging
 import OpenAPIRuntime
 import OpenAPIURLSession
