@@ -1,0 +1,1 @@
+Preserve GET /health returning 200 "ok". Add GET /greetings/:name returning 200 "Hello, <name>!" using typed String path extraction. Missing the name must remain 404. Describe operationID "greet", required path parameter "name" type String, and 200 text/plain String response so validatedOpenAPI exports the runtime endpoint. Keep the public AddEndpoint.application() entry point.

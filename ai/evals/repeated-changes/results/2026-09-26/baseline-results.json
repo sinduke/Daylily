@@ -1,0 +1,20 @@
+[
+  {
+    "task": "01-add-endpoint",
+    "acceptance_exit_code": 1,
+    "baseline_rejected": true,
+    "wall_seconds": 23.854
+  },
+  {
+    "task": "02-replace-dependency",
+    "acceptance_exit_code": 1,
+    "baseline_rejected": true,
+    "wall_seconds": 21.569
+  },
+  {
+    "task": "03-evolve-dto",
+    "acceptance_exit_code": 1,
+    "baseline_rejected": true,
+    "wall_seconds": 19.118
+  }
+]

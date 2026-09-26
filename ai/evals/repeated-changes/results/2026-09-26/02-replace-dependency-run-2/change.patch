@@ -1,0 +1,22 @@
+--- before/Sources/TrialApp/App.swift
++++ after/Sources/TrialApp/App.swift
+@@ -12,11 +12,16 @@
+     public func greet(_ name: String) -> String { "Welcome, \(name)." }
+ }
+ public enum ReplaceDependency {
+-    public static func application() -> Application {
+-        Application {
++    private static let greetingProviderKey = DependencyKey<any GreetingProvider>("greetingProvider")
++
++    public static func application(provider: any GreetingProvider = FormalGreeting()) -> Application {
++        Application(dependencies: { dependencies in
++            dependencies.register(provider, for: greetingProviderKey)
++        }) {
+             Get("/greetings/:name") { request in
+                 let name = try request.parameters.require("name", as: String.self)
+-                return CasualGreeting().greet(name)
++                let provider = try request.dependencies.require(greetingProviderKey)
++                return provider.greet(name)
+             }.describe(
+                 operationID: "greet", inputs: [.path("name", type: "String")],
+                 responses: [.response(.ok, contentType: "text/plain", type: "String")]

@@ -1,0 +1,7 @@
+Implement the application change described in TASK.md in this isolated Swift package.
+Read TASK.md, Sources, the immutable acceptance tests, and provided docs as needed.
+Edit only files under Sources/. Do not modify Package.swift, Tests/, TASK.md, or docs/.
+Do not inspect any directories outside this workspace, other attempts, completed reference solutions, or the framework checkout. Use no web, connectors, or external services. Do not create commits.
+Implement the change yourself; no reference result is available in this workspace.
+Do not run swift build/test/package: an independent harness runs the fixed acceptance tests after you finish. This keeps dependency resolution and verification outside model wall time.
+When done, briefly state the change.

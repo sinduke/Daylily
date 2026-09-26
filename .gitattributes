@@ -1,0 +1,2 @@
+# Preserve whitespace-only context lines in recorded unified-diff evidence.
+ai/evals/repeated-changes/results/**/*.patch -whitespace

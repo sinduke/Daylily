@@ -1,0 +1,39 @@
+--- before/Sources/TrialApp/App.swift
++++ after/Sources/TrialApp/App.swift
+@@ -5,17 +5,23 @@
+ public enum EvolveDTO {
+     public struct CreateBookInput: Codable, Sendable {
+         public let title: String
+-        public init(title: String) { self.title = title }
++        public let author: String
++        public init(title: String, author: String) {
++            self.title = title
++            self.author = author
++        }
++        public init(title: String) { self.init(title: title, author: "") }
+     }
+     public struct Book: Codable, Equatable, Sendable {
+         public let id: Int
+         public let title: String
++        public let author: String
+     }
+     public static func application() -> Application {
+         Application {
+             Post("/books") { request in
+                 let input = try await request.json(CreateBookInput.self)
+-                return JSON(Book(id: 1, title: input.title), status: .created)
++                return JSON(Book(id: 1, title: input.title, author: input.author), status: .created)
+             }.describe(
+                 operationID: "createBook", requestBody: .json("CreateBookInput"),
+                 responses: [.response(.created, contentType: "application/json", type: "Book")]
+@@ -24,8 +30,8 @@
+     }
+     public static func components() -> OpenAPIComponents {
+         .init(schemas: [
+-            "CreateBookInput": .object(properties: ["title": .string()], required: ["title"]),
+-            "Book": .object(properties: ["id": .init(type: "integer", format: "int64"), "title": .string()], required: ["id", "title"]),
++            "CreateBookInput": .object(properties: ["title": .string(), "author": .string()], required: ["title", "author"]),
++            "Book": .object(properties: ["id": .init(type: "integer", format: "int64"), "title": .string(), "author": .string()], required: ["id", "title", "author"]),
+         ])
+     }
+ }

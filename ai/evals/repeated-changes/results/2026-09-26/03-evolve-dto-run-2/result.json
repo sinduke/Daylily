@@ -1,0 +1,44 @@
+{
+  "task": "03-evolve-dto",
+  "repetition": 2,
+  "model": "gpt-6-astra",
+  "reasoning_effort": "low",
+  "runner": "codex exec --json --ephemeral",
+  "source": "independent-model-edit",
+  "started_at": "2026-09-26T02:30:04.198872+00:00",
+  "model_exit_code": 0,
+  "model_completed_turn": true,
+  "model_wall_seconds": 44.848,
+  "acceptance_wall_seconds": 16.298,
+  "total_wall_seconds": 61.149,
+  "usage": {
+    "cache_write_input_tokens": 0,
+    "input_tokens": 108679,
+    "reasoning_output_tokens": 38,
+    "output_tokens": 706,
+    "cached_input_tokens": 90112
+  },
+  "cost_usd": null,
+  "cost_status": "unknown: ChatGPT CLI does not report a billed per-run cost",
+  "protected_inputs_unchanged": true,
+  "nonempty_patch": true,
+  "reported_file_changes": [
+    "<trial-workspace>/Sources/TrialApp/App.swift"
+  ],
+  "acceptance_exit_code": 0,
+  "success": true,
+  "fixture_sha256": {
+    "Sources/TrialApp/App.swift": "b42893b7a92337a58a7d6d9defcd27f98c5f2ae387cdeba3c8e8f6c3bf5cb6fb"
+  },
+  "evidence": {
+    "transcript": "events.jsonl",
+    "patch": "change.patch",
+    "acceptance": "acceptance.log"
+  },
+  "original_transcript_sha256": "a4e5570092c67d9fa29291b12a22862a7b7530de151f5bd48780571643c58845",
+  "evidence_export": "Commands, file changes, completion events and usage preserved; command stdout replaced with hash; acceptance build chatter omitted.",
+  "provided_docs_sha256": {
+    "docs/runtime-contracts.md": "c538fac0790ff4a3313a65245eda6d81edcc80d38671ba9d3aaea4549eb58aae",
+    "docs/api-registry.md": "43d920dfe78047d77bc4f0399ff6d61f086df2facfe73e4c1473908e26a36c69"
+  }
+}
